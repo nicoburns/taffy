@@ -266,6 +266,11 @@ pub enum Dimension {
     Points(f32),
     /// The dimension is stored in percentage relative to the parent item.
     Percent(f32),
+
+    /// The dimension as a fraction of the total available grid space.
+    /// Specified value is the numerator of the fraction. Denominator is the sum of all fraction specified in that grid dimension
+    /// Spec: https://www.w3.org/TR/css3-grid-layout/#fr-unit
+    Fraction(f32),
 }
 
 impl Default for Dimension {

@@ -661,6 +661,9 @@ mod tests {
 
     #[test]
     fn defaults_match() {
+        use super::Dimension;
+        use crate::geometry::Size;
+
         let old_defaults = FlexboxLayout {
             display: Default::default(),
             position_type: Default::default(),
@@ -677,15 +680,15 @@ mod tests {
             gap: Size { width: Dimension::Points(0.0), height: Dimension::Points(0.0) },
             flex_grow: 0.0,
             flex_shrink: 1.0,
-            flex_basis: super::Dimension::Auto,
+            flex_basis: Dimension::Auto,
             size: Default::default(),
             min_size: Default::default(),
             max_size: Default::default(),
             aspect_ratio: Default::default(),
             grid_template_rows: Default::default(),
             grid_template_columns: Default::default(),
-            grid_auto_rows: super::Dimension::Auto,
-            grid_auto_columns: super::Dimension::Auto,
+            grid_auto_rows: Dimension::Auto,
+            grid_auto_columns: Dimension::Auto,
             grid_auto_flow: Default::default(),
             grid_row_start: Default::default(),
             grid_row_end: Default::default(),

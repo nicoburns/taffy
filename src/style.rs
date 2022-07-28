@@ -451,6 +451,10 @@ pub struct FlexboxLayout {
     /// How large should the border be on each side?
     pub border: Rect<Dimension>,
 
+    // Gap
+    /// How large should the gaps between items in a grid or flex container be?
+    pub gap: Size<Dimension>,
+
     // Alignment properties
     /// How should items be aligned relative to the cross axis?
     pub align_items: AlignItems,
@@ -516,6 +520,7 @@ impl Default for FlexboxLayout {
             margin: Default::default(),
             padding: Default::default(),
             border: Default::default(),
+            gap: Size { width: Dimension::Points(0.0), height: Dimension::Points(0.0) },
             flex_grow: 0.0,
             flex_shrink: 1.0,
             flex_basis: Dimension::Auto,

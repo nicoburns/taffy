@@ -265,7 +265,7 @@ pub enum GridAutoFlow {
     Row,
     /// Items are placed by filling each column in turn, adding new columns as necessary.
     Column,
-    /// 
+    ///
     Dense,
     /// Combines `Row` with the dense packing algorithm.
     RowDense,
@@ -485,7 +485,6 @@ pub struct FlexboxLayout {
     ///
     /// 1.0 is the default value, and this value must be positive.
     pub flex_shrink: f32,
-
 
     // Grid container properies
     /// Defines the track sizing functions (widths) of the grid rows

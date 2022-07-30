@@ -218,7 +218,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
         _ => quote!(),
     };
 
-    let position_type = match style["position_type"] {
+    let position_type = match style["positionType"] {
         json::JsonValue::Short(ref value) => match value.as_ref() {
             "absolute" => quote!(position_type: taffy::style::PositionType::Absolute,),
             _ => quote!(),
@@ -342,7 +342,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
         _ => quote!(),
     };
 
-    let min_size = match style["min_size"] {
+    let min_size = match style["minSize"] {
         json::JsonValue::Object(ref value) => {
             let min_size = generate_size(value);
             quote!(min_size: #min_size,)
@@ -350,7 +350,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
         _ => quote!(),
     };
 
-    let max_size = match style["max_size"] {
+    let max_size = match style["maxSize"] {
         json::JsonValue::Object(ref value) => {
             let max_size = generate_size(value);
             quote!(max_size: #max_size,)

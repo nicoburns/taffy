@@ -1,27 +1,11 @@
 use crate::geometry::Size;
 use crate::node::Node;
-use crate::style::Dimension;
+use crate::style::{Dimension, GridScalarTrackSizingFunction};
 use crate::sys::GridTrackVec;
 
 struct AreaOccupancyMatrix {
     areas: Vec<u16>,
     num_rows: u16,
-}
-
-/// Track sizing function
-///
-/// Each function is either
-///   - A FIXED sizing function (<length> or resolvable <percentage>).
-///   - An INTRINSIC sizing function (min-content, max-content, auto, fit-content()).
-///   - A FLEXIBLE sizing function (<flex>).
-///
-/// [Specification](https://www.w3.org/TR/css3-grid-layout/#layout-algorithm)
-enum GridTrackSizingFunction {
-    Fixed(Dimension),
-    MinContent,
-    MaxContent,
-    Auto,
-    Flex(f32),
 }
 
 enum GridTrackKind {
@@ -31,8 +15,8 @@ enum GridTrackKind {
 
 struct GridTrack {
     kind: GridTrackKind,
-    min_track_sizing_function: GridTrackSizingFunction,
-    max_track_sizing_function: GridTrackSizingFunction,
+    min_track_sizing_function: GridScalarTrackSizingFunction,
+    max_track_sizing_function: GridScalarTrackSizingFunction,
     base_size: f32,
     growth_limit: f32,         // Note: can be infinity
     infinitely_growable: bool, // https://www.w3.org/TR/css3-grid-layout/#infinitely-growable

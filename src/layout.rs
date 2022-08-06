@@ -104,6 +104,17 @@ impl Size<AvailableSpace> {
     }
 }
 
+/// The amount of space available to a node in a given axis
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AvailableSpace {
+    /// The amount of space available is the specified number of pixels
+    Definite(f32),
+    /// The amount of space available is indefinite and the node should be laid out under a min-content constraint
+    MinContent,
+    /// The amount of space available is indefinite and the node should be laid out under a max-content constraint
+    MaxContent,
+}
+
 /// The final result of a layout algorithm for a single [`Node`](crate::node::Node).
 #[derive(Copy, Debug, Clone)]
 pub struct Layout {

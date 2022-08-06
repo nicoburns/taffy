@@ -1,12 +1,24 @@
+/// This module is a partial implementation of the CSS Grid Level 2 specification
+/// https://www.w3.org/TR/css-grid-2/
 use crate::geometry::Size;
+use crate::layout::AvailableSpace;
 use crate::node::Node;
-use crate::style::{Dimension, MinTrackSizingFunction, MaxTrackSizingFunction};
+use crate::style::{
+    Dimension, FlexboxLayout, GridLine, MaxTrackSizingFunction, MinTrackSizingFunction, TrackSizingFunction,
+};
 use crate::sys::GridTrackVec;
+use crate::tree::LayoutTree;
 use std::cmp::max;
 
 struct AreaOccupancyMatrix {
     areas: Vec<u16>,
     num_rows: u16,
+}
+
+impl AreaOccupancyMatrix {
+    pub fn new() -> AreaOccupancyMatrix {
+        AreaOccupancyMatrix { areas: Vec::new(), num_rows: 0 }
+    }
 }
 
 /// The abstract axis in CSS Grid
@@ -22,7 +34,7 @@ enum GridAxis {
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum GridTrackKind {
     Track,
-    Gutter { name: u16 },
+    Gutter { name: Option<u16> },
 }
 
 /// Internal sizing information for a single grid track (row/column)
@@ -38,6 +50,31 @@ struct GridTrack {
 }
 
 impl GridTrack {
+    fn new(
+        min_track_sizing_function: MinTrackSizingFunction,
+        max_track_sizing_function: MaxTrackSizingFunction,
+    ) -> GridTrack {
+        GridTrack {
+            kind: GridTrackKind::Track,
+            min_track_sizing_function,
+            max_track_sizing_function,
+            base_size: 0.0,
+            growth_limit: 0.0,
+            infinitely_growable: false,
+        }
+    }
+
+    fn gutter(size: Dimension) -> GridTrack {
+        GridTrack {
+            kind: GridTrackKind::Gutter { name: None },
+            min_track_sizing_function: MinTrackSizingFunction::Fixed(size),
+            max_track_sizing_function: MaxTrackSizingFunction::Fixed(size),
+            base_size: 0.0,
+            growth_limit: 0.0,
+            infinitely_growable: false,
+        }
+    }
+
     #[inline]
     fn is_flexible(&self) -> bool {
         match self.max_track_sizing_function {
@@ -56,10 +93,8 @@ impl GridTrack {
 }
 
 trait GridAxisExt {
-    
     fn flex_factor_sum(&self) -> f32;
 
-   
     fn leftover_space(&self) -> f32;
 }
 
@@ -68,6 +103,17 @@ struct GridAxisTracks {
 }
 
 impl GridAxisTracks {
+    fn new() -> GridAxisTracks {
+        GridAxisTracks { inner: GridTrackVec::new() }
+    }
+
+    fn with_capacity(capacity: usize) -> GridAxisTracks {
+        GridAxisTracks { inner: GridTrackVec::with_capacity(capacity) }
+    }
+
+    fn push(&mut self, item: GridTrack) {
+        self.push(item)
+    }
 
     /// The sum of the flex factors (fr units) of the flexible tracks.
     /// If this value is less than 1, set it to 1 instead.
@@ -84,14 +130,6 @@ impl GridAxisTracks {
     fn hypothetical_fr_size(&self) -> f32 {
         self.leftover_space() / self.flex_factor_sum()
     }
-}
-
-struct GridLine {}
-
-enum AvailableSpace {
-    Definite(f32),
-    MinContent,
-    MaxContent,
 }
 
 enum GridPosition {
@@ -119,7 +157,6 @@ struct GridItem {
     column_start: GridPosition,
     column_end: GridPosition,
 }
-
 
 impl GridItem {
     fn new(node: Node) -> Self {
@@ -150,13 +187,92 @@ impl GridItem {
 }
 
 struct Grid {
-    width: AvailableSpace,
-    height: AvailableSpace,
+    available_space: Size<AvailableSpace>,
     columns: GridAxisTracks,
     rows: GridAxisTracks,
     area_occupancy_matrix: AreaOccupancyMatrix,
-    column_gutters: GridTrackVec<GridLine>,
-    row_gutters: GridTrackVec<GridLine>,
     named_areas: Vec<NamedArea>,
     items: Vec<GridItem>,
+}
+
+pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>) {
+    // Estimate the number of rows and columns in the grid as a perf optimisation to reduce allocations
+    // Note that columns and rows GridAxisTracks below have size (estimate*2 - 1) to account for gutters
+    let grid_size_estimate = compute_grid_size_estimate(tree, root);
+
+    let mut grid = Grid {
+        available_space,
+        columns: GridAxisTracks::with_capacity((grid_size_estimate.width as usize * 2) - 1),
+        rows: GridAxisTracks::with_capacity((grid_size_estimate.height as usize * 2) - 1),
+        area_occupancy_matrix: AreaOccupancyMatrix::new(),
+        named_areas: Vec::new(),
+        items: Vec::new(),
+    };
+
+    // 7.1. The Explicit Grid
+    let style = tree.style(root);
+    resolve_explicit_grid_track(&mut grid.columns, &style.grid_template_columns, style.gap.width);
+    resolve_explicit_grid_track(&mut grid.rows, &style.grid_template_rows, style.gap.height);
+}
+
+
+/// Estimate the number of rows and columns in the grid
+/// This is used as a performance optimisation to pre-size vectors and reduce allocations
+fn compute_grid_size_estimate(tree: &mut impl LayoutTree, node: Node) -> Size<u16> {
+
+    // Initialise estimates with explicit track lengths (flooring at 1)
+    let style = tree.style(node);
+    let mut col_count_estimate = max(style.grid_template_columns.len(), 1) as u16;
+    let mut row_count_estimate = max(style.grid_template_rows.len(), 1) as u16;
+
+    // Iterate over children, producing an estimate of the implicit rows used by each child
+    tree.children(node).into_iter().copied().map(|child_node| tree.style(child_node)).for_each(
+        |child_style: &FlexboxLayout| {
+            let col_usage = child_max_track_size_estimate(child_style.grid_column_start, child_style.grid_column_end);
+            let row_usage = child_max_track_size_estimate(child_style.grid_row_start, child_style.grid_row_end);
+            col_count_estimate = max(col_count_estimate, col_usage);
+            row_count_estimate = max(row_count_estimate, row_usage);
+        },
+    );
+
+    Size { width: col_count_estimate, height: row_count_estimate }
+}
+
+/// Helper function for `compute_grid_size_estimate`
+#[inline]
+fn child_max_track_size_estimate(start: GridLine, end: GridLine) -> u16 {
+    use GridLine::*;
+    match (start, end) {
+        (Auto, Auto) => 0,
+        (Auto | Track(_), Track(track)) => max(track, 0) as u16,
+        (Auto, Span(span)) => span as u16,
+        (Track(track), Auto) => max(track, 0) as u16,
+        (Track(track), Span(span)) => (max(track, 0) as u16 + span) as u16,
+        (Span(span), Auto) => span as u16,
+        (Span(span1), Span(span2)) => max(span1, span2) as u16,
+        (Span(span), Track(track)) => max(span, max(track, 0) as u16) as u16,
+    }
+}
+
+/// 7.1. The Explicit Grid
+/// Initialise the `rows` and `columns` fields of the `Grid` based on following style properties:
+/// - `grid-template-rows`
+/// - `grid-template-columns`
+fn resolve_explicit_grid_track(
+    track_list: &mut GridAxisTracks,
+    track_template: &GridTrackVec<TrackSizingFunction>,
+    gap: Dimension,
+) {
+    track_template.iter().enumerate().for_each(|(index, track_sizing_function): (usize, &TrackSizingFunction)| {
+        // Generate gutter in between each track
+        if index != 0 {
+            track_list.push(GridTrack::gutter(gap))
+        }
+
+        // Generate track
+        track_list.push(GridTrack::new(
+            track_sizing_function.min_sizing_function(),
+            track_sizing_function.max_sizing_function(),
+        ))
+    })
 }

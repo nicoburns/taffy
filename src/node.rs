@@ -10,7 +10,7 @@ use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::Size;
 use crate::layout::{AvailableSpace, Cache, Layout};
 use crate::prelude::LayoutTree;
-use crate::style::FlexboxLayout;
+use crate::style::{Display, FlexboxLayout};
 #[cfg(any(feature = "std", feature = "alloc"))]
 use crate::sys::Box;
 use crate::sys::{new_vec_with_capacity, ChildrenVec, Vec};

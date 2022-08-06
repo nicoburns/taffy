@@ -345,8 +345,8 @@ pub enum TrackSizingFunction {
 
 impl TrackSizingFunction {
     /// Getter for the min_track_sizing_function. This is either the `min` property of the MinMax Variant,
-    /// or else another variant converted to the same variant in the GridScalarTrackSizingFunction enum
-    /// Flex is not valid MinTrackingSizing function, and thus get converted to Auto
+    /// or else another variant converted to the same variant in the MinTrackSizingFunction enum
+    /// Flex is not valid MinTrackingSizingFunction, and thus get converted to Auto
     pub fn min_sizing_function(&self) -> MinTrackSizingFunction {
         match self {
             Self::MinMax { min, .. } => *min,
@@ -359,7 +359,7 @@ impl TrackSizingFunction {
     }
 
     /// Getter for the max_track_sizing_function. This is either the `max` property of the MinMax Variant,
-    /// or else another variant converted to the same variant in the GridScalarTrackSizingFunction enum
+    /// or else another variant converted to the same variant in the MaxTrackSizingFunction enum
     pub fn max_sizing_function(&self) -> MaxTrackSizingFunction {
         match self {
             Self::MinMax { max, .. } => *max,

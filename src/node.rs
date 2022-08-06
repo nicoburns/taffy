@@ -8,9 +8,9 @@ pub type Node = slotmap::DefaultKey;
 
 use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::Size;
-use crate::layout::{Cache, Layout};
+use crate::layout::{AvailableSpace, Cache, Layout};
 use crate::prelude::LayoutTree;
-use crate::style::FlexboxLayout;
+use crate::style::{Display, FlexboxLayout};
 #[cfg(any(feature = "std", feature = "alloc"))]
 use crate::sys::Box;
 use crate::sys::{new_vec_with_capacity, ChildrenVec, Vec};
@@ -348,7 +348,17 @@ impl Taffy {
 
     /// Updates the stored layout of the provided `node` and its children
     pub fn compute_layout(&mut self, node: Node, size: Size<Option<f32>>) -> Result<(), TaffyError> {
-        crate::flexbox::compute(self, node, size);
+        match self.nodes[node].style.display {
+            Display::Flex => crate::flexbox::compute(self, node, size),
+            Display::Grid => {
+                let available_space = size.map(|dim| match dim {
+                    Some(value) => AvailableSpace::Definite(value),
+                    None => AvailableSpace::MaxContent,
+                });
+                crate::grid::compute(self, node, available_space)
+            }
+            Display::None => {}
+        }
         // self.compute(node, size);
         Ok(())
     }

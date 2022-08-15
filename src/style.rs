@@ -1,6 +1,6 @@
 //! A representation of [CSS layout properties](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) in Rust, used for flexbox layout
 
-use crate::geometry::{Rect, Size};
+use crate::geometry::{Rect, Line, Size};
 use crate::sys::GridTrackVec;
 
 /// How [`Nodes`](crate::node::Node) are aligned relative to the cross axis
@@ -272,6 +272,15 @@ impl Default for GridAutoFlow {
     }
 }
 
+impl GridAutoFlow {
+    pub fn is_dense(&self) -> bool {
+        match self {
+            Self::Row | Self::Column => false,
+            Self::RowDense | Self::ColumnDense => true,
+        }
+    }
+}
+
 /// A track placement specicification. Used for grid-[row/column]-[start/end]. Named tracks are not implemented.
 ///
 /// Defaults to [`GridLine::Auto`]
@@ -279,7 +288,7 @@ impl Default for GridAutoFlow {
 /// [Specification](https://www.w3.org/TR/css3-grid-layout/#typedef-grid-row-start-grid-line)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum GridLine {
+pub enum GridPlacement {
     /// Place item according to the auto-placement algorithm, and the parent's grid_auto_flow property
     Auto,
     /// Place item at specified track (column or row) index
@@ -288,9 +297,31 @@ pub enum GridLine {
     Span(u16),
 }
 
-impl Default for GridLine {
+impl Default for GridPlacement {
     fn default() -> Self {
         Self::Auto
+    }
+}
+
+/// Represents the start and end points of a GridItem within a given axis
+impl Line<GridPlacement> {
+
+    #[inline]
+    /// Whether the track position is definite in this axis (or the item will need auto placement)
+    /// The track position is definite if least one of the start and end positions is a track index
+    pub fn is_definite(&self) -> bool {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Track(_), _) | (_, Track(_)) => true,
+            _ => false,
+        }
+    }
+}
+
+/// Represents the start and end points of a GridItem within a given axis
+impl Default for Line<GridPlacement> {
+    fn default() -> Self {
+        Line { start: GridPlacement::Auto, end: GridPlacement:: Auto }
     }
 }
 
@@ -560,14 +591,10 @@ pub struct FlexboxLayout {
     pub grid_auto_flow: GridAutoFlow,
 
     // Grid child properties
-    /// Defines which row in the grid the item should start at
-    pub grid_row_start: GridLine,
-    /// Defines which row in the grid the item should end at
-    pub grid_row_end: GridLine,
-    /// Defines which column in the grid the item should start at
-    pub grid_column_start: GridLine,
-    /// Defines which column in the grid the item should end at
-    pub grid_column_end: GridLine,
+    /// Defines which row in the grid the item should start and end at
+    pub grid_row: Line<GridPlacement>,
+    /// Defines which column in the grid the item should start and end at
+    pub grid_column: Line<GridPlacement>,
 }
 
 impl Default for FlexboxLayout {
@@ -598,10 +625,8 @@ impl Default for FlexboxLayout {
             grid_auto_rows: Default::default(),
             grid_auto_columns: Default::default(),
             grid_auto_flow: Default::default(),
-            grid_row_start: Default::default(),
-            grid_row_end: Default::default(),
-            grid_column_start: Default::default(),
-            grid_column_end: Default::default(),
+            grid_row: Default::default(),
+            grid_column: Default::default(),
         }
     }
 }

@@ -1,7 +1,9 @@
 //! A representation of [CSS layout properties](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) in Rust, used for flexbox layout
 
-use crate::geometry::{Rect, Line, Size};
+use crate::geometry::{Line, Rect, Size};
+use crate::grid::RowColumn;
 use crate::sys::GridTrackVec;
+use std::cmp::{max, min};
 
 /// How [`Nodes`](crate::node::Node) are aligned relative to the cross axis
 ///
@@ -279,6 +281,13 @@ impl GridAutoFlow {
             Self::RowDense | Self::ColumnDense => true,
         }
     }
+
+    pub fn flow_direction(&self) -> RowColumn {
+        match self {
+            Self::Row | Self::RowDense => RowColumn::Row,
+            Self::Column | Self::ColumnDense => RowColumn::Column,
+        }
+    }
 }
 
 /// A track placement specicification. Used for grid-[row/column]-[start/end]. Named tracks are not implemented.
@@ -305,7 +314,6 @@ impl Default for GridPlacement {
 
 /// Represents the start and end points of a GridItem within a given axis
 impl Line<GridPlacement> {
-
     #[inline]
     /// Whether the track position is definite in this axis (or the item will need auto placement)
     /// The track position is definite if least one of the start and end positions is a track index
@@ -316,12 +324,66 @@ impl Line<GridPlacement> {
             _ => false,
         }
     }
+
+    /// If at least one of the of the start and end positions is a track index then the other end can be resolved
+    /// into a track index purely based on the information contained with the placement specification
+    pub fn resolve_definite_grid_tracks(&self) -> Line<i16> {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Track(track1), Track(track2)) => {
+                if track1 == track2 {
+                    Line { start: track1, end: track1 + 1 }
+                } else {
+                    Line { start: min(track1, track2), end: max(track1, track2) }
+                }
+            }
+            (Track(track), Span(span)) => Line { start: track, end: track + span as i16 },
+            (Track(track), Auto) => Line { start: track, end: track + 1 as i16 },
+            (Span(span), Track(track)) => Line { start: track - span as i16, end: track },
+            (Auto, Track(track)) => Line { start: track - 1 as i16, end: track },
+            _ => panic!("resolve_definite_grid_tracks should only be called on definite grid tracks"),
+        }
+    }
+
+    /// If neither of the start and end positions is a track index then the other end can be resolved
+    /// into a track index if a definite start position is supplied externally
+    pub fn resolve_indefinite_grid_tracks(&self, start: i16) -> Line<i16> {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Auto, Auto) => Line { start, end: start + 1 },
+            (Span(span), Auto) => Line { start, end: start + span as i16 },
+            (Auto, Span(span)) => Line { start, end: start + span as i16 },
+            (Span(span), Span(_)) => Line { start, end: start + span as i16 },
+            _ => panic!("resolve_indefinite_grid_tracks should only be called on indefinite grid tracks"),
+        }
+    }
+
+    pub fn span(&self) -> u16 {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Track(track1), Track(track2)) => {
+                if track1 == track2 {
+                    1
+                } else {
+                   (max(track1, track2) - min(track1, track2)) as u16
+                }
+            }
+            (Track(_), Auto) => 1,
+            (Auto, Track(_)) => 1,
+            (Auto, Auto) => 1,
+            (Track(_), Span(span)) => span,
+            (Span(span), Track(_)) => span,
+            (Span(span), Auto) => span,
+            (Auto, Span(span)) => span,
+            (Span(span), Span(_)) => span,
+        }
+    }
 }
 
 /// Represents the start and end points of a GridItem within a given axis
 impl Default for Line<GridPlacement> {
     fn default() -> Self {
-        Line { start: GridPlacement::Auto, end: GridPlacement:: Auto }
+        Line { start: GridPlacement::Auto, end: GridPlacement::Auto }
     }
 }
 
@@ -728,6 +790,13 @@ impl FlexboxLayout {
             }
         } else {
             self.align_self
+        }
+    }
+
+    pub(crate) fn grid_placement(&self, axis: RowColumn) -> Line<GridPlacement> {
+        match axis {
+            RowColumn::Row => self.grid_row,
+            RowColumn::Column => self.grid_column,
         }
     }
 }

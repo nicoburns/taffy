@@ -1,16 +1,18 @@
 /// This module is a partial implementation of the CSS Grid Level 2 specification
 /// https://www.w3.org/TR/css-grid-2/
-use crate::geometry::{Line, Size};
+use crate::geometry::{Size};
 use crate::layout::AvailableSpace;
 use crate::node::Node;
-use crate::style::GridPlacement;
 use crate::tree::LayoutTree;
-use grid::Grid;
-use types::{CssGrid, GridAxisTracks};
+use types::{CssGrid, GridAxisTracks, GridTrack};
 
 mod estimate;
 mod resolve_and_place;
 mod types;
+
+pub use types::RowColumn;
+
+use self::resolve_and_place::CellOccupancyMatrix;
 
 pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>) {
     // Estimate the number of rows and columns in the grid as a perf optimisation to reduce allocations
@@ -23,10 +25,14 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
         available_space,
         columns: GridAxisTracks::with_capacity_and_origin(axis_track_sizes.width, axis_origins.width),
         rows: GridAxisTracks::with_capacity_and_origin(axis_track_sizes.height, axis_origins.height),
-        area_occupancy_matrix: Grid::new(axis_track_sizes.width, axis_track_sizes.height),
+        cell_occupancy_matrix: CellOccupancyMatrix::new(axis_track_sizes.width, axis_track_sizes.height),
         named_areas: Vec::new(),
-        items: Vec::new(),
+        items: Vec::with_capacity(tree.children(root).len()),
     };
+
+    // Push "uninitialized" placeholder tracks to negative grid tracks (< origin)
+    populate_negative_grid_tracks(&mut grid.columns);
+    populate_negative_grid_tracks(&mut grid.rows);
 
     // 7.1. The Explicit Grid
     let style = tree.style(root);
@@ -34,11 +40,19 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
     resolve_and_place::resolve_explicit_grid_track(&mut grid.rows, &style.grid_template_rows, style.gap.height);
 }
 
-fn resolve_definite_grid_tracks(placement: Line<GridPlacement>) -> Line<GridPlacement> {
-    use GridPlacement::*;
-    match (placement.start, placement.end) {
-        (Auto, _) | (_, Auto) | (Span(_), Span(_)) | (Track(_), Track(_)) => placement,
-        (Track(track), Span(span)) => Line { start: Track(track), end: Track(track + span as i16) },
-        (Span(span), Track(track)) => Line { start: Track(track - span as i16), end: Track(track) },
+fn populate_negative_grid_tracks(axis: &mut GridAxisTracks) {
+    debug_assert!(
+        axis.tracks.len() != 0,
+        "populate_negative_grid_tracks should only ever be called on an empty grid axis"
+    );
+    debug_assert!(axis.origin % 2 != 0, "axis.origin should always be even");
+
+    // If origin is zero then there are no negative grid tracks
+    if axis.origin == 0 {
+        return;
+    }
+
+    for _ in 0..axis.origin {
+        axis.push(GridTrack::uninit());
     }
 }

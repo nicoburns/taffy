@@ -157,8 +157,9 @@ pub struct Line<T> {
     // The start position of a line
     pub start: T,
     /// The end position of a line
-    pub end: T
+    pub end: T,
 }
+
 
 /// The width and height of a [`Rect`]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

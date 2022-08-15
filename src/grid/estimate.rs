@@ -10,7 +10,7 @@ use std::cmp::{max, min};
 /// This is used as a performance optimisation to pre-size vectors and reduce allocations
 ///
 /// Note that this function internally mixes use of grid track numbers and grid line numbers
-pub(super) fn compute_grid_size_estimate(tree: &impl LayoutTree, node: Node) -> Size<(u16, u16)> {
+pub(super) fn compute_grid_size_estimate(tree: &impl LayoutTree, node: Node) -> Size<(u16, u16, u16)> {
     // Initialise estimates with explicit track lengths (flooring at 1)
     let style = tree.style(node);
     let explicit_col_estimate = max(style.grid_template_columns.len(), 1) as u16;
@@ -35,23 +35,25 @@ pub(super) fn compute_grid_size_estimate(tree: &impl LayoutTree, node: Node) -> 
     );
 
     // The units of these variables are *track* counts
-    let mut positive_inline_track_estimate = max(explicit_col_estimate, max(col_max - 1, 1) as u16);
-    let negative_inline_track_estimate = min((explicit_col_estimate + 1) as i16 + min(col_min, 0) - 1, 0).abs() as u16;
-    let mut positive_block_track_estimate = max(explicit_row_estimate, max(row_max - 1, 1) as u16);
-    let negative_block_track_estimate = min((explicit_row_estimate + 1) as i16 + min(row_min, 0) - 1, 0).abs() as u16;
+    let negative_implicit_inline_track_estimate = min((explicit_col_estimate + 1) as i16 + min(col_min, 0) - 1, 0).abs() as u16;
+    let explicit_inline_track_estimate = explicit_col_estimate;
+    let mut positive_implicit_inline_track_estimate = max(explicit_col_estimate, max(col_max - 1, 1) as u16) - explicit_col_estimate;
+    let negative_implicit_block_track_estimate = min((explicit_row_estimate + 1) as i16 + min(row_min, 0) - 1, 0).abs() as u16;
+    let explicit_block_track_estimate = explicit_row_estimate;
+    let mut positive_implicit_block_track_estimate = max(explicit_row_estimate, max(row_max - 1, 1) as u16) - explicit_row_estimate;
 
     // In each axis, adjust positive track estimate if any items have a span that does not fit within
     // the total number of tracks in the estimate
-    if positive_inline_track_estimate + negative_inline_track_estimate < row_max_span {
-      positive_inline_track_estimate = row_max_span - negative_inline_track_estimate;
+    if negative_implicit_inline_track_estimate + explicit_inline_track_estimate + positive_implicit_inline_track_estimate < row_max_span {
+      positive_implicit_inline_track_estimate = row_max_span - explicit_inline_track_estimate - negative_implicit_inline_track_estimate;
     }
-    if positive_block_track_estimate + negative_block_track_estimate < row_max_span {
-      positive_block_track_estimate = row_max_span - negative_block_track_estimate;
+    if negative_implicit_block_track_estimate + explicit_block_track_estimate + positive_implicit_block_track_estimate < row_max_span {
+      positive_implicit_block_track_estimate = row_max_span - explicit_block_track_estimate - negative_implicit_block_track_estimate;
     }
 
     Size {
-        width: (negative_inline_track_estimate, positive_inline_track_estimate),
-        height: (negative_block_track_estimate, positive_block_track_estimate),
+        width: (negative_implicit_inline_track_estimate, explicit_inline_track_estimate, positive_implicit_inline_track_estimate),
+        height: (negative_implicit_block_track_estimate, explicit_block_track_estimate, positive_implicit_block_track_estimate ),
     }
 }
 

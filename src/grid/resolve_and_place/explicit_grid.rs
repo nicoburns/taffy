@@ -1,4 +1,4 @@
-use super::super::types::{ GridAxisTracks, GridTrack};
+use super::super::types::{GridAxisTracks, GridTrack};
 use crate::style::{Dimension, TrackSizingFunction};
 use crate::sys::GridTrackVec;
 

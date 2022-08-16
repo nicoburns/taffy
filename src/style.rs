@@ -370,7 +370,7 @@ impl Line<GridPlacement> {
                 if track1 == track2 {
                     1
                 } else {
-                   (max(track1, track2) - min(track1, track2)) as u16
+                    (max(track1, track2) - min(track1, track2)) as u16
                 }
             }
             (Track(_), Auto) => 1,

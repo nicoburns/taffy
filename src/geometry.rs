@@ -160,7 +160,6 @@ pub struct Line<T> {
     pub end: T,
 }
 
-
 /// The width and height of a [`Rect`]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

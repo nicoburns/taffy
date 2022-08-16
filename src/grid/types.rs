@@ -1,14 +1,12 @@
 use slotmap::secondary;
 
-use crate::geometry::{Size, Line};
+use super::resolve_and_place::CellOccupancyMatrix;
+use crate::geometry::{Line, Size};
 use crate::layout::AvailableSpace;
 use crate::node::Node;
 use crate::style::{Dimension, MaxTrackSizingFunction, MinTrackSizingFunction, TrackSizingFunction};
 use crate::sys::GridTrackVec;
-use super::resolve_and_place::CellOccupancyMatrix;
 use std::cmp::max;
-
-
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum RowColumn {
@@ -17,30 +15,29 @@ pub enum RowColumn {
 }
 
 impl RowColumn {
-
-  #[inline]
-  pub fn opposite_axis(&self) -> Self {
-    match *self {
-      RowColumn::Row => RowColumn::Column,
-      RowColumn::Column => RowColumn::Row,
+    #[inline]
+    pub fn opposite_axis(&self) -> Self {
+        match *self {
+            RowColumn::Row => RowColumn::Column,
+            RowColumn::Column => RowColumn::Row,
+        }
     }
-  }
-
-  #[inline]
-  pub fn into_row_column<T>(&self, primary: T, secondary: T) -> (T, T) {
-    match *self {
-      RowColumn::Row => (primary, secondary),
-      RowColumn::Column => (secondary, primary),
-    }
-  }
 
     #[inline]
-  pub fn into_primary_secondary<T>(&self, row: T, column: T) -> (T, T) {
-    match *self {
-      RowColumn::Row => (row, column),
-      RowColumn::Column => (column, row),
+    pub fn into_row_column<T>(&self, primary: T, secondary: T) -> (T, T) {
+        match *self {
+            RowColumn::Row => (primary, secondary),
+            RowColumn::Column => (secondary, primary),
+        }
     }
-  }
+
+    #[inline]
+    pub fn into_primary_secondary<T>(&self, row: T, column: T) -> (T, T) {
+        match *self {
+            RowColumn::Row => (row, column),
+            RowColumn::Column => (column, row),
+        }
+    }
 }
 
 /// The abstract axis in CSS Grid

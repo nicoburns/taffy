@@ -35,25 +35,45 @@ pub(super) fn compute_grid_size_estimate(tree: &impl LayoutTree, node: Node) -> 
     );
 
     // The units of these variables are *track* counts
-    let negative_implicit_inline_track_estimate = min((explicit_col_estimate + 1) as i16 + min(col_min, 0) - 1, 0).abs() as u16;
+    let negative_implicit_inline_track_estimate =
+        min((explicit_col_estimate + 1) as i16 + min(col_min, 0) - 1, 0).abs() as u16;
     let explicit_inline_track_estimate = explicit_col_estimate;
-    let mut positive_implicit_inline_track_estimate = max(explicit_col_estimate, max(col_max - 1, 1) as u16) - explicit_col_estimate;
-    let negative_implicit_block_track_estimate = min((explicit_row_estimate + 1) as i16 + min(row_min, 0) - 1, 0).abs() as u16;
+    let mut positive_implicit_inline_track_estimate =
+        max(explicit_col_estimate, max(col_max - 1, 1) as u16) - explicit_col_estimate;
+    let negative_implicit_block_track_estimate =
+        min((explicit_row_estimate + 1) as i16 + min(row_min, 0) - 1, 0).abs() as u16;
     let explicit_block_track_estimate = explicit_row_estimate;
-    let mut positive_implicit_block_track_estimate = max(explicit_row_estimate, max(row_max - 1, 1) as u16) - explicit_row_estimate;
+    let mut positive_implicit_block_track_estimate =
+        max(explicit_row_estimate, max(row_max - 1, 1) as u16) - explicit_row_estimate;
 
     // In each axis, adjust positive track estimate if any items have a span that does not fit within
     // the total number of tracks in the estimate
-    if negative_implicit_inline_track_estimate + explicit_inline_track_estimate + positive_implicit_inline_track_estimate < row_max_span {
-      positive_implicit_inline_track_estimate = row_max_span - explicit_inline_track_estimate - negative_implicit_inline_track_estimate;
+    if negative_implicit_inline_track_estimate
+        + explicit_inline_track_estimate
+        + positive_implicit_inline_track_estimate
+        < row_max_span
+    {
+        positive_implicit_inline_track_estimate =
+            row_max_span - explicit_inline_track_estimate - negative_implicit_inline_track_estimate;
     }
-    if negative_implicit_block_track_estimate + explicit_block_track_estimate + positive_implicit_block_track_estimate < row_max_span {
-      positive_implicit_block_track_estimate = row_max_span - explicit_block_track_estimate - negative_implicit_block_track_estimate;
+    if negative_implicit_block_track_estimate + explicit_block_track_estimate + positive_implicit_block_track_estimate
+        < row_max_span
+    {
+        positive_implicit_block_track_estimate =
+            row_max_span - explicit_block_track_estimate - negative_implicit_block_track_estimate;
     }
 
     Size {
-        width: (negative_implicit_inline_track_estimate, explicit_inline_track_estimate, positive_implicit_inline_track_estimate),
-        height: (negative_implicit_block_track_estimate, explicit_block_track_estimate, positive_implicit_block_track_estimate ),
+        width: (
+            negative_implicit_inline_track_estimate,
+            explicit_inline_track_estimate,
+            positive_implicit_inline_track_estimate,
+        ),
+        height: (
+            negative_implicit_block_track_estimate,
+            explicit_block_track_estimate,
+            positive_implicit_block_track_estimate,
+        ),
     }
 }
 

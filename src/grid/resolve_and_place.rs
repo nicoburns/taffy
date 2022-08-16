@@ -4,9 +4,9 @@ use crate::node::Node;
 use crate::style::{Dimension, FlexboxLayout, GridAutoFlow, TrackSizingFunction};
 use crate::sys::GridTrackVec;
 use crate::tree::LayoutTree;
-use grid::Grid;
 use core::cmp::{max, min};
 use core::ops::Range;
+use grid::Grid;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub(super) enum CellOccupancyState {
@@ -173,6 +173,7 @@ impl CellOccupancyMatrix {
         self.columns.positive_implicit += req_positive_cols as u16;
     }
 
+    /// Mark an area of the matrix as occupied, expanding the allocated space as necessary to accomodate the passed area.
     pub fn mark_area_as(
         &mut self,
         primary_axis: RowColumn,
@@ -372,7 +373,10 @@ pub(super) fn place_grid_items(grid: &mut CssGrid, tree: &impl LayoutTree, node:
         .clone()
         .map(|child_node| tree.style(child_node))
         .filter(|child_style| child_style.grid_row.is_definite() && child_style.grid_column.is_definite())
-        .for_each(|child_style| place_definite_grid_item(grid, node, child_style));
+        .for_each(|child_style| {
+            let (row_span, col_span) = place_definite_grid_item(child_style);
+            record_grid_placement(grid, node, RowColumn::Row, row_span, col_span, CellOccupancyState::DefinitelyPlaced);
+        });
 
     // 2. Place remaining children with definite primary axis positions
     children
@@ -382,7 +386,13 @@ pub(super) fn place_grid_items(grid: &mut CssGrid, tree: &impl LayoutTree, node:
             child_style.grid_placement(flow_direction).is_definite()
                 && !child_style.grid_placement(flow_direction.opposite_axis()).is_definite()
         })
-        .for_each(|child_style| place_definite_primary_axis_item(grid, node, child_style, grid_auto_flow));
+        .for_each(|child_style| {
+            let com = &grid.cell_occupancy_matrix;
+            let (primary_span, secondary_span) = place_definite_primary_axis_item(com, child_style, grid_auto_flow);
+
+            let placement_type = CellOccupancyState::AutoPlaced;
+            record_grid_placement(grid, node, flow_direction, primary_span, secondary_span, placement_type);
+        });
 
     // 3. Determine the number of columns in the implicit grid
     // By the time we get to this point in the execution, this is actually already accounted for:
@@ -409,32 +419,45 @@ pub(super) fn place_grid_items(grid: &mut CssGrid, tree: &impl LayoutTree, node:
         .map(|child_node| tree.style(child_node))
         .filter(|child_style| !child_style.grid_row.is_definite() && !child_style.grid_column.is_definite())
         .for_each(|child_style| {
-            grid_position = place_indefinitely_positioned_item(grid, node, child_style, grid_auto_flow, grid_position);
+            
+            // Compute placement
+            let com = &grid.cell_occupancy_matrix;
+            let (primary_span, secondary_span) =
+                place_indefinitely_positioned_item(com, child_style, grid_auto_flow, grid_position);
+            
+            // Record item
+            let placement_type = CellOccupancyState::AutoPlaced;
+            record_grid_placement(grid, node, flow_direction, primary_span, secondary_span, placement_type);
+
+            // If using the "dense" placement algorithm then reset the grid position back to (0, 0) ready for the next item
+            // Otherwise set it to the position of the current item so that the next item it placed after it.
+            grid_position = match grid_auto_flow.is_dense() {
+                true => (0, 0),
+                false => (primary_span.start as u16, secondary_span.end as u16),
+            }
         });
 }
 
 /// 8.5. Grid Item Placement Algorithm
 /// Place a single definitely placed item into the grid
-pub(super) fn place_definite_grid_item(grid: &mut CssGrid, node: Node, style: &FlexboxLayout) {
+pub(super) fn place_definite_grid_item(style: &FlexboxLayout) -> (Line<i16>, Line<i16>) {
     // Resolve spans to tracks
     let row_span = style.grid_row.resolve_definite_grid_tracks();
     let column_span = style.grid_column.resolve_definite_grid_tracks();
 
-    record_grid_placement(grid, node, RowColumn::Row, row_span, column_span, CellOccupancyState::DefinitelyPlaced);
+    (row_span, column_span)
 }
 
 pub(super) fn place_definite_primary_axis_item(
-    grid: &mut CssGrid,
-    node: Node,
+    cell_occupancy_matrix: &CellOccupancyMatrix,
     style: &FlexboxLayout,
     auto_flow: GridAutoFlow,
-) {
+) -> (Line<i16>, Line<i16>) {
     let flow_direction = auto_flow.flow_direction();
     let primary_axis_placement = style.grid_placement(flow_direction).resolve_definite_grid_tracks();
     let starting_position = match auto_flow.is_dense() {
         true => 1,
-        false => grid
-            .cell_occupancy_matrix
+        false => cell_occupancy_matrix
             .last_of_type(flow_direction, primary_axis_placement.start as i16, CellOccupancyState::AutoPlaced)
             .unwrap_or(1),
     };
@@ -444,22 +467,14 @@ pub(super) fn place_definite_primary_axis_item(
         let secondary_axis_placement =
             style.grid_placement(flow_direction.opposite_axis()).resolve_indefinite_grid_tracks(position);
 
-        let does_fit = grid.cell_occupancy_matrix.line_area_is_unoccupied(
+        let does_fit = cell_occupancy_matrix.line_area_is_unoccupied(
             flow_direction,
             primary_axis_placement,
             secondary_axis_placement,
         );
 
         if does_fit {
-            record_grid_placement(
-                grid,
-                node,
-                flow_direction,
-                primary_axis_placement,
-                secondary_axis_placement,
-                CellOccupancyState::AutoPlaced,
-            );
-            break;
+            return (primary_axis_placement, secondary_axis_placement);
         } else {
             position += 1;
         }
@@ -467,12 +482,11 @@ pub(super) fn place_definite_primary_axis_item(
 }
 
 pub(super) fn place_indefinitely_positioned_item(
-    grid: &mut CssGrid,
-    node: Node,
+    cell_occupancy_matrix: &CellOccupancyMatrix,
     style: &FlexboxLayout,
     auto_flow: GridAutoFlow,
-    mut grid_position: (u16, u16),
-) -> (u16, u16) {
+    grid_position: (u16, u16),
+) -> (Line<i16>, Line<i16>) {
     let flow_direction = auto_flow.flow_direction();
 
     let primary_placement_style = style.grid_placement(flow_direction);
@@ -481,18 +495,17 @@ pub(super) fn place_indefinitely_positioned_item(
     let primary_span = primary_placement_style.span();
     let secondary_span = secondary_placement_style.span();
     let has_definite_secondary_axis_position = secondary_placement_style.is_definite();
-    let secondary_axis_length = grid.cell_occupancy_matrix.track_counts(flow_direction).len() as i16;
+    let secondary_axis_length = cell_occupancy_matrix.track_counts(flow_direction).len() as i16;
 
     let track_area_is_unoccupied = |primary_range, secondary_range| {
-        grid.cell_occupancy_matrix.track_area_is_unoccupied(flow_direction, primary_range, secondary_range)
+        cell_occupancy_matrix.track_area_is_unoccupied(flow_direction, primary_range, secondary_range)
     };
-    let tracks_to_lines = |range| grid.cell_occupancy_matrix.tracks_to_lines(flow_direction, range);
+    let tracks_to_lines = |range| cell_occupancy_matrix.tracks_to_lines(flow_direction, range);
 
     let (mut primary_idx, mut secondary_idx) = grid_position;
     if has_definite_secondary_axis_position {
         let definite_secondary_placement = secondary_placement_style.resolve_definite_grid_tracks();
-        secondary_idx = grid
-            .cell_occupancy_matrix
+        secondary_idx = cell_occupancy_matrix
             .lines_to_tracks(flow_direction.opposite_axis(), definite_secondary_placement)
             .start as u16;
     }
@@ -506,15 +519,9 @@ pub(super) fn place_indefinitely_positioned_item(
         let place_here =
             !secondary_out_of_bounds && track_area_is_unoccupied(primary_range.clone(), secondary_range.clone());
         if place_here {
-            // Record item placement
             let primary_span = tracks_to_lines(primary_range.clone());
             let secondary_span = tracks_to_lines(secondary_range.clone());
-            let placement_type = CellOccupancyState::AutoPlaced;
-            record_grid_placement(grid, node, flow_direction, primary_span, secondary_span, placement_type);
-
-            // Update grid position cursor for next item and break loop
-            grid_position = (primary_range.start as u16, secondary_range.end as u16);
-            break;
+            return (primary_span, secondary_span);
         }
 
         // Else check the next position
@@ -526,13 +533,6 @@ pub(super) fn place_indefinitely_positioned_item(
         } else {
             secondary_idx += 1;
         }
-    }
-
-    // If using the "dense" placement algorithm then return (0, 0) to reset the grid position back to the origin ready for the next item
-    // Otherwise return the position of the current item so that the next item it placed after it.
-    match auto_flow.is_dense() {
-        true => (0, 0),
-        false => grid_position,
     }
 }
 

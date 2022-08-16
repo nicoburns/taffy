@@ -36,8 +36,7 @@ fn into_grid_coordinates(origin_zero_line: i16, explicit_track_count: u16) -> i1
     }
 }
 
-pub (crate) fn compute_explicit_grid_size(style: &FlexboxLayout) -> (u16, u16) {
-
+pub(crate) fn compute_explicit_grid_size(style: &FlexboxLayout) -> (u16, u16) {
     let explicit_col_count = max(style.grid_template_columns.len(), 1) as u16;
     let explicit_row_count = max(style.grid_template_rows.len(), 1) as u16;
 
@@ -50,25 +49,26 @@ pub (crate) fn compute_explicit_grid_size(style: &FlexboxLayout) -> (u16, u16) {
 /// Note that this function internally mixes use of grid track numbers and grid line numbers
 pub(crate) fn compute_grid_size_estimate(tree: &impl LayoutTree, node: Node) -> Size<TrackCounts> {
     let style = tree.style(node);
-    let child_styles_iter = tree.children(node).into_iter().copied().map(|child_node| tree.style(child_node));
+    let child_styles_iter = tree.children(node).into_iter().map(|child_node| tree.style(*child_node));
     compute_grid_size_estimate_inner(style, child_styles_iter)
 }
 
 /// Estimate the number of rows and columns in the grid
-/// This is used as a performance optimisation to pre-size vectors and reduce allocations
-///
-/// Note that this function internally mixes use of grid track numbers and grid line numbers
+/// This is used as a performance optimisation to pre-size vectors and reduce allocations. It also forms a necessary step
+/// in the auto-placement
+///   - The estimates for the explicit and negative implicit track counts are exact.
+///   - However, the estimates for the positive explicit track count is a lower bound as auto-placement can affect this
+///     in ways which are impossible to predict until the auto-placement algorithm is run.
 pub(crate) fn compute_grid_size_estimate_inner<'a>(
     style: &FlexboxLayout,
     child_styles_iter: impl Iterator<Item = &'a FlexboxLayout>,
 ) -> Size<TrackCounts> {
-
     // Compute explicit track counts
     let (explicit_col_count, explicit_row_count) = compute_explicit_grid_size(style);
-    
+
     // Iterate over children, producing an estimate of the min and max grid lines (in origin-zero coordinates where)
     // along with the span of each itme
-    
+
     let (col_min, col_max, col_max_span, row_min, row_max, row_max_span) =
         get_known_child_positions(child_styles_iter, explicit_col_count, explicit_row_count);
 
@@ -84,7 +84,8 @@ pub(crate) fn compute_grid_size_estimate_inner<'a>(
 
     // In each axis, adjust positive track estimate if any items have a span that does not fit within
     // the total number of tracks in the estimate
-    let total_inline_tracks = negative_implicit_inline_tracks + explicit_inline_tracks + positive_implicit_inline_tracks;
+    let total_inline_tracks =
+        negative_implicit_inline_tracks + explicit_inline_tracks + positive_implicit_inline_tracks;
     if total_inline_tracks < row_max_span {
         positive_implicit_inline_tracks = row_max_span - explicit_inline_tracks - negative_implicit_inline_tracks;
     }
@@ -109,7 +110,7 @@ pub(crate) fn compute_grid_size_estimate_inner<'a>(
 }
 
 /// Iterate over children, producing an estimate of the min and max grid *lines* along with the span of each item
-/// 
+///
 /// Min and max grid lines are returned in origin-zero coordinates)
 /// The span is measured in tracks spanned
 fn get_known_child_positions<'a>(
@@ -242,11 +243,11 @@ mod tests {
     mod test_intial_grid_sizing {
         use super::super::compute_explicit_grid_size;
         use super::super::compute_grid_size_estimate_inner;
-        use crate::style::FlexboxLayout;
         use crate::prelude::*;
-        use crate::style::TrackSizingFunction;
-        use crate::style::GridPlacement::{self, *};
         use crate::style::Dimension::{self, Points};
+        use crate::style::FlexboxLayout;
+        use crate::style::GridPlacement::{self, *};
+        use crate::style::TrackSizingFunction;
 
         trait CreateParentTestNode {
             fn into_grid(&self) -> FlexboxLayout;
@@ -291,7 +292,8 @@ mod tests {
                 (Track(1), Span(2), Track(2), Auto).into_grid_child(),
                 (Track(-4), Auto, Track(-2), Auto).into_grid_child(),
             ];
-            let Size { width: inline, height: block } = compute_grid_size_estimate_inner(&grid_style, child_styles.iter());
+            let Size { width: inline, height: block } =
+                compute_grid_size_estimate_inner(&grid_style, child_styles.iter());
             assert_eq!(inline.negative_implicit, 0);
             assert_eq!(inline.explicit, 6);
             assert_eq!(inline.positive_implicit, 0);
@@ -307,7 +309,8 @@ mod tests {
                 (Track(-6), Span(2), Track(-8), Auto).into_grid_child(),
                 (Track(4), Auto, Track(3), Auto).into_grid_child(),
             ];
-            let Size { width: inline, height: block } = compute_grid_size_estimate_inner(&grid_style, child_styles.iter());
+            let Size { width: inline, height: block } =
+                compute_grid_size_estimate_inner(&grid_style, child_styles.iter());
             assert_eq!(inline.negative_implicit, 1);
             assert_eq!(inline.explicit, 4);
             assert_eq!(inline.positive_implicit, 0);

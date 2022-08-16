@@ -23,7 +23,10 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
         available_space,
         columns: GridAxisTracks::with_capacity_and_origin(axis_track_sizes.width, axis_origins.width),
         rows: GridAxisTracks::with_capacity_and_origin(axis_track_sizes.height, axis_origins.height),
-        cell_occupancy_matrix: CellOccupancyMatrix::with_track_counts(grid_size_estimate.height, grid_size_estimate.width),
+        cell_occupancy_matrix: CellOccupancyMatrix::with_track_counts(
+            grid_size_estimate.height,
+            grid_size_estimate.width,
+        ),
         named_areas: Vec::new(),
         items: Vec::with_capacity(tree.children(root).len()),
     };

@@ -67,12 +67,11 @@ pub(in crate::grid) fn place_grid_items(grid: &mut CssGrid, tree: &impl LayoutTr
         .map(|child_node| tree.style(child_node))
         .filter(|child_style| !child_style.grid_row.is_definite() && !child_style.grid_column.is_definite())
         .for_each(|child_style| {
-            
             // Compute placement
             let com = &grid.cell_occupancy_matrix;
             let (primary_span, secondary_span) =
                 place_indefinitely_positioned_item(com, child_style, grid_auto_flow, grid_position);
-            
+
             // Record item
             let placement_type = CellOccupancyState::AutoPlaced;
             record_grid_placement(grid, node, flow_direction, primary_span, secondary_span, placement_type);
@@ -140,8 +139,8 @@ fn place_indefinitely_positioned_item(
     let primary_placement_style = style.grid_placement(flow_direction);
     let secondary_placement_style = style.grid_placement(flow_direction.opposite_axis());
 
-    let primary_span = primary_placement_style.span();
-    let secondary_span = secondary_placement_style.span();
+    let primary_span = primary_placement_style.indefinite_span();
+    let secondary_span = secondary_placement_style.indefinite_span();
     let has_definite_secondary_axis_position = secondary_placement_style.is_definite();
     let secondary_axis_length = cell_occupancy_matrix.track_counts(flow_direction).len() as i16;
 

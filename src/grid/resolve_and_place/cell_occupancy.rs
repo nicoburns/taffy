@@ -1,9 +1,8 @@
-use super::super::types::{RowColumn};
+use super::super::types::RowColumn;
 use crate::geometry::Line;
 use core::cmp::{max, min};
 use core::ops::Range;
 use grid::Grid;
-
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub(crate) enum CellOccupancyState {
@@ -25,6 +24,7 @@ impl CellOccupancyState {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct TrackCounts {
     pub negative_implicit: u16,
     pub explicit: u16,

@@ -10,7 +10,6 @@ use super::coordinates::into_origin_zero_coordinates;
 use super::explicit_grid::compute_explicit_grid_size;
 use super::TrackCounts;
 
-
 /// Estimate the number of rows and columns in the grid
 /// This is used as a performance optimisation to pre-size vectors and reduce allocations
 ///
@@ -33,7 +32,6 @@ pub(crate) fn compute_grid_size_estimate_inner<'a>(
     explicit_row_count: u16,
     child_styles_iter: impl Iterator<Item = &'a FlexboxLayout>,
 ) -> Size<TrackCounts> {
-    
     // Iterate over children, producing an estimate of the min and max grid lines (in origin-zero coordinates where)
     // along with the span of each itme
     let (col_min, col_max, col_max_span, row_min, row_max, row_max_span) =

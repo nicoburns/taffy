@@ -7,10 +7,12 @@ use crate::tree::LayoutTree;
 use types::{CssGrid, GridAxisTracks, GridTrack};
 
 mod resolve_and_place;
+#[cfg(test)]
+mod test_helpers;
 mod types;
 
-use self::resolve_and_place::{CellOccupancyMatrix, TrackCounts};
-pub use types::RowColumn;
+use self::resolve_and_place::CellOccupancyMatrix;
+pub use types::AbsoluteAxis;
 
 pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>) {
     // Estimate the number of rows and columns in the grid as a perf optimisation to reduce allocations
@@ -31,6 +33,9 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
         items: Vec::with_capacity(tree.children(root).len()),
     };
 
+    // 8. Placing Grid Items
+    resolve_and_place::place_grid_items(&mut grid, tree, root);
+
     // Push "uninitialized" placeholder tracks to negative grid tracks (< origin)
     populate_negative_grid_tracks(&mut grid.columns);
     populate_negative_grid_tracks(&mut grid.rows);
@@ -39,9 +44,6 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
     let style = tree.style(root);
     resolve_and_place::resolve_explicit_grid_tracks(&mut grid.columns, &style.grid_template_columns, style.gap.width);
     resolve_and_place::resolve_explicit_grid_tracks(&mut grid.rows, &style.grid_template_rows, style.gap.height);
-
-    // 8. Placing Grid Items
-    resolve_and_place::place_grid_items(&mut grid, tree, root);
 }
 
 fn populate_negative_grid_tracks(axis: &mut GridAxisTracks) {

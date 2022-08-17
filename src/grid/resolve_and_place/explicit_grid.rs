@@ -1,5 +1,5 @@
 use super::super::types::{GridAxisTracks, GridTrack};
-use crate::style::{Dimension, TrackSizingFunction, FlexboxLayout};
+use crate::style::{Dimension, FlexboxLayout, TrackSizingFunction};
 use crate::sys::GridTrackVec;
 use core::cmp::max;
 
@@ -46,8 +46,8 @@ pub(in crate::grid) fn resolve_explicit_grid_tracks(
 
 #[cfg(test)]
 mod test {
-    use crate::grid::test_helpers::*;
     use super::compute_explicit_grid_size;
+    use crate::grid::test_helpers::*;
 
     #[test]
     fn explicit_grid_sizing() {

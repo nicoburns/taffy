@@ -800,8 +800,8 @@ impl FlexboxLayout {
 
     pub(crate) fn grid_placement(&self, axis: AbsoluteAxis) -> Line<GridPlacement> {
         match axis {
-            AbsoluteAxis::Horizontal => self.grid_row,
-            AbsoluteAxis::Vertical => self.grid_column,
+            AbsoluteAxis::Horizontal => self.grid_column,
+            AbsoluteAxis::Vertical => self.grid_row,
         }
     }
 }

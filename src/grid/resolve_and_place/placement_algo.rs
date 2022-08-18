@@ -4,6 +4,7 @@ use super::{CellOccupancyMatrix, CellOccupancyState};
 use crate::geometry::Line;
 use crate::node::Node;
 use crate::style::{FlexboxLayout, GridAutoFlow, GridPlacement};
+use crate::sys::Vec;
 use crate::tree::LayoutTree;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

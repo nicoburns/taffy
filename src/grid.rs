@@ -1,8 +1,9 @@
-/// This module is a partial implementation of the CSS Grid Level 2 specification
-/// https://www.w3.org/TR/css-grid-2/
 use crate::geometry::Size;
 use crate::layout::AvailableSpace;
 use crate::node::Node;
+/// This module is a partial implementation of the CSS Grid Level 2 specification
+/// https://www.w3.org/TR/css-grid-2/
+use crate::sys::Vec;
 use crate::tree::LayoutTree;
 use types::{CssGrid, GridAxisTracks, GridTrack};
 

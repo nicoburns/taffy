@@ -1,4 +1,4 @@
-use super::super::types::{GridAxisTracks, GridTrack};
+use super::types::{GridAxisTracks, GridTrack};
 use crate::style::{Dimension, FlexboxLayout, TrackSizingFunction};
 use crate::sys::GridTrackVec;
 use core::cmp::max;

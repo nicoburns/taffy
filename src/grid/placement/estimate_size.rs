@@ -201,7 +201,7 @@ mod tests {
                 (Track(1), Span(2), Track(2), Auto).into_grid_child(),
                 (Track(-4), Auto, Track(-2), Auto).into_grid_child(),
             ];
-            let Size { width: inline, height: block } =
+            let (inline, block) =
                 compute_grid_size_estimate(explicit_col_count, explicit_row_count, child_styles.iter());
             assert_eq!(inline.negative_implicit, 0);
             assert_eq!(inline.explicit, explicit_col_count);
@@ -219,7 +219,7 @@ mod tests {
                 (Track(-6), Span(2), Track(-8), Auto).into_grid_child(),
                 (Track(4), Auto, Track(3), Auto).into_grid_child(),
             ];
-            let Size { width: inline, height: block } =
+            let (inline, block) =
                 compute_grid_size_estimate(explicit_col_count, explicit_row_count, child_styles.iter());
             assert_eq!(inline.negative_implicit, 1);
             assert_eq!(inline.explicit, explicit_col_count);

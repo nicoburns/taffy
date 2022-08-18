@@ -330,7 +330,7 @@ mod tests {
             let estimated_sizes = compute_grid_size_estimate(explicit_col_count, explicit_row_count, child_styles_iter);
             let mut items = Vec::new();
             let mut cell_occupancy_matrix =
-                CellOccupancyMatrix::with_track_counts(estimated_sizes.height, estimated_sizes.width);
+                CellOccupancyMatrix::with_track_counts(estimated_sizes.0, estimated_sizes.1);
 
             // Run placement algorithm
             place_grid_items(&mut cell_occupancy_matrix, &mut items, children_iter, flow);

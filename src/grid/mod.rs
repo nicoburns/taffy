@@ -5,9 +5,9 @@ use crate::layout::AvailableSpace;
 use crate::node::Node;
 use crate::sys::Vec;
 use crate::tree::LayoutTree;
-use placement::{compute_grid_size_estimate, place_grid_items};
-use explicit_grid::{compute_explicit_grid_size, resolve_explicit_grid_tracks};
+use explicit_grid::{compute_explicit_grid_size, initialize_grid_tracks};
 use placement::CellOccupancyMatrix;
+use placement::{compute_grid_size_estimate, place_grid_items};
 use types::{CssGrid, GridAxisTracks, GridTrack};
 
 mod explicit_grid;
@@ -23,40 +23,47 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
     let style = tree.style(root);
     let child_styles_iter = get_child_styles_iter(root);
 
-    // Resolve the number of rows and columns in the explicit grid
+    // Resolve the number of rows and columns in the explicit grid.
     let (explicit_col_count, explicit_row_count) = compute_explicit_grid_size(style);
 
-    // Estimate the number of rows and columns in the grid as a perf optimisation to reduce allocations
-    // The axis_track_sizes have size (grid_size_estimate*2 - 1) to account for gutters
-    let grid_size_estimate = compute_grid_size_estimate(explicit_col_count, explicit_row_count, child_styles_iter);
-    let axis_origins = grid_size_estimate.map(|counts| (counts.negative_implicit * 2) + 1 - 1); // min: 0
-    let axis_track_sizes = grid_size_estimate.map(|counts| (counts.len() * 2) - 1); // min: 1
+    // Estimate the number of rows and columns in the grid
+    // This is necessary as part of placement. Doing it early here is a perf optimisation to reduce allocations.
+    let grid_size_est = compute_grid_size_estimate(explicit_col_count, explicit_row_count, child_styles_iter);
 
-    let mut grid = CssGrid {
-        available_space,
-        columns: GridAxisTracks::with_capacity_and_origin(axis_track_sizes.width, axis_origins.width),
-        rows: GridAxisTracks::with_capacity_and_origin(axis_track_sizes.height, axis_origins.height),
-        cell_occupancy_matrix: CellOccupancyMatrix::with_track_counts(
-            grid_size_estimate.height,
-            grid_size_estimate.width,
-        ),
-        named_areas: Vec::new(),
-        items: Vec::with_capacity(tree.children(root).len()),
-    };
-
-    // 8. Placing Grid Items
+    // Place Grid Items
+    // Matches items to a definite grid position (row start/end and column start/end position)
+    // https://www.w3.org/TR/css-grid-1/#placement
+    let mut items = Vec::with_capacity(tree.children(root).len());
+    let mut cell_occupancy_matrix = CellOccupancyMatrix::with_track_counts(grid_size_est.height, grid_size_est.width);
     let grid_auto_flow = style.grid_auto_flow;
     let children_iter = tree.children(root).into_iter().copied().map(|child_node| (child_node, tree.style(child_node)));
-    placement::place_grid_items(&mut grid.cell_occupancy_matrix, &mut grid.items, children_iter, grid_auto_flow);
+    place_grid_items(&mut cell_occupancy_matrix, &mut items, children_iter, grid_auto_flow);
 
-    // Push "uninitialized" placeholder tracks to negative grid tracks (< origin)
-    populate_negative_grid_tracks(&mut grid.columns);
-    populate_negative_grid_tracks(&mut grid.rows);
+    // Extract track counts from previous step (auto-placement can expand the number of tracks)
+    let final_col_counts = *cell_occupancy_matrix.track_counts(AbsoluteAxis::Horizontal);
+    let final_row_counts = *cell_occupancy_matrix.track_counts(AbsoluteAxis::Vertical);
 
-    // 7.1. The Explicit Grid
-    let style = tree.style(root);
-    resolve_explicit_grid_tracks(&mut grid.columns, &style.grid_template_columns, style.gap.width);
-    resolve_explicit_grid_tracks(&mut grid.rows, &style.grid_template_rows, style.gap.height);
+    // Initialize (explicit and implicit) grid tracks (and gutters)
+    // This resolves the min and max track sizing functions for all tracks and gutters
+    let mut columns = GridAxisTracks::with_counts(final_col_counts);
+    let mut rows = GridAxisTracks::with_counts(final_row_counts);
+    initialize_grid_tracks(
+        &mut columns.tracks,
+        final_col_counts,
+        &style.grid_template_columns,
+        &style.grid_auto_columns,
+        style.gap.width,
+    );
+    initialize_grid_tracks(
+        &mut rows.tracks,
+        final_row_counts,
+        &style.grid_template_rows,
+        &style.grid_auto_rows,
+        style.gap.height,
+    );
+
+    let named_areas = Vec::new();
+    let grid = CssGrid { available_space, cell_occupancy_matrix, named_areas, items, columns, rows };
 }
 
 fn populate_negative_grid_tracks(axis: &mut GridAxisTracks) {

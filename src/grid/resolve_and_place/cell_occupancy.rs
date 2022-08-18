@@ -1,5 +1,6 @@
 use super::super::types::AbsoluteAxis;
 use crate::geometry::Line;
+use crate::sys::Vec;
 use core::cmp::{max, min};
 use core::ops::Range;
 use grid::Grid;
@@ -95,8 +96,8 @@ pub(crate) struct CellOccupancyMatrix {
     columns: TrackCounts,
 }
 
-impl std::fmt::Debug for CellOccupancyMatrix {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for CellOccupancyMatrix {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(
             f,
             "Rows: neg_implicit={} explicit={} pos_implicit={}",

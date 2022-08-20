@@ -19,13 +19,13 @@ use crate::{data::NodeData, error};
 /// A function type that can be used in a [`MeasureFunc`]
 ///
 /// This trait is automatically implemented for all types (including closures) that define a function with the appropriate type signature.
-pub trait Measurable: Send + Sync + Fn(Size<Option<f32>>) -> Size<f32> {}
-impl<F: Send + Sync + Fn(Size<Option<f32>>) -> Size<f32>> Measurable for F {}
+pub trait Measurable: Send + Sync + Fn(Size<AvailableSpace>) -> Size<f32> {}
+impl<F: Send + Sync + Fn(Size<AvailableSpace>) -> Size<f32>> Measurable for F {}
 
 /// A function that can be used to compute the intrinsic size of a node
 pub enum MeasureFunc {
     /// Stores an unboxed function
-    Raw(fn(Size<Option<f32>>) -> Size<f32>),
+    Raw(fn(Size<AvailableSpace>) -> Size<f32>),
 
     /// Stores a boxed function
     #[cfg(any(feature = "std", feature = "alloc"))]
@@ -82,7 +82,7 @@ impl LayoutTree for Taffy {
         self.nodes[node].is_dirty = dirty;
     }
 
-    fn measure_node(&self, node: Node, node_size: Size<Option<f32>>) -> Size<f32> {
+    fn measure_node(&self, node: Node, node_size: Size<AvailableSpace>) -> Size<f32> {
         match &self.measure_funcs[node] {
             MeasureFunc::Raw(measure) => measure(node_size),
 

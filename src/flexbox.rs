@@ -4,7 +4,7 @@
 use core::f32;
 
 use crate::geometry::{Point, Rect, Size};
-use crate::layout::{Cache, Layout};
+use crate::layout::{AvailableSpace, Cache, Layout};
 use crate::math::MaybeMath;
 use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrDefault};
@@ -1589,9 +1589,23 @@ fn compute_preliminary(
         }
 
         if tree.needs_measure(node) {
-            let converted_size = tree.measure_node(node, node_size);
-            *cache(tree, node, main_size) =
-                Some(Cache { node_size, parent_size, perform_layout, size: converted_size });
+
+            // Convert Option<size> to AvailableSpace
+            // TODO: pass in sizing constraint from top rather than assuming always MinContent
+            let available_space = node_size.map(|size| {
+                match size {
+                    Some(f32) => AvailableSpace::Definite(f32),
+                    None => AvailableSpace::MinContent,
+                }
+            });
+
+            // Measure node
+            let converted_size = tree.measure_node(node, available_space);
+
+            // Cache measured size
+            let cache = cache(tree, node, main_size);
+            *cache = Some(Cache { node_size, parent_size, perform_layout, size: converted_size });
+
             return converted_size;
         }
 

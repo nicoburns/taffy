@@ -246,14 +246,14 @@ fn determine_available_space(
         None => parent_size
             .width
             .maybe_sub(constants.margin.horizontal_axis_sum())
-            .maybe_sub(constants.padding_border.horizontal_axis_sum()),
+            // .maybe_sub(constants.padding_border.horizontal_axis_sum()),
     };
     let height = match node_size.height {
         Some(node_height) => AvailableSpace::Definite(node_height),
         None => parent_size
             .height
             .maybe_sub(constants.margin.vertical_axis_sum())
-            .maybe_sub(constants.padding_border.vertical_axis_sum()),
+            // .maybe_sub(constants.padding_border.vertical_axis_sum()),
     };
 
     Size { width, height }
@@ -359,16 +359,27 @@ fn determine_flex_base_size(
             child.size.height
         };
 
-        child.flex_basis = compute_preliminary(
-            tree,
-            child.node,
-            Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
-            available_space,
-            false,
-            true,
-        )
-        .main(constants.dir)
-        .maybe_min(child.max_size.main(constants.dir));
+        // child.flex_basis = compute_preliminary(
+        //     tree,
+        //     child.node,
+        //     Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
+        //     available_space,
+        //     false,
+        //     true,
+        // )
+        // .main(constants.dir)
+        // .maybe_min(child.max_size.main(constants.dir));
+        child.flex_basis = tree
+            .compute_node_layout(
+                child.node,
+                // Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
+                available_space
+                    .map_width(|avl_width| avl_width.maybe_min(width).maybe_min(child.max_size.width))
+                    .map_height(|avl_height| avl_height.maybe_min(height).maybe_min(child.max_size.height)),
+                1,
+            )
+            .main(constants.dir)
+            .maybe_min(child.max_size.main(constants.dir));
     }
 
     // The hypothetical main size is the item’s flex base size clamped according to its
@@ -382,7 +393,9 @@ fn determine_flex_base_size(
         // The following logic was developed not from the spec but by trail and error looking into how
         // webkit handled various scenarios. Can probably be solved better by passing in
         // min-content max-content constraints from the top
-        let min_main = compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
+        // let min_main = compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
+        let min_main = tree
+            .compute_node_layout(child.node, available_space, 1)
             .main(constants.dir)
             .maybe_max(child.min_size.main(constants.dir))
             .maybe_min(child.size.main(constants.dir))
@@ -489,17 +502,29 @@ fn resolve_flexible_lengths(
         if constants.node_inner_size.main(constants.dir).is_none() && constants.is_row {
             child.target_size.set_main(
                 constants.dir,
-                compute_preliminary(
-                    tree,
+                tree.compute_node_layout(
                     child.node,
-                    Size {
-                        width: child.size.width.maybe_max(child.min_size.width).maybe_min(child.max_size.width),
-                        height: child.size.height.maybe_max(child.min_size.height).maybe_min(child.max_size.height),
-                    },
-                    available_space,
-                    false,
-                    false,
+                    // Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
+                    available_space
+                        .map_width(|avl_width| {
+                            avl_width.maybe_max(child.min_size.width).maybe_min(child.max_size.width)
+                        })
+                        .map_height(|avl_height| {
+                            avl_height.maybe_max(child.min_size.height).maybe_min(child.max_size.height)
+                        }),
+                    1,
                 )
+                // compute_preliminary(
+                //     tree,
+                //     child.node,
+                //     Size {
+                //         width: child.size.width.maybe_max(child.min_size.width).maybe_min(child.max_size.width),
+                //         height: child.size.height.maybe_max(child.min_size.height).maybe_min(child.max_size.height),
+                //     },
+                //     available_space,
+                //     false,
+                //     false,
+                // )
                 .main(constants.dir)
                 .maybe_max(child.min_size.main(constants.dir))
                 .maybe_min(child.max_size.main(constants.dir)),
@@ -637,7 +662,8 @@ fn resolve_flexible_lengths(
             // min-content max-content constraints from the top. Need to figure out correct thing to do here as
             // just piling on more conditionals.
             let min_main = if constants.is_row && !tree.needs_measure(child.node) {
-                compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
+                // compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
+                tree.compute_node_layout(child.node, available_space, 1)
                     .width
                     .maybe_min(child.size.width)
                     .maybe_max(child.min_size.width)
@@ -701,27 +727,55 @@ fn determine_hypothetical_cross_size(
 
         child.hypothetical_inner_size.set_cross(
             constants.dir,
-            compute_preliminary(
-                tree,
+            // compute_preliminary(
+            //     tree,
+            //     child.node,
+            //     Size {
+            //         width: if constants.is_row { child.target_size.width.into() } else { child_cross },
+            //         height: if constants.is_row { child_cross } else { child.target_size.height.into() },
+            //     },
+            //     Size {
+            //         width: if constants.is_row {
+            //             AvailableSpace::Definite(constants.container_size.main(constants.dir))
+            //         } else {
+            //             available_space.width
+            //         },
+            //         height: if constants.is_row {
+            //             available_space.height
+            //         } else {
+            //             AvailableSpace::Definite(constants.container_size.main(constants.dir))
+            //         },
+            //     },
+            //     false,
+            //     false,
+            // )
+            tree.compute_node_layout(
                 child.node,
                 Size {
-                    width: if constants.is_row { child.target_size.width.into() } else { child_cross },
-                    height: if constants.is_row { child_cross } else { child.target_size.height.into() },
-                },
-                Size {
                     width: if constants.is_row {
-                        AvailableSpace::Definite(constants.container_size.main(constants.dir))
+                        child.target_size.width.into()
                     } else {
-                        available_space.width
+                        available_space.width.maybe_min(child_cross)
                     },
                     height: if constants.is_row {
-                        available_space.height
+                        available_space.height.maybe_min(child_cross)
                     } else {
-                        AvailableSpace::Definite(constants.container_size.main(constants.dir))
+                        child.target_size.height.into()
                     },
                 },
-                false,
-                false,
+                // Size {
+                //     width: if constants.is_row {
+                //         AvailableSpace::Definite(constants.container_size.main(constants.dir))
+                //     } else {
+                //         available_space.width.maybe_min(child_cross)
+                //     },
+                //     height: if constants.is_row {
+                //         available_space.height.maybe_min(child_cross)
+                //     } else {
+                //         AvailableSpace::Definite(constants.container_size.main(constants.dir))
+                //     },
+                // },
+                1,
             )
             .cross(constants.dir)
             .maybe_max(child.min_size.cross(constants.dir))
@@ -765,8 +819,43 @@ fn calculate_children_base_lines(
 
     for line in flex_lines {
         for child in line.items.iter_mut() {
-            let preliminary_size = compute_preliminary(
-                tree,
+            // let preliminary_size = compute_preliminary(
+            //     tree,
+            //     child.node,
+            //     Size {
+            //         width: if constants.is_row {
+            //             child.target_size.width.into()
+            //         } else {
+            //             child.hypothetical_inner_size.width.into()
+            //         },
+            //         height: if constants.is_row {
+            //             child.hypothetical_inner_size.height.into()
+            //         } else {
+            //             child.target_size.height.into()
+            //         },
+            //     },
+            //     Size {
+            //         width: if constants.is_row {
+            //             AvailableSpace::Definite(constants.container_size.width)
+            //         } else {
+            //             match node_size.width {
+            //                 Some(val) => AvailableSpace::Definite(val),
+            //                 None => available_space.width,
+            //             }
+            //         },
+            //         height: if constants.is_row {
+            //             match node_size.height {
+            //                 Some(val) => AvailableSpace::Definite(val),
+            //                 None => available_space.height,
+            //             }
+            //         } else {
+            //             AvailableSpace::Definite(constants.container_size.height)
+            //         },
+            //     },
+            //     true,
+            //     false,
+            // );
+            let preliminary_size = tree.compute_node_layout(
                 child.node,
                 Size {
                     width: if constants.is_row {
@@ -780,26 +869,7 @@ fn calculate_children_base_lines(
                         child.target_size.height.into()
                     },
                 },
-                Size {
-                    width: if constants.is_row {
-                        AvailableSpace::Definite(constants.container_size.width)
-                    } else {
-                        match node_size.width {
-                            Some(val) => AvailableSpace::Definite(val),
-                            None => available_space.width,
-                        }
-                    },
-                    height: if constants.is_row {
-                        match node_size.height {
-                            Some(val) => AvailableSpace::Definite(val),
-                            None => available_space.height,
-                        }
-                    } else {
-                        AvailableSpace::Definite(constants.container_size.height)
-                    },
-                },
-                true,
-                false,
+                1,
             );
 
             child.baseline = calc_baseline(
@@ -1296,14 +1366,15 @@ fn final_layout_pass(tree: &mut impl LayoutTree, node: Node, flex_lines: &mut [F
         let line_offset_cross = line.offset_cross;
 
         let layout_item = |child: &mut FlexItem| {
-            let preliminary_size = compute_preliminary(
-                tree,
-                child.node,
-                child.target_size.map(|s| s.into()),
-                constants.container_size.map(|s| s.into()),
-                true,
-                false,
-            );
+            // let preliminary_size = compute_preliminary(
+            //     tree,
+            //     child.node,
+            //     child.target_size.map(|s| s.into()),
+            //     constants.container_size.map(|s| s.into()),
+            //     true,
+            //     false,
+            // );
+            let preliminary_size = tree.compute_node_layout(child.node, child.target_size.map(|s| s.into()), 1);
 
             let offset_main = total_offset_main
                 + child.offset_main
@@ -1408,13 +1479,21 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
             height = container_height.maybe_sub(top).maybe_sub(bottom);
         }
 
-        let preliminary_size = compute_preliminary(
-            tree,
+        // let preliminary_size = compute_preliminary(
+        //     tree,
+        //     child,
+        //     Size { width, height },
+        //     Size { width: constants.container_size.width.into(), height: constants.container_size.height.into() },
+        //     true,
+        //     false,
+        // );
+        let preliminary_size = tree.compute_node_layout(
             child,
-            Size { width, height },
-            Size { width: constants.container_size.width.into(), height: constants.container_size.height.into() },
-            true,
-            false,
+            Size {
+                width: width.unwrap_or(constants.container_size.width).into(),
+                height: height.unwrap_or(constants.container_size.height).into(),
+            },
+            1,
         );
 
         // Satisfy the borrow checker by re-requesting the style from above.
@@ -1518,7 +1597,6 @@ fn compute_preliminary(
     perform_layout: bool,
     main_size: bool,
 ) -> Size<f32> {
-
     // Define some general constants we will need for the remainder of the algorithm.
     let mut constants = compute_constants(tree.style(node), node_size, outer_available_space);
 

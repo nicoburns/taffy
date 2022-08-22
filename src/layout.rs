@@ -15,6 +15,7 @@ pub enum AvailableSpace {
 }
 
 impl AvailableSpace {
+    const ZERO : AvailableSpace = AvailableSpace::Definite(0.0);
 
     /// Returns true for definite values, else false
     pub fn is_definite(self) -> bool {
@@ -30,10 +31,15 @@ impl AvailableSpace {
         }
     }
 
+    /// Return the definite value or a default value
+    pub fn unwrap_or(self, default: f32) -> f32 {
+        self.as_option().unwrap_or(default)
+    }
+
     /// Return the definite value. Panic is the value is not definite.
     #[track_caller]
-    pub fn unwrap_or(self, value: f32) -> f32 {
-        self.as_option().unwrap_or(value)
+    pub fn unwrap(self) -> f32 {
+        self.as_option().unwrap()
     }
 
     /// Compare equality with another AvailableSpace, treating definite values
@@ -45,6 +51,15 @@ impl AvailableSpace {
             (MinContent, MinContent) => true,
             (MaxContent, MaxContent) => true,
             _ => false,
+        }
+    }
+}
+
+impl From<Option<f32>> for AvailableSpace {
+    fn from(option: Option<f32>) -> Self {
+        match option {
+            Some(value) => Self::Definite(value),
+            None => Self::MaxContent,
         }
     }
 }
@@ -83,4 +98,22 @@ pub struct Cache {
 
     /// The cached size of the item
     pub(crate) size: Size<f32>,
+}
+
+/// Cached intermediate layout results
+#[derive(Debug, Clone, Copy)]
+pub struct AvailableSpaceCache {
+    /// The available space constraint passed in when measuring the node
+    pub(crate) constraint: Size<AvailableSpace>,
+    /// The cached size of the item
+    pub(crate) cached_size: Size<f32>,
+}
+
+impl AvailableSpaceCache {
+    pub fn empty() -> Self {
+        Self {
+            constraint: Size { width: AvailableSpace::ZERO, height: AvailableSpace::ZERO },
+            cached_size: Size { width: 0.0, height: 0.0 },
+        }
+    }
 }

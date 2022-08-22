@@ -1,7 +1,7 @@
 //! Final and cached data structures that represent the high-level UI layout
 
 use crate::geometry::{Point, Size};
-use crate::sys::{abs};
+use crate::sys::abs;
 
 /// The amount of space available to a node in a given axis
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -15,7 +15,7 @@ pub enum AvailableSpace {
 }
 
 impl AvailableSpace {
-    const ZERO : AvailableSpace = AvailableSpace::Definite(0.0);
+    const ZERO: AvailableSpace = AvailableSpace::Definite(0.0);
 
     /// Returns true for definite values, else false
     pub fn is_definite(self) -> bool {
@@ -42,11 +42,19 @@ impl AvailableSpace {
         self.as_option().unwrap()
     }
 
+    /// If passed value is Some then return AvailableSpace::Definite containing that value, else return self
+    pub fn maybe_set(self, value: Option<f32>) -> AvailableSpace {
+        match value {
+            Some(value) => AvailableSpace::Definite(value),
+            None => self,
+        }
+    }
+
     /// Compare equality with another AvailableSpace, treating definite values
-    /// that are within f32::EPSILON of each other as equal 
+    /// that are within f32::EPSILON of each other as equal
     pub fn is_roughly_equal(self, other: AvailableSpace) -> bool {
         use AvailableSpace::*;
-        match (self, other)  {
+        match (self, other) {
             (Definite(a), Definite(b)) => abs(a - b) < f32::EPSILON,
             (MinContent, MinContent) => true,
             (MaxContent, MaxContent) => true,
@@ -55,12 +63,23 @@ impl AvailableSpace {
     }
 }
 
-impl From<Option<f32>> for AvailableSpace {
-    fn from(option: Option<f32>) -> Self {
-        match option {
-            Some(value) => Self::Definite(value),
-            None => Self::MaxContent,
-        }
+impl From<f32> for AvailableSpace {
+    fn from(value: f32) -> Self {
+        Self::Definite(value)
+    }
+}
+
+impl Size<AvailableSpace> {
+    pub fn max_content() -> Size<AvailableSpace> {
+        Size { width: AvailableSpace::MaxContent, height: AvailableSpace::MaxContent }
+    }
+
+    pub fn min_content() -> Size<AvailableSpace> {
+        Size { width: AvailableSpace::MinContent, height: AvailableSpace::MinContent }
+    }
+
+    pub fn as_options(self) -> Size<Option<f32>> {
+        Size { width: self.width.as_option(), height: self.height.as_option() }
     }
 }
 
@@ -86,30 +105,28 @@ impl Layout {
     }
 }
 
-/// Cached intermediate layout results
-#[derive(Debug, Clone)]
-pub struct Cache {
-    /// The initial cached size of the node itself
-    pub(crate) node_size: Size<Option<f32>>,
-    /// The initial cached size of the parent's node
-    pub(crate) parent_size: Size<Option<f32>>,
-    /// Whether or not layout should be recomputed
-    pub(crate) perform_layout: bool,
+// /// Cached intermediate layout results
+// #[derive(Debug, Clone)]
+// pub struct Cache {
+//     /// The initial cached size of the parent's node
+//     pub(crate) available_space: Size<AvailableSpace>,
+//     /// Whether or not layout should be recomputed
+//     pub(crate) perform_layout: bool,
 
-    /// The cached size of the item
-    pub(crate) size: Size<f32>,
-}
+//     /// The cached size of the item
+//     pub(crate) size: Size<f32>,
+// }
 
 /// Cached intermediate layout results
 #[derive(Debug, Clone, Copy)]
-pub struct AvailableSpaceCache {
+pub struct Cache {
     /// The available space constraint passed in when measuring the node
     pub(crate) constraint: Size<AvailableSpace>,
     /// The cached size of the item
     pub(crate) cached_size: Size<f32>,
 }
 
-impl AvailableSpaceCache {
+impl Cache {
     pub fn empty() -> Self {
         Self {
             constraint: Size { width: AvailableSpace::ZERO, height: AvailableSpace::ZERO },

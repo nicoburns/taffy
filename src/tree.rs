@@ -1,7 +1,7 @@
 //! The baseline requirements of any UI Tree so Taffy can efficiently calculate the layout
 
 use crate::{
-    layout::{Cache, Layout, AvailableSpace},
+    layout::{AvailableSpace, Cache, Layout},
     prelude::*,
 };
 
@@ -56,4 +56,6 @@ pub trait LayoutTree {
     /// The secondary cache is for nodes who have a main size already calculated, but need to calculate a secondary size.
     /// This typically happens due to conflicting constraints.
     fn secondary_cache(&mut self, node: Node) -> &mut Option<Cache>;
+
+    fn compute_node_layout(&mut self, node: Node, available_space: Size<AvailableSpace>, cache_slot: usize) -> Size<f32>;
 }

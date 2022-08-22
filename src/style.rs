@@ -96,7 +96,7 @@ impl Default for AlignContent {
 }
 
 impl AlignContent {
-    pub (crate) fn outer_gutter_weight(self) -> u8 {
+    pub(crate) fn outer_gutter_weight(self) -> u8 {
         match self {
             AlignContent::FlexStart => 1,
             AlignContent::FlexEnd => 1,
@@ -108,7 +108,7 @@ impl AlignContent {
         }
     }
 
-    pub (crate) fn inner_gutter_weight(self) -> u8 {
+    pub(crate) fn inner_gutter_weight(self) -> u8 {
         match self {
             AlignContent::FlexStart => 0,
             AlignContent::FlexEnd => 0,
@@ -469,8 +469,8 @@ impl MaxTrackSizingFunction {
 
     #[inline(always)]
     pub fn definite_value(self, available_space: AvailableSpace) -> Option<f32> {
-        use MaxTrackSizingFunction::{*, Auto};
         use Dimension::*;
+        use MaxTrackSizingFunction::{Auto, *};
         match self {
             Fixed(Dimension::Points(size)) => Some(size),
             Fixed(Dimension::Percent(fraction)) => match available_space {
@@ -502,8 +502,8 @@ pub enum MinTrackSizingFunction {
 impl MinTrackSizingFunction {
     #[inline(always)]
     pub fn definite_value(self, available_space: AvailableSpace) -> Option<f32> {
-        use MinTrackSizingFunction::{*, Auto};
         use Dimension::*;
+        use MinTrackSizingFunction::{Auto, *};
         match self {
             Fixed(Dimension::Points(size)) => Some(size),
             Fixed(Dimension::Percent(fraction)) => match available_space {

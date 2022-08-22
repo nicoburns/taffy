@@ -2,7 +2,7 @@ use super::super::types::{AbsoluteAxis, CssGrid, GridItem};
 use super::coordinates::into_origin_zero_coordinates;
 use super::{CellOccupancyMatrix, CellOccupancyState};
 use crate::geometry::Line;
-use crate::layout::AvailableSpaceCache;
+use crate::layout::Cache;
 use crate::node::Node;
 use crate::style::{FlexboxLayout, GridAutoFlow, GridPlacement};
 use crate::sys::Vec;

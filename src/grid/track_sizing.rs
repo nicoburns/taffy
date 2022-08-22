@@ -2,7 +2,7 @@ use super::placement::TrackCounts;
 use crate::geometry::{Line, Size};
 use crate::layout::AvailableSpace;
 use crate::node::Node;
-use crate::style::{Dimension, FlexboxLayout, MaxTrackSizingFunction, MinTrackSizingFunction, AlignContent};
+use crate::style::{AlignContent, Dimension, FlexboxLayout, MaxTrackSizingFunction, MinTrackSizingFunction};
 // use super::AbsoluteAxis;
 use super::types::{GridAxis, GridItem, GridTrack};
 use crate::sys::{f32_max, f32_min};
@@ -33,14 +33,15 @@ pub(in crate::grid) fn cmp_by_span_then_start(
     }
 }
 
-pub (in crate::grid) fn compute_alignment_gutter_adjustment(
+pub(in crate::grid) fn compute_alignment_gutter_adjustment(
     alignment: AlignContent,
     available_space: AvailableSpace,
     get_track_size_estimate: impl Fn(&GridTrack, AvailableSpace) -> Option<f32>,
     tracks: &[GridTrack],
 ) -> f32 {
     if alignment.inner_gutter_weight() > 0 && available_space.is_definite() && tracks.len() > 1 {
-        let inner_available_space = tracks.iter()
+        let inner_available_space = tracks
+            .iter()
             .map(|track| get_track_size_estimate(track, available_space))
             .sum::<Option<f32>>()
             .map(|track_size_sum| f32_max(0.0, available_space.unwrap() - track_size_sum))
@@ -50,7 +51,6 @@ pub (in crate::grid) fn compute_alignment_gutter_adjustment(
             + (2 * alignment.outer_gutter_weight() as usize);
 
         (inner_available_space / weighted_track_count as f32) * alignment.inner_gutter_weight() as f32
-
     } else {
         0.0
     }
@@ -93,9 +93,10 @@ pub(in crate::grid) fn track_sizing_algorithm(
     style: &FlexboxLayout,
     measure_node: impl Fn(Node, Size<AvailableSpace>) -> Size<f32>,
 ) {
-
     let get_track_size_estimate = match available_space_mode {
-        AvailableSpaceMode::Estimates => |track: &GridTrack, available_space: AvailableSpace| track.max_track_sizing_function.definite_value(available_space),
+        AvailableSpaceMode::Estimates => |track: &GridTrack, available_space: AvailableSpace| {
+            track.max_track_sizing_function.definite_value(available_space)
+        },
         AvailableSpaceMode::OtherAxisSizes => |track: &GridTrack, _| Some(track.base_size),
     };
 
@@ -134,7 +135,6 @@ pub(in crate::grid) fn track_sizing_algorithm(
             );
         }
         GridAxis::Block => {
-
             #[inline(always)]
             fn get_row_crosses_flex_track(item: &GridItem) -> bool {
                 item.crosses_flexible_row
@@ -193,7 +193,8 @@ pub(in crate::grid) fn track_sizing_algorithm_inner(
         //     Use an initial growth limit of infinity.
         // - A flexible sizing function
         //     Use an initial growth limit of infinity.
-        track.growth_limit = track.max_track_sizing_function.definite_value(available_space.get(axis)).unwrap_or(f32::INFINITY);
+        track.growth_limit =
+            track.max_track_sizing_function.definite_value(available_space.get(axis)).unwrap_or(f32::INFINITY);
 
         // In all cases, if the growth limit is less than the base size, increase the growth limit to match the base size.
         if track.growth_limit < track.base_size {
@@ -212,24 +213,27 @@ pub(in crate::grid) fn track_sizing_algorithm_inner(
         style.grid_align_content(axis.other()),
         available_space.get(axis.other()),
         &get_track_size_estimate,
-        &other_axis_tracks
+        &other_axis_tracks,
     );
 
     // Iterate over items that don't cross a flex track. Items should have already been sorted in ascending order
     // of the number of tracks they cross.
     for item in items.iter_mut().filter(|item| !get_crosses_flex_track(item)) {
-
-        let item_other_axis_size : AvailableSpace = {
+        let item_other_axis_size: AvailableSpace = {
             let available_space = available_space.get(axis.other());
             let placement = get_other_axis_placement(item);
-            (&other_axis_tracks)[(placement.start as usize + 1)..(placement.end as usize)]
+            available_space.maybe_set(
+                (&other_axis_tracks)[(placement.start as usize + 1)..(placement.end as usize)]
                 .iter()
                 .map(|track| get_track_size_estimate(track, available_space))
                 .sum::<Option<f32>>()
-                .into()
+            )
         };
 
-        let min_content_size = item.intrinsic_size_cached(&measure_node, Size { width: AvailableSpace::MaxContent, height: item_other_axis_size });
+        let min_content_size = item.intrinsic_size_cached(
+            &measure_node,
+            Size { width: AvailableSpace::MaxContent, height: item_other_axis_size },
+        );
     }
 }
 
@@ -262,7 +266,6 @@ fn distribute_space_to_base_size(
     //   - We run out of space to distribute (extra_space falls below THRESHOLD)
     //   - We run out of growable tracks to distribute to
     while extra_space > THRESHOLD {
-
         let number_of_growable_tracks = tracks
             .iter()
             .filter(|track| track.base_size /*+ track.base_size_planned_increase*/ < track.growth_limit)
@@ -274,7 +277,7 @@ fn distribute_space_to_base_size(
         // Compute item-incurred increase for this iteration
         let min_increase_limit = tracks
             .iter()
-            .map(|track| track.growth_limit - (track.base_size /*+ track.base_size_planned_increase*/))
+            .map(|track| track.growth_limit - (track.base_size/*+ track.base_size_planned_increase*/))
             .min_by(|a, b| a.total_cmp(b))
             .unwrap(); // We will never pass an empty track list to this function
         let item_incurred_increase = f32_min(min_increase_limit, extra_space / number_of_growable_tracks as f32);
@@ -329,11 +332,7 @@ fn distribute_space_to_growth_limit(space: f32, tracks: &mut [GridTrack]) {
     // 1. Find the space to distribute
     let track_sizes: f32 = tracks
         .iter()
-        .map(|track| if track.growth_limit == f32::INFINITY {
-            track.base_size
-        } else {
-            track.growth_limit
-        })
+        .map(|track| if track.growth_limit == f32::INFINITY { track.base_size } else { track.growth_limit })
         .sum();
     let extra_space: f32 = f32_max(0.0, space - track_sizes);
 

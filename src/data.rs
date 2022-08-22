@@ -2,7 +2,8 @@
 //!
 //! Used to compute layout for Taffy trees
 //!
-use crate::layout::{Cache, Layout};
+use crate::layout::{Cache, Layout, AvailableSpace};
+use crate::geometry::Size;
 use crate::style::FlexboxLayout;
 
 /// Layout information for a given [`Node`](crate::node::Node)
@@ -17,10 +18,9 @@ pub(crate) struct NodeData {
     /// Should we try and measure this node?
     pub(crate) needs_measure: bool,
 
-    /// The primary cached results of the layout computation
-    pub(crate) main_size_layout_cache: Option<Cache>,
-    /// Secondary cached results of the layout computation
-    pub(crate) other_layout_cache: Option<Cache>,
+    /// A bunch of cache slots, mapping a Size<AvailableSpace> to a 
+    pub(crate) intrinsic_size_cache: [Option<Cache>; 4],
+
     /// Does this node's layout need to be recomputed?
     pub(crate) is_dirty: bool,
 }
@@ -31,8 +31,7 @@ impl NodeData {
     pub fn new(style: FlexboxLayout) -> Self {
         Self {
             style,
-            main_size_layout_cache: None,
-            other_layout_cache: None,
+            intrinsic_size_cache: [Some(Cache::empty()); 4],
             layout: Layout::new(),
             is_dirty: true,
             needs_measure: false,
@@ -44,8 +43,18 @@ impl NodeData {
     /// This clears any cached data and signals that the data must be recomputed.
     #[inline]
     pub fn mark_dirty(&mut self) {
-        self.main_size_layout_cache = None;
-        self.other_layout_cache = None;
+        self.intrinsic_size_cache = [Some(Cache::empty()); 4];
         self.is_dirty = true;
+    }
+
+    pub fn find_cache(&self, constraint: Size<AvailableSpace>) -> Option<Cache> {
+        self.intrinsic_size_cache.iter().copied().find(|entry| match entry {
+            Some(entry) => entry.constraint == constraint,
+            None => false
+        }).flatten()
+    }
+
+    pub fn set_cache(&mut self, index: usize, constraint: Size<AvailableSpace>, size: Size<f32>) {
+        self.intrinsic_size_cache[index] = Some(Cache { constraint, cached_size: size })
     }
 }

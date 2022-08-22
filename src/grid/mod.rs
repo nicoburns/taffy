@@ -20,7 +20,7 @@ mod types;
 
 pub(crate) use types::{AbsoluteAxis, GridAxis};
 
-pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>) {
+pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>) -> Size<f32> {
     let get_child_styles_iter = |node| tree.children(node).into_iter().map(|child_node: &Node| tree.style(*child_node));
     let style = tree.style(root);
     let child_styles_iter = get_child_styles_iter(root);
@@ -79,6 +79,8 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
 
     let named_areas = Vec::new();
     let grid = CssGrid { available_space, cell_occupancy_matrix, named_areas, items, columns, rows };
+
+    Size { width: 0.0, height: 0.0 }
 }
 
 fn populate_negative_grid_tracks(axis: &mut GridAxisTracks) {

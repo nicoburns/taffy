@@ -30,13 +30,13 @@ fn relayout() {
         )
         .unwrap();
     println!("0:");
-    taffy.compute_layout(node, taffy::geometry::Size { width: Some(100f32), height: Some(100f32) }).unwrap();
+    taffy.compute_layout(node, taffy::geometry::Size { width: 100f32.into(), height: 100f32.into() }).unwrap();
     let initial = taffy.layout(node).unwrap().location;
     let initial0 = taffy.layout(node0).unwrap().location;
     let initial1 = taffy.layout(node1).unwrap().location;
     for i in 1..10 {
         println!("\n\n{i}:");
-        taffy.compute_layout(node, taffy::geometry::Size { width: Some(100f32), height: Some(100f32) }).unwrap();
+        taffy.compute_layout(node, taffy::geometry::Size { width: 100f32.into(), height: 100f32.into() }).unwrap();
         assert_eq!(taffy.layout(node).unwrap().location, initial);
         assert_eq!(taffy.layout(node0).unwrap().location, initial0);
         assert_eq!(taffy.layout(node1).unwrap().location, initial1);

@@ -132,6 +132,9 @@ impl LayoutTree for Taffy {
             }
         };
 
+        dbg!(computed_size);
+        println!("\n");
+
         // Cache result
         self.nodes[node].set_cache(cache_slot, available_space, computed_size);
 

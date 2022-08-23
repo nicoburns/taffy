@@ -13,7 +13,11 @@ fn align_flex_start_with_stretching_children() {
             &[node000],
         )
         .unwrap();
-    let node0 = taffy.new_with_children(taffy::style::FlexboxLayout { ..Default::default() }, &[node00]).unwrap();
+    let node0 = taffy.new_with_children(
+        taffy::style::FlexboxLayout {
+            align_items: taffy::style::AlignItems::Stretch,
+            ..Default::default()
+         }, &[node00]).unwrap();
     let node = taffy
         .new_with_children(
             taffy::style::FlexboxLayout {

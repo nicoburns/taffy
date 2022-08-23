@@ -19,10 +19,10 @@ use crate::tree::LayoutTree;
       let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
       let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 
-      println!("LEAF");
-      dbg!(node_size);
-      dbg!(node_min_size);
-      dbg!(node_max_size);
+      // println!("LEAF");
+      // dbg!(node_size);
+      // dbg!(node_min_size);
+      // dbg!(node_max_size);
 
       if node_size.width.is_some() && node_size.height.is_some() {
           return Size {

@@ -105,7 +105,7 @@ struct AlgoConstants {
 }
 
 /// Computes the layout of [`LayoutTree`] according to the flexbox algorithm
-pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>) -> Size<f32> {
+pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>, size_override: Size<Option<f32>>) -> Size<f32> {
     let style = tree.style(root);
     let has_root_min_max = style.min_size.width.is_defined()
         || style.min_size.height.is_defined()
@@ -114,7 +114,9 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
 
     // Resolve node's preferred/min/max sizes (width/heights) against the available space
     // (percentages resolve to pixel values)
-    let node_size = style.size.maybe_resolve(available_space.as_options());
+    let node_size = style.size
+        .maybe_resolve(available_space.as_options())
+        .zip_map(size_override, |style_size, size_override| size_override.or(style_size));
     let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
     let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 
@@ -376,7 +378,7 @@ fn determine_flex_base_size(
             .compute_node_layout(
                 child.node,
                 available_space,
-                // Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
+                Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
                 // available_space
                 //     .map_width(|avl_width| avl_width.maybe_min(width).maybe_min(child.max_size.width))
                 //     .map_height(|avl_height| avl_height.maybe_min(height).maybe_min(child.max_size.height)),
@@ -399,7 +401,7 @@ fn determine_flex_base_size(
         // min-content max-content constraints from the top
         // let min_main = compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
         let min_main = tree
-            .compute_node_layout(child.node, available_space, 1)
+            .compute_node_layout(child.node, available_space, Size::undefined(), 1)
             .main(constants.dir)
             .maybe_max(child.min_size.main(constants.dir))
             .maybe_min(child.size.main(constants.dir))
@@ -508,7 +510,6 @@ fn resolve_flexible_lengths(
                 constants.dir,
                 tree.compute_node_layout(
                     child.node,
-                    // Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
                     available_space,
                         // .map_width(|avl_width| {
                         //     avl_width.maybe_max(child.min_size.width).maybe_min(child.max_size.width)
@@ -516,6 +517,10 @@ fn resolve_flexible_lengths(
                         // .map_height(|avl_height| {
                         //     avl_height.maybe_max(child.min_size.height).maybe_min(child.max_size.height)
                         // }),
+                    Size {
+                        width: child.size.width.maybe_max(child.min_size.width).maybe_min(child.max_size.width),
+                        height: child.size.height.maybe_max(child.min_size.height).maybe_min(child.max_size.height),
+                    },
                     1,
                 )
                 // compute_preliminary(
@@ -741,17 +746,33 @@ fn determine_hypothetical_cross_size(
         //     .unwrap_or_else(||
             let size =    tree.compute_node_layout(
                     child.node,
+                    // Size {
+                    //     width: if constants.is_row {
+                    //         child.target_size.width.into()
+                    //     } else {
+                    //         available_space.width.maybe_min(child_cross)
+                    //     },
+                    //     height: if constants.is_row {
+                    //         available_space.height.maybe_min(child_cross)
+                    //     } else {
+                    //         child.target_size.height.into()
+                    //     },
+                    // },
                     Size {
                         width: if constants.is_row {
-                            child.target_size.width.into()
+                            AvailableSpace::Definite(constants.container_size.main(constants.dir))
                         } else {
-                            available_space.width.maybe_min(child_cross)
+                            available_space.width
                         },
                         height: if constants.is_row {
-                            available_space.height.maybe_min(child_cross)
+                            available_space.height
                         } else {
-                            child.target_size.height.into()
+                            AvailableSpace::Definite(constants.container_size.main(constants.dir))
                         },
+                    },
+                    Size {
+                        width: if constants.is_row { child.target_size.width.into() } else { child_cross },
+                        height: if constants.is_row { child_cross } else { child.target_size.height.into() },
                     },
                     1,
                 )
@@ -858,6 +879,36 @@ fn calculate_children_base_lines(
             // );
             let preliminary_size = tree.compute_node_layout(
                 child.node,
+                // Size {
+                //     width: if constants.is_row {
+                //         child.target_size.width.into()
+                //     } else {
+                //         child.hypothetical_inner_size.width.into()
+                //     },
+                //     height: if constants.is_row {
+                //         child.hypothetical_inner_size.height.into()
+                //     } else {
+                //         child.target_size.height.into()
+                //     },
+                // },
+                Size {
+                    width: if constants.is_row {
+                        AvailableSpace::Definite(constants.container_size.width)
+                    } else {
+                        match node_size.width {
+                            Some(val) => AvailableSpace::Definite(val),
+                            None => available_space.width,
+                        }
+                    },
+                    height: if constants.is_row {
+                        match node_size.height {
+                            Some(val) => AvailableSpace::Definite(val),
+                            None => available_space.height,
+                        }
+                    } else {
+                        AvailableSpace::Definite(constants.container_size.height)
+                    },
+                },
                 Size {
                     width: if constants.is_row {
                         child.target_size.width.into()
@@ -1501,6 +1552,7 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
                     width: width.unwrap_or(constants.container_size.width).into(),
                     height: height.unwrap_or(constants.container_size.height).into(),
                 },
+                Size { width, height },
                 1,
             );
             Size {

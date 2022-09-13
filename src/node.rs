@@ -107,7 +107,7 @@ impl LayoutTree for Taffy {
     }
 
     /// Updates the stored layout of the provided `node` and its children
-    fn compute_node_layout(&mut self, node: Node, available_space: Size<AvailableSpace>, cache_slot: usize) -> Size<f32> {
+    fn compute_node_layout(&mut self, node: Node, available_space: Size<AvailableSpace>, size_override: Size<Option<f32>>, cache_slot: usize) -> Size<f32> {
 
         // clear the dirtiness of the node now that we've computed it
         <Self as LayoutTree>::mark_dirty(self, node, false);
@@ -122,11 +122,11 @@ impl LayoutTree for Taffy {
         // If this is a leaf node we can skip a lot of this function in some cases
         let computed_size = if <Self as LayoutTree>::children(self, node).is_empty() {
             println!("leaf");
-            crate::leaf::compute(self, node, available_space)
+            crate::leaf::compute(self, node, available_space, size_override)
         } else {
             println!("match {:?}", self.nodes[node].style.display);
             match self.nodes[node].style.display {
-                Display::Flex => crate::flexbox::compute(self, node, available_space),
+                Display::Flex => crate::flexbox::compute(self, node, available_space, size_override),
                 Display::Grid => crate::grid::compute(self, node, available_space),
                 Display::None => Size { width: 0.0, height: 0.0 },
             }
@@ -425,7 +425,7 @@ impl Taffy {
     pub fn compute_layout(&mut self, root: Node, available_space: Size<AvailableSpace>) -> Result<(), TaffyError> {
 
         // Recursively compute node layout
-        let size = self.compute_node_layout(root, available_space, 0);
+        let size = self.compute_node_layout(root, available_space, Size::undefined(), 0);
 
         let layout = Layout { order: 0, size, location: Point::ZERO };
         *self.layout_mut(root) = layout;

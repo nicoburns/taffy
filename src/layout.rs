@@ -14,6 +14,16 @@ pub enum AvailableSpace {
     MaxContent,
 }
 
+/// Whether we are performing a full layout, or we merely need to size the node
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum LayoutMode {
+    /// A full layout for this node and all children should be computed
+    FullLayout,
+    /// The layout algorithm should be executed such that an accurate container size for the node can be determined.
+    /// Layout steps that aren't necessary for determining the container size of the current node can be skipped.
+    ContainerSize,
+}
+
 impl AvailableSpace {
     const ZERO: AvailableSpace = AvailableSpace::Definite(0.0);
 

@@ -2,7 +2,7 @@
 //!
 //! Note that some minor steps appear to be missing: see https://github.com/DioxusLabs/taffy/issues for more information.
 use crate::geometry::{Point, Rect, Size};
-use crate::layout::{AvailableSpace, Cache, Layout};
+use crate::layout::{AvailableSpace, Cache, Layout, LayoutMode};
 use crate::math::MaybeMath;
 use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrDefault};
@@ -118,16 +118,16 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
     let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 
     let preliminary_size = if has_root_min_max {
-        let first_pass = compute_preliminary(tree, root, node_size, available_space, false, true);
+        let first_pass = compute_preliminary(tree, root, node_size, available_space, LayoutMode::ContainerSize, true);
 
         // The size computed in the first pass, clamped by the node's min/max dimensions
         let first_pass_size = Size {
             width: first_pass.width.maybe_max(node_min_size.width).maybe_min(node_max_size.width).into(),
             height: first_pass.height.maybe_max(node_min_size.height).maybe_min(node_max_size.height).into(),
         };
-        compute_preliminary(tree, root, first_pass_size, available_space, true, true)
+        compute_preliminary(tree, root, first_pass_size, available_space, LayoutMode::FullLayout, true)
     } else {
-        compute_preliminary(tree, root, node_size, available_space, true, true)
+        compute_preliminary(tree, root, node_size, available_space, LayoutMode::FullLayout, true)
     };
 
     preliminary_size
@@ -366,7 +366,7 @@ fn determine_flex_base_size(
             child.node,
             Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
             available_space,
-            false,
+            LayoutMode::ContainerSize,
             true,
         )
         .main(constants.dir)
@@ -384,7 +384,7 @@ fn determine_flex_base_size(
         // The following logic was developed not from the spec but by trail and error looking into how
         // webkit handled various scenarios. Can probably be solved better by passing in
         // min-content max-content constraints from the top
-        let min_main = compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
+        let min_main = compute_preliminary(tree, child.node, Size::undefined(), available_space, LayoutMode::ContainerSize, false)
             .main(constants.dir)
             .maybe_max(child.min_size.main(constants.dir))
             .maybe_min(child.size.main(constants.dir))
@@ -499,7 +499,7 @@ fn resolve_flexible_lengths(
                         height: child.size.height.maybe_max(child.min_size.height).maybe_min(child.max_size.height),
                     },
                     available_space,
-                    false,
+                    LayoutMode::ContainerSize,
                     false,
                 )
                 .main(constants.dir)
@@ -639,7 +639,7 @@ fn resolve_flexible_lengths(
             // min-content max-content constraints from the top. Need to figure out correct thing to do here as
             // just piling on more conditionals.
             let min_main = if constants.is_row && !tree.needs_measure(child.node) {
-                compute_preliminary(tree, child.node, Size::undefined(), available_space, false, false)
+                compute_preliminary(tree, child.node, Size::undefined(), available_space, LayoutMode::ContainerSize, false)
                     .width
                     .maybe_min(child.size.width)
                     .maybe_max(child.min_size.width)
@@ -722,7 +722,7 @@ fn determine_hypothetical_cross_size(
                         AvailableSpace::Definite(constants.container_size.main(constants.dir))
                     },
                 },
-                false,
+                LayoutMode::ContainerSize,
                 false,
             )
             .cross(constants.dir)
@@ -800,7 +800,7 @@ fn calculate_children_base_lines(
                         AvailableSpace::Definite(constants.container_size.height)
                     },
                 },
-                true,
+                LayoutMode::FullLayout,
                 false,
             );
 
@@ -1303,7 +1303,7 @@ fn final_layout_pass(tree: &mut impl LayoutTree, node: Node, flex_lines: &mut [F
                 child.node,
                 child.target_size.map(|s| s.into()),
                 constants.container_size.map(|s| s.into()),
-                true,
+                LayoutMode::FullLayout,
                 false,
             );
 
@@ -1415,7 +1415,7 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
             child,
             Size { width, height },
             Size { width: constants.container_size.width.into(), height: constants.container_size.height.into() },
-            true,
+            LayoutMode::FullLayout,
             false,
         );
 
@@ -1517,7 +1517,7 @@ fn compute_preliminary(
     node: Node,
     node_size: Size<Option<f32>>,
     outer_available_space: Size<AvailableSpace>,
-    perform_layout: bool,
+    layout_mode: LayoutMode,
     main_size: bool,
 ) -> Size<f32> {
 
@@ -1665,11 +1665,16 @@ fn compute_preliminary(
 
     // We have the container size.
     // If our caller does not care about performing layout we are done now.
-    if !perform_layout {
-        // let container_size = constants.container_size;
-        // *cache(tree, node, main_size) =
-        //     Some(Cache { , parent_size: outer_available_space, perform_layout, size: container_size });
-        return constants.container_size;
+    match layout_mode {
+        LayoutMode::ContainerSize => {
+            // let container_size = constants.container_size;
+            // *cache(tree, node, main_size) =
+            //     Some(Cache { , parent_size: outer_available_space, layout_mode, size: container_size });
+            return constants.container_size;   
+        },
+        LayoutMode::FullLayout => {
+            // Continue with the full layout algorithm below
+        } 
     }
 
     // 16. Align all flex lines per align-content.
@@ -1715,7 +1720,7 @@ fn compute_preliminary(
 
     // let container_size = constants.container_size;
     // *cache(tree, node, main_size) =
-    //     Some(Cache { node_size, parent_size: outer_available_space, perform_layout, size: container_size });
+    //     Some(Cache { node_size, parent_size: outer_available_space, layout_mode, size: container_size });
 
     constants.container_size
 }

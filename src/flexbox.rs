@@ -2,7 +2,7 @@
 //!
 //! Note that some minor steps appear to be missing: see https://github.com/DioxusLabs/taffy/issues for more information.
 use crate::geometry::{Point, Rect, Size};
-use crate::layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode};
+use crate::layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode, SizingMode};
 use crate::math::MaybeMath;
 use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrDefault};
@@ -595,6 +595,7 @@ fn determine_flex_base_size(
                 Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
                 LayoutMode::ContainerSize,
                 ClampMode::NoClamp,
+                SizingMode::InherentSize,
                 1,
             )
             .main(constants.dir)
@@ -612,12 +613,20 @@ fn determine_flex_base_size(
         // The following logic was developed not from the spec but by trail and error looking into how
         // webkit handled various scenarios. Can probably be solved better by passing in
         // min-content max-content constraints from the top
-        let min_main =
-            compute_preliminary(tree, child.node, Size::undefined(), available_space, LayoutMode::ContainerSize, false)
-                .main(constants.dir)
-                .maybe_max(child.min_size.main(constants.dir))
-                .maybe_min(child.size.main(constants.dir))
-                .into();
+        let min_main = tree
+            .compute_node_layout(
+                child.node,
+                available_space,
+                Size::undefined(),
+                LayoutMode::ContainerSize,
+                ClampMode::NoClamp,
+                SizingMode::ContentSize,
+                1,
+            )
+            .main(constants.dir)
+            .maybe_max(child.min_size.main(constants.dir))
+            .maybe_min(child.size.main(constants.dir))
+            .into();
 
         child.hypothetical_inner_size.set_main(
             constants.dir,

@@ -8,7 +8,7 @@ pub type Node = slotmap::DefaultKey;
 
 use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::{Point, Size};
-use crate::layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode};
+use crate::layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode, SizingMode};
 use crate::prelude::LayoutTree;
 use crate::style::{Display, FlexboxLayout};
 #[cfg(any(feature = "std", feature = "alloc"))]
@@ -114,6 +114,7 @@ impl LayoutTree for Taffy {
         size_override: Size<Option<f32>>,
         layout_mode: LayoutMode,
         clamp_mode: ClampMode,
+        sizing_mode: SizingMode,
         cache_slot: usize,
     ) -> Size<f32> {
         // clear the dirtiness of the node now that we've computed it
@@ -130,7 +131,7 @@ impl LayoutTree for Taffy {
         // If this is a leaf node we can skip a lot of this function in some cases
         let computed_size = if <Self as LayoutTree>::children(self, node).is_empty() {
             println!("leaf");
-            crate::leaf::compute(self, node, available_space, size_override, clamp_mode)
+            crate::leaf::compute(self, node, available_space, size_override, clamp_mode, sizing_mode)
         } else {
             println!("match {:?}", self.nodes[node].style.display);
             match self.nodes[node].style.display {
@@ -431,6 +432,7 @@ impl Taffy {
             Size::undefined(),
             LayoutMode::FullLayout,
             ClampMode::Clamp,
+            SizingMode::InherentSize,
             0,
         );
 

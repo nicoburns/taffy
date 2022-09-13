@@ -33,6 +33,15 @@ pub enum ClampMode {
     NoClamp,
 }
 
+/// Whether styles should be taken into account when computing size
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum SizingMode {
+    /// Only content contributions should be taken into account
+    ContentSize,
+    /// Inherent size styles should be taken into account in addition to content contributions
+    InherentSize,
+}
+
 impl AvailableSpace {
     const ZERO: AvailableSpace = AvailableSpace::Definite(0.0);
 

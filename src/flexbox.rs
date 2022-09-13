@@ -609,12 +609,11 @@ fn determine_flex_base_size(
         child.inner_flex_basis =
             child.flex_basis - child.padding.main_axis_sum(constants.dir) - child.border.main_axis_sum(constants.dir);
 
-        // TODO - not really spec abiding but needs to be done somewhere. probably somewhere else though.
-        // The following logic was developed not from the spec but by trail and error looking into how
-        // webkit handled various scenarios. Can probably be solved better by passing in
-        // min-content max-content constraints from the top
-        let min_main = tree
-            .compute_node_layout(
+        // Flex items default to an automatic (content-based) minimum size if they do not have an explicit minimum size set
+        // See: https://stackoverflow.com/questions/36247140/why-dont-flex-items-shrink-past-content-size
+        // Spec §4.5: https://www.w3.org/TR/css-flexbox-1/#min-size-auto
+        let min_main_size = child.min_size.main(constants.dir).or_else(|| {
+            tree.compute_node_layout(
                 child.node,
                 available_space,
                 Size::undefined(),
@@ -624,15 +623,15 @@ fn determine_flex_base_size(
                 1,
             )
             .main(constants.dir)
-            .maybe_max(child.min_size.main(constants.dir))
-            .maybe_min(child.size.main(constants.dir))
-            .into();
+            .into()
+        });
 
+        // The hypothetical main size is the item’s flex base size clamped according to its used min and max main sizes
+        // (and flooring the content box size at zero).
         child.hypothetical_inner_size.set_main(
             constants.dir,
-            child.flex_basis.maybe_max(min_main).maybe_min(child.max_size.main(constants.dir)),
+            child.flex_basis.maybe_max(min_main_size).maybe_min(child.max_size.main(constants.dir)),
         );
-
         child.hypothetical_outer_size.set_main(
             constants.dir,
             child.hypothetical_inner_size.main(constants.dir) + child.margin.main_axis_sum(constants.dir),

@@ -174,7 +174,7 @@ impl<T> Line<T> {
 }
 
 /// The width and height of a [`Rect`]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(default))]
 pub struct Size<T> {
@@ -189,6 +189,13 @@ impl Size<()> {
     #[must_use]
     pub fn undefined() -> Size<Option<f32>> {
         Size { width: None, height: None }
+    }
+}
+
+// Manual debug implementation for more compact representation
+impl<T: core::fmt::Debug> core::fmt::Debug for Size<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Size {{ w: {:?} h: {:?} }}", self.width, self.height)
     }
 }
 

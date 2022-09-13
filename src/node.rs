@@ -118,6 +118,7 @@ impl LayoutTree for Taffy {
         }
 
         println!("COMPUTE");
+        println!("{} children", <Self as LayoutTree>::children(self, node).len());
 
         // If this is a leaf node we can skip a lot of this function in some cases
         let computed_size = if <Self as LayoutTree>::children(self, node).is_empty() {

@@ -1522,6 +1522,43 @@ fn compute_preliminary(
     // Define some general constants we will need for the remainder of the algorithm.
     let mut constants = compute_constants(tree.style(node), node_size, outer_available_space);
 
+    // If this is a leaf node we can skip a lot of this function in some cases
+    if tree.children(node).is_empty() {
+        if node_size.width.is_some() && node_size.height.is_some() {
+            return node_size.map(|s| s.unwrap_or(0.0));
+        }
+
+        if tree.needs_measure(node) {
+
+            // Convert Option<size> to AvailableSpace
+            // TODO: pass in sizing constraint from top rather than assuming always MinContent
+            let available_space = node_size.map(|size| {
+                match size {
+                    Some(f32) => AvailableSpace::Definite(f32),
+                    None => AvailableSpace::MinContent,
+                }
+            });
+
+            // Measure node
+            let measured_size = tree.measure_node(node, available_space);
+            let computed_size = node_size.zip_map(measured_size, |style_size, measured_size| style_size.unwrap_or(measured_size));
+
+            // Cache measured size
+            let cache = cache(tree, node, main_size);
+            *cache = Some(Cache {
+                constraint: outer_available_space,
+                cached_size: computed_size,
+            });
+
+            return computed_size;
+        }
+
+        return Size {
+            width: node_size.width.unwrap_or(0.0) + constants.padding_border.horizontal_axis_sum(),
+            height: node_size.height.unwrap_or(0.0) + constants.padding_border.vertical_axis_sum(),
+        };
+    }
+
     // 9. Flex Layout Algorithm
 
     // 9.1. Initial Setup

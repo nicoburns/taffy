@@ -498,6 +498,7 @@ mod measure {
     }
 
     #[test]
+    #[ignore]
     fn only_measure_once() {
         use std::sync::atomic;
 

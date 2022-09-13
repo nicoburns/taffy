@@ -124,7 +124,7 @@ impl LayoutTree for Taffy {
             return cached_size;
         }
 
-        println!("COMPUTE");
+        println!("\nCOMPUTE {:?}", node.data());
         println!("{} children", <Self as LayoutTree>::children(self, node).len());
 
         // If this is a leaf node we can skip a lot of this function in some cases
@@ -139,6 +139,8 @@ impl LayoutTree for Taffy {
                 Display::None => Size { width: 0.0, height: 0.0 },
             }
         };
+
+        println!("Computed size: w{} x h{}", computed_size.width, computed_size.height);
 
         // Cache result
         self.nodes[node].set_cache(cache_slot, available_space, computed_size);

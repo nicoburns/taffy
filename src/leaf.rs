@@ -39,6 +39,7 @@ pub(crate) fn compute(
     dbg!(node_max_size);
 
     if node_size.width.is_some() && node_size.height.is_some() {
+        println!("A");
         return Size {
             width: node_size.width.maybe_max(node_min_size.width).maybe_min(node_max_size.width).unwrap_or(0.0),
             height: node_size.height.maybe_max(node_min_size.height).maybe_min(node_max_size.height).unwrap_or(0.0),
@@ -57,6 +58,7 @@ pub(crate) fn compute(
         let unclamped_size =
             node_size.zip_map(measured_size, |style_size, measured_size| style_size.unwrap_or(measured_size));
 
+        println!("B");
         return match clamp_mode {
             ClampMode::NoClamp => unclamped_size,
             ClampMode::Clamp => clamp(unclamped_size, node_min_size, node_max_size),
@@ -70,6 +72,7 @@ pub(crate) fn compute(
         height: node_size.height.unwrap_or(0.0 + padding.vertical_axis_sum() + border.vertical_axis_sum()),
     };
 
+    println!("C");
     return match clamp_mode {
         ClampMode::NoClamp => unclamped_size,
         ClampMode::Clamp => clamp(unclamped_size, node_min_size, node_max_size),

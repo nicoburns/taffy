@@ -1548,7 +1548,10 @@ fn compute_preliminary(
 
     // If this is a leaf node we can skip a lot of this function in some cases
     if tree.children(node).is_empty() {
+        println!("NO CHILDREN");
+
         if node_size.width.is_some() && node_size.height.is_some() {
+            println!("A");
             return node_size.map(|s| s.unwrap_or(0.0));
         }
 
@@ -1569,9 +1572,11 @@ fn compute_preliminary(
             let cache = cache(tree, node, main_size);
             *cache = Some(Cache { constraint: outer_available_space, cached_size: computed_size });
 
+            println!("B");
             return computed_size;
         }
 
+        println!("C");
         return Size {
             width: node_size.width.unwrap_or(0.0) + constants.padding_border.horizontal_axis_sum(),
             height: node_size.height.unwrap_or(0.0) + constants.padding_border.vertical_axis_sum(),

@@ -57,5 +57,5 @@ pub trait LayoutTree {
     /// This typically happens due to conflicting constraints.
     fn secondary_cache(&mut self, node: Node) -> &mut Option<Cache>;
 
-    fn compute_node_layout(&mut self, node: Node, available_space: Size<AvailableSpace>, cache_slot: usize) -> Size<f32>;
+    fn compute_node_layout(&mut self, node: Node, available_space: Size<AvailableSpace>, size_override: Size<Option<f32>>, cache_slot: usize) -> Size<f32>;
 }

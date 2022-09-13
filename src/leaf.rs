@@ -9,13 +9,15 @@ use crate::tree::LayoutTree;
     // Define some general constants we will need for the remainder of the algorithm.
     // let mut constants = compute_constants(tree.style(node), node_size, available_space);
 
-  pub (crate) fn compute(tree: &mut impl LayoutTree, node: Node, available_space: Size<AvailableSpace>) -> Size<f32> {
+  pub (crate) fn compute(tree: &mut impl LayoutTree, node: Node, available_space: Size<AvailableSpace>, size_override: Size<Option<f32>>) -> Size<f32> {
 
       let style = tree.style(node);
 
       // Resolve node's preferred/min/max sizes (width/heights) against the available space
       // (percentages resolve to pixel values)
-      let node_size = style.size.maybe_resolve(available_space.as_options());
+      let node_size = style.size
+        .maybe_resolve(available_space.as_options())
+        .zip_map(size_override, |style_size, size_override| size_override.or(style_size));
       let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
       let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 

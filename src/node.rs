@@ -102,6 +102,25 @@ impl LayoutTree for Taffy {
         &mut self.nodes[node].intrinsic_size_cache[1]
     }
 
+    fn cache_entry_mut(&mut self, node: Node, index: usize) -> &mut Option<Cache> {
+        &mut self.nodes[node].intrinsic_size_cache[index]
+    }
+
+    /// Try to get the computation result from the cache.
+    fn find_in_cache(&mut self, node: Node, available_space: Size<AvailableSpace>) -> Option<Size<f32>> {
+        for entry in self.nodes[node].intrinsic_size_cache {
+            if let Some(entry) = entry {
+                if entry.constraint.width.is_roughly_equal(available_space.width)
+                    && entry.constraint.height.is_roughly_equal(available_space.height)
+                {
+                    return Some(entry.cached_size);
+                }
+            }
+        }
+
+        None
+    }
+
     fn child(&self, node: Node, id: usize) -> Node {
         self.children[node][id]
     }

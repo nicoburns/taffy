@@ -2,8 +2,8 @@
 //!
 //! Used to compute layout for Taffy trees
 //!
-use crate::layout::{Cache, Layout, AvailableSpace};
 use crate::geometry::Size;
+use crate::layout::{AvailableSpace, Cache, Layout};
 use crate::style::FlexboxLayout;
 
 /// Layout information for a given [`Node`](crate::node::Node)
@@ -18,7 +18,7 @@ pub(crate) struct NodeData {
     /// Should we try and measure this node?
     pub(crate) needs_measure: bool,
 
-    /// A bunch of cache slots, mapping a Size<AvailableSpace> to a 
+    /// A bunch of cache slots, mapping a Size<AvailableSpace> to a
     pub(crate) intrinsic_size_cache: [Option<Cache>; 4],
 
     /// Does this node's layout need to be recomputed?
@@ -48,10 +48,14 @@ impl NodeData {
     }
 
     pub fn find_cache(&self, constraint: Size<AvailableSpace>) -> Option<Cache> {
-        self.intrinsic_size_cache.iter().copied().find(|entry| match entry {
-            Some(entry) => entry.constraint == constraint,
-            None => false
-        }).flatten()
+        self.intrinsic_size_cache
+            .iter()
+            .copied()
+            .find(|entry| match entry {
+                Some(entry) => entry.constraint == constraint,
+                None => false,
+            })
+            .flatten()
     }
 
     pub fn set_cache(&mut self, index: usize, constraint: Size<AvailableSpace>, size: Size<f32>) {

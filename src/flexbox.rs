@@ -102,7 +102,12 @@ struct AlgoConstants {
 }
 
 /// Computes the layout of [`LayoutTree`] according to the flexbox algorithm
-pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<AvailableSpace>, size_override: Size<Option<f32>>) -> Size<f32> {
+pub fn compute(
+    tree: &mut impl LayoutTree,
+    root: Node,
+    available_space: Size<AvailableSpace>,
+    size_override: Size<Option<f32>>,
+) -> Size<f32> {
     let style = tree.style(root);
     let has_root_min_max = style.min_size.width.is_defined()
         || style.min_size.height.is_defined()
@@ -111,7 +116,8 @@ pub fn compute(tree: &mut impl LayoutTree, root: Node, available_space: Size<Ava
 
     // Resolve node's preferred/min/max sizes (width/heights) against the available space
     // (percentages resolve to pixel values)
-    let node_size = style.size
+    let node_size = style
+        .size
         .maybe_resolve(available_space.as_options())
         .zip_map(size_override, |style_size, size_override| size_override.or(style_size));
     let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
@@ -384,11 +390,12 @@ fn determine_flex_base_size(
         // The following logic was developed not from the spec but by trail and error looking into how
         // webkit handled various scenarios. Can probably be solved better by passing in
         // min-content max-content constraints from the top
-        let min_main = compute_preliminary(tree, child.node, Size::undefined(), available_space, LayoutMode::ContainerSize, false)
-            .main(constants.dir)
-            .maybe_max(child.min_size.main(constants.dir))
-            .maybe_min(child.size.main(constants.dir))
-            .into();
+        let min_main =
+            compute_preliminary(tree, child.node, Size::undefined(), available_space, LayoutMode::ContainerSize, false)
+                .main(constants.dir)
+                .maybe_max(child.min_size.main(constants.dir))
+                .maybe_min(child.size.main(constants.dir))
+                .into();
 
         child.hypothetical_inner_size.set_main(
             constants.dir,
@@ -639,11 +646,18 @@ fn resolve_flexible_lengths(
             // min-content max-content constraints from the top. Need to figure out correct thing to do here as
             // just piling on more conditionals.
             let min_main = if constants.is_row && !tree.needs_measure(child.node) {
-                compute_preliminary(tree, child.node, Size::undefined(), available_space, LayoutMode::ContainerSize, false)
-                    .width
-                    .maybe_min(child.size.width)
-                    .maybe_max(child.min_size.width)
-                    .into()
+                compute_preliminary(
+                    tree,
+                    child.node,
+                    Size::undefined(),
+                    available_space,
+                    LayoutMode::ContainerSize,
+                    false,
+                )
+                .width
+                .maybe_min(child.size.width)
+                .maybe_max(child.min_size.width)
+                .into()
             } else {
                 child.min_size.main(constants.dir)
             };
@@ -1520,7 +1534,6 @@ fn compute_preliminary(
     layout_mode: LayoutMode,
     main_size: bool,
 ) -> Size<f32> {
-
     // Define some general constants we will need for the remainder of the algorithm.
     let mut constants = compute_constants(tree.style(node), node_size, outer_available_space);
 
@@ -1531,26 +1544,21 @@ fn compute_preliminary(
         }
 
         if tree.needs_measure(node) {
-
             // Convert Option<size> to AvailableSpace
             // TODO: pass in sizing constraint from top rather than assuming always MinContent
-            let available_space = node_size.map(|size| {
-                match size {
-                    Some(f32) => AvailableSpace::Definite(f32),
-                    None => AvailableSpace::MinContent,
-                }
+            let available_space = node_size.map(|size| match size {
+                Some(f32) => AvailableSpace::Definite(f32),
+                None => AvailableSpace::MinContent,
             });
 
             // Measure node
             let measured_size = tree.measure_node(node, available_space);
-            let computed_size = node_size.zip_map(measured_size, |style_size, measured_size| style_size.unwrap_or(measured_size));
+            let computed_size =
+                node_size.zip_map(measured_size, |style_size, measured_size| style_size.unwrap_or(measured_size));
 
             // Cache measured size
             let cache = cache(tree, node, main_size);
-            *cache = Some(Cache {
-                constraint: outer_available_space,
-                cached_size: computed_size,
-            });
+            *cache = Some(Cache { constraint: outer_available_space, cached_size: computed_size });
 
             return computed_size;
         }
@@ -1670,11 +1678,11 @@ fn compute_preliminary(
             // let container_size = constants.container_size;
             // *cache(tree, node, main_size) =
             //     Some(Cache { , parent_size: outer_available_space, layout_mode, size: container_size });
-            return constants.container_size;   
-        },
+            return constants.container_size;
+        }
         LayoutMode::FullLayout => {
             // Continue with the full layout algorithm below
-        } 
+        }
     }
 
     // 16. Align all flex lines per align-content.

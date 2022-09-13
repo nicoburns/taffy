@@ -7,12 +7,12 @@ use slotmap::{SlotMap, SparseSecondaryMap};
 pub type Node = slotmap::DefaultKey;
 
 use crate::error::{TaffyError, TaffyResult};
-use crate::geometry::{Size, Point};
+use crate::geometry::{Point, Size};
 use crate::layout::{AvailableSpace, Cache, Layout};
 use crate::prelude::LayoutTree;
 use crate::style::{Display, FlexboxLayout};
 #[cfg(any(feature = "std", feature = "alloc"))]
-use crate::sys::{new_vec_with_capacity, ChildrenVec, Vec, Box, abs, round};
+use crate::sys::{abs, new_vec_with_capacity, round, Box, ChildrenVec, Vec};
 use crate::{data::NodeData, error};
 
 /// A function type that can be used in a [`MeasureFunc`]
@@ -99,7 +99,7 @@ impl LayoutTree for Taffy {
     }
 
     fn secondary_cache(&mut self, node: Node) -> &mut Option<Cache> {
-       &mut self.nodes[node].intrinsic_size_cache[1]
+        &mut self.nodes[node].intrinsic_size_cache[1]
     }
 
     fn child(&self, node: Node, id: usize) -> Node {
@@ -107,8 +107,13 @@ impl LayoutTree for Taffy {
     }
 
     /// Updates the stored layout of the provided `node` and its children
-    fn compute_node_layout(&mut self, node: Node, available_space: Size<AvailableSpace>, size_override: Size<Option<f32>>, cache_slot: usize) -> Size<f32> {
-
+    fn compute_node_layout(
+        &mut self,
+        node: Node,
+        available_space: Size<AvailableSpace>,
+        size_override: Size<Option<f32>>,
+        cache_slot: usize,
+    ) -> Size<f32> {
         // clear the dirtiness of the node now that we've computed it
         <Self as LayoutTree>::mark_dirty(self, node, false);
 
@@ -380,23 +385,17 @@ impl Taffy {
 
     /// Try to get the computation result from the cache.
     #[inline]
-     fn compute_from_cache(
-        &mut self,
-        node: Node,
-        available_space: Size<AvailableSpace>,
-    ) -> Option<Size<f32>> {
-
+    fn compute_from_cache(&mut self, node: Node, available_space: Size<AvailableSpace>) -> Option<Size<f32>> {
         for entry in self.nodes[node].intrinsic_size_cache {
             if let Some(entry) = entry {
-                if 
-                    entry.constraint.width.is_roughly_equal(available_space.width)
-                    && entry.constraint.height.is_roughly_equal(available_space.height) 
+                if entry.constraint.width.is_roughly_equal(available_space.width)
+                    && entry.constraint.height.is_roughly_equal(available_space.height)
                 {
-                    return Some(entry.cached_size)
+                    return Some(entry.cached_size);
                 }
             }
         }
-        
+
         None
     }
 
@@ -421,7 +420,6 @@ impl Taffy {
 
     /// Updates the stored layout of the provided `node` and its children
     pub fn compute_layout(&mut self, root: Node, available_space: Size<AvailableSpace>) -> Result<(), TaffyError> {
-
         // Recursively compute node layout
         let size = self.compute_node_layout(root, available_space, Size::undefined(), 0);
 
@@ -430,7 +428,6 @@ impl Taffy {
 
         // Recursively round the layout's of this node and all children
         self.round_layout(root, 0.0, 0.0);
-
 
         Ok(())
     }

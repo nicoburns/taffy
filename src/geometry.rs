@@ -203,7 +203,7 @@ impl<T> Size<T> {
         Size { width: f(self.width), height: f(self.height) }
     }
 
-    /// Applies the function `f` to the width 
+    /// Applies the function `f` to the width
     pub fn map_width<F>(self, f: F) -> Size<T>
     where
         F: Fn(T) -> T,
@@ -211,7 +211,7 @@ impl<T> Size<T> {
         Size { width: f(self.width), height: self.height }
     }
 
-    /// Applies the function `f` to the height 
+    /// Applies the function `f` to the height
     pub fn map_height<F>(self, f: F) -> Size<T>
     where
         F: Fn(T) -> T,

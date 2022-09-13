@@ -1,7 +1,7 @@
 //! Contains numerical helper traits and functions
 
-use crate::layout::AvailableSpace;
 use crate::geometry::Size;
+use crate::layout::AvailableSpace;
 
 /// A trait to conveniently calculate minimums and maximums when some data may not be defined
 ///
@@ -151,8 +151,8 @@ impl MaybeMath<Option<f32>, AvailableSpace> for AvailableSpace {
     }
     fn maybe_max(self, rhs: Option<f32>) -> AvailableSpace {
         match (self, rhs) {
-           (AvailableSpace::Definite(val), Some(rhs)) => AvailableSpace::Definite(val.max(rhs)),
-           (AvailableSpace::Definite(val), None) => AvailableSpace::Definite(val),
+            (AvailableSpace::Definite(val), Some(rhs)) => AvailableSpace::Definite(val.max(rhs)),
+            (AvailableSpace::Definite(val), None) => AvailableSpace::Definite(val),
             (AvailableSpace::MinContent, _) => AvailableSpace::MinContent,
             (AvailableSpace::MaxContent, _) => AvailableSpace::MaxContent,
         }

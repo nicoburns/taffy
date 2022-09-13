@@ -28,9 +28,9 @@ pub mod style;
 pub mod tree;
 
 mod data;
-mod leaf;
 mod flexbox;
 mod grid;
+mod leaf;
 mod resolve;
 mod sys;
 

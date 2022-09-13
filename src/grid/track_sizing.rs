@@ -224,9 +224,9 @@ pub(in crate::grid) fn track_sizing_algorithm_inner(
             let placement = get_other_axis_placement(item);
             available_space.maybe_set(
                 (&other_axis_tracks)[(placement.start as usize + 1)..(placement.end as usize)]
-                .iter()
-                .map(|track| get_track_size_estimate(track, available_space))
-                .sum::<Option<f32>>()
+                    .iter()
+                    .map(|track| get_track_size_estimate(track, available_space))
+                    .sum::<Option<f32>>(),
             )
         };
 

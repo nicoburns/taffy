@@ -7,12 +7,18 @@ use crate::layout::AvailableSpace;
 ///
 /// If the left-hand value is [`None`], these operations return [`None`].
 /// If the right-hand value is [`None`], it is treated as zero.
-pub(crate) trait MaybeMath<In, Out> {
+pub(crate) trait MaybeMath<In, Out> : Sized {
     /// Returns the minimum of `self` and `rhs`
     fn maybe_min(self, rhs: In) -> Out;
+    fn maybe_floor_at(self, rhs: In) -> Out {
+        self.maybe_min(rhs)
+    }
 
     /// Returns the maximum of `self` and `rhs`
     fn maybe_max(self, rhs: In) -> Out;
+    fn maybe_ceil_at(self, rhs: In) -> Out {
+        self.maybe_max(rhs)
+    }
 
     /// Adds `self` and `rhs`.
     fn maybe_add(self, rhs: In) -> Out;
@@ -174,6 +180,7 @@ impl MaybeMath<Option<f32>, AvailableSpace> for AvailableSpace {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {

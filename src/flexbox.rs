@@ -588,18 +588,25 @@ fn determine_flex_base_size(
             child.size.height
         };
 
-        child.flex_basis = tree
-            .compute_node_layout(
-                child.node,
-                available_space,
-                Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
-                LayoutMode::ContainerSize,
-                ClampMode::NoClamp,
-                SizingMode::InherentSize,
-                1,
-            )
+        child.flex_basis = child
+            .size
             .main(constants.dir)
-            .maybe_min(child.max_size.main(constants.dir));
+            .unwrap_or_else(|| {
+                tree.compute_node_layout(
+                    child.node,
+                    available_space,
+                    Size {
+                        width: width.maybe_min(child.max_size.width),
+                        height: height.maybe_min(child.max_size.height),
+                    },
+                    LayoutMode::ContainerSize,
+                    ClampMode::NoClamp,
+                    SizingMode::ContentSize,
+                    1,
+                )
+                .main(constants.dir)
+            })
+            .maybe_floor_at(child.max_size.main(constants.dir));
     }
 
     // The hypothetical main size is the item’s flex base size clamped according to its

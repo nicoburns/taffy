@@ -736,33 +736,38 @@ fn resolve_flexible_lengths(
     //      smaller than its hypothetical main size
 
     for child in line.items.iter_mut() {
+        // This matches a rather bizarre browser behaviour where the following HTML leads
+        // to both divs resolving to a width of zero:
+        //
+        // <div id="test-root" style="flex-direction: row;">
+        //   <div style="flex-basis: 50px;height: 100px;"></div>
+        // </div>
+        //
+        // See: "flex_basis_unconstraint_row" gentest.
+        //
         // TODO - This is not found by reading the spec. Maybe this can be done in some other place
-        // instead. This was found by trail and error fixing tests to align with webkit output.
+        // instead. This was found by trial and error fixing tests to align with webkit output.
         if constants.node_inner_size.main(constants.dir).is_none() && constants.is_row {
-            child.target_size.set_main(
-                constants.dir,
-                compute_preliminary(
-                    tree,
-                    child.node,
-                    Size {
-                        width: child.size.width.maybe_max(child.min_size.width).maybe_min(child.max_size.width),
-                        height: child.size.height.maybe_max(child.min_size.height).maybe_min(child.max_size.height),
-                    },
-                    available_space,
-                    LayoutMode::ContainerSize,
-                    false,
-                )
-                .main(constants.dir)
-                .maybe_max(child.min_size.main(constants.dir))
-                .maybe_min(child.max_size.main(constants.dir)),
+            let content_size = tree.compute_node_layout(
+                child.node,
+                Size::max_content(),
+                Size {
+                    width: child.size.width.maybe_max(child.min_size.width).maybe_min(child.max_size.width),
+                    height: child.size.height.maybe_max(child.min_size.height).maybe_min(child.max_size.height),
+                },
+                LayoutMode::ContainerSize,
+                ClampMode::Clamp,
+                SizingMode::InherentSize,
+                1,
             );
+
+            child.target_size.set_main(constants.dir, content_size.main(constants.dir));
         } else {
             child.target_size.set_main(constants.dir, child.hypothetical_inner_size.main(constants.dir));
         }
 
         // TODO this should really only be set inside the if-statement below but
         // that causes the target_main_size to never be set for some items
-
         child
             .outer_target_size
             .set_main(constants.dir, child.target_size.main(constants.dir) + child.margin.main_axis_sum(constants.dir));
@@ -785,7 +790,7 @@ fn resolve_flexible_lengths(
         .iter()
         .map(|child| {
             child.margin.main_axis_sum(constants.dir)
-                + if child.frozen { child.target_size.main(constants.dir) } else { child.flex_basis }
+                + if child.frozen { child.outer_target_size.main(constants.dir) } else { child.flex_basis }
         })
         .sum();
 

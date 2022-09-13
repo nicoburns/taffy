@@ -114,6 +114,8 @@ pub fn compute(
         || style.min_size.height.is_defined()
         || style.max_size.width.is_defined()
         || style.max_size.height.is_defined();
+    let is_root = tree.parent(root).is_none();
+    // dbg!(layout_mode, has_root_min_max, is_root);
 
     // Resolve node's preferred/min/max sizes (width/heights) against the available space
     // (percentages resolve to pixel values)
@@ -124,8 +126,10 @@ pub fn compute(
     let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
     let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 
-    let preliminary_size = match (layout_mode, has_root_min_max) {
-        (LayoutMode::FullLayout, true) => {
+    let preliminary_size = match (layout_mode, has_root_min_max, is_root) {
+        (LayoutMode::FullLayout, true, true) => {
+            println!("2-pass");
+
             let first_pass =
                 compute_preliminary(tree, root, node_size, available_space, LayoutMode::ContainerSize, true);
 
@@ -136,10 +140,12 @@ pub fn compute(
             };
             compute_preliminary(tree, root, first_pass_size, available_space, LayoutMode::FullLayout, true)
         }
-        (LayoutMode::FullLayout, false) => {
+        (LayoutMode::FullLayout, _, _) => {
+            println!("1-pass (full layout)");
             compute_preliminary(tree, root, node_size, available_space, LayoutMode::FullLayout, true)
         }
-        (LayoutMode::ContainerSize, _) => {
+        (LayoutMode::ContainerSize, _, _) => {
+            println!("1-pass (container size)");
             compute_preliminary(tree, root, node_size, available_space, LayoutMode::ContainerSize, false)
         }
     };

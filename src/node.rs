@@ -1,14 +1,14 @@
 //! UI [`Node`] types and related data structures.
 //!
 //! Layouts are composed of multiple nodes, which live in a tree-like data structure.
-use slotmap::{SlotMap, SparseSecondaryMap};
+use slotmap::{Key, SlotMap, SparseSecondaryMap};
 
 /// A node in a layout.
 pub type Node = slotmap::DefaultKey;
 
 use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::{Point, Size};
-use crate::layout::{AvailableSpace, Cache, Layout};
+use crate::layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode};
 use crate::prelude::LayoutTree;
 use crate::style::{Display, FlexboxLayout};
 #[cfg(any(feature = "std", feature = "alloc"))]
@@ -112,6 +112,8 @@ impl LayoutTree for Taffy {
         node: Node,
         available_space: Size<AvailableSpace>,
         size_override: Size<Option<f32>>,
+        layout_mode: LayoutMode,
+        clamp_mode: ClampMode,
         cache_slot: usize,
     ) -> Size<f32> {
         // clear the dirtiness of the node now that we've computed it
@@ -128,11 +130,11 @@ impl LayoutTree for Taffy {
         // If this is a leaf node we can skip a lot of this function in some cases
         let computed_size = if <Self as LayoutTree>::children(self, node).is_empty() {
             println!("leaf");
-            crate::leaf::compute(self, node, available_space, size_override)
+            crate::leaf::compute(self, node, available_space, size_override, clamp_mode)
         } else {
             println!("match {:?}", self.nodes[node].style.display);
             match self.nodes[node].style.display {
-                Display::Flex => crate::flexbox::compute(self, node, available_space, size_override),
+                Display::Flex => crate::flexbox::compute(self, node, available_space, size_override, layout_mode),
                 Display::Grid => crate::grid::compute(self, node, available_space),
                 Display::None => Size { width: 0.0, height: 0.0 },
             }
@@ -421,7 +423,14 @@ impl Taffy {
     /// Updates the stored layout of the provided `node` and its children
     pub fn compute_layout(&mut self, root: Node, available_space: Size<AvailableSpace>) -> Result<(), TaffyError> {
         // Recursively compute node layout
-        let size = self.compute_node_layout(root, available_space, Size::undefined(), 0);
+        let size = self.compute_node_layout(
+            root,
+            available_space,
+            Size::undefined(),
+            LayoutMode::FullLayout,
+            ClampMode::Clamp,
+            0,
+        );
 
         let layout = Layout { order: 0, size, location: Point::ZERO };
         *self.layout_mut(root) = layout;

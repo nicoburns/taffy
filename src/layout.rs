@@ -24,6 +24,15 @@ pub enum LayoutMode {
     ContainerSize,
 }
 
+/// Whether clamping by min and max sizes should occur
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ClampMode {
+    /// The layout algorithm SHOULD clamp the returned size by the node's min and max size
+    Clamp,
+    /// The layout algorithm SHOULD NOT clamp the returned size by the node's min and max size
+    NoClamp,
+}
+
 impl AvailableSpace {
     const ZERO: AvailableSpace = AvailableSpace::Definite(0.0);
 

@@ -1,7 +1,7 @@
 //! The baseline requirements of any UI Tree so Taffy can efficiently calculate the layout
 
 use crate::{
-    layout::{AvailableSpace, Cache, Layout},
+    layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode},
     prelude::*,
 };
 
@@ -62,6 +62,8 @@ pub trait LayoutTree {
         node: Node,
         available_space: Size<AvailableSpace>,
         size_override: Size<Option<f32>>,
+        layout_mode: LayoutMode,
+        clamp_mode: ClampMode,
         cache_slot: usize,
     ) -> Size<f32>;
 }

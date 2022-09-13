@@ -2,7 +2,7 @@
 //!
 //! Note that some minor steps appear to be missing: see https://github.com/DioxusLabs/taffy/issues for more information.
 use crate::geometry::{Point, Rect, Size};
-use crate::layout::{AvailableSpace, Cache, Layout, LayoutMode};
+use crate::layout::{AvailableSpace, Cache, ClampMode, Layout, LayoutMode};
 use crate::math::MaybeMath;
 use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrDefault};
@@ -107,6 +107,7 @@ pub fn compute(
     root: Node,
     available_space: Size<AvailableSpace>,
     size_override: Size<Option<f32>>,
+    layout_mode: LayoutMode,
 ) -> Size<f32> {
     let style = tree.style(root);
     let has_root_min_max = style.min_size.width.is_defined()
@@ -123,17 +124,24 @@ pub fn compute(
     let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
     let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 
-    let preliminary_size = if has_root_min_max {
-        let first_pass = compute_preliminary(tree, root, node_size, available_space, LayoutMode::ContainerSize, true);
+    let preliminary_size = match (layout_mode, has_root_min_max) {
+        (LayoutMode::FullLayout, true) => {
+            let first_pass =
+                compute_preliminary(tree, root, node_size, available_space, LayoutMode::ContainerSize, true);
 
-        // The size computed in the first pass, clamped by the node's min/max dimensions
-        let first_pass_size = Size {
-            width: first_pass.width.maybe_max(node_min_size.width).maybe_min(node_max_size.width).into(),
-            height: first_pass.height.maybe_max(node_min_size.height).maybe_min(node_max_size.height).into(),
-        };
-        compute_preliminary(tree, root, first_pass_size, available_space, LayoutMode::FullLayout, true)
-    } else {
-        compute_preliminary(tree, root, node_size, available_space, LayoutMode::FullLayout, true)
+            // The size computed in the first pass, clamped by the node's min/max dimensions
+            let first_pass_size = Size {
+                width: first_pass.width.maybe_max(node_min_size.width).maybe_min(node_max_size.width).into(),
+                height: first_pass.height.maybe_max(node_min_size.height).maybe_min(node_max_size.height).into(),
+            };
+            compute_preliminary(tree, root, first_pass_size, available_space, LayoutMode::FullLayout, true)
+        }
+        (LayoutMode::FullLayout, false) => {
+            compute_preliminary(tree, root, node_size, available_space, LayoutMode::FullLayout, true)
+        }
+        (LayoutMode::ContainerSize, _) => {
+            compute_preliminary(tree, root, node_size, available_space, LayoutMode::ContainerSize, false)
+        }
     };
 
     preliminary_size
@@ -367,16 +375,17 @@ fn determine_flex_base_size(
             child.size.height
         };
 
-        child.flex_basis = compute_preliminary(
-            tree,
-            child.node,
-            Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
-            available_space,
-            LayoutMode::ContainerSize,
-            true,
-        )
-        .main(constants.dir)
-        .maybe_min(child.max_size.main(constants.dir));
+        child.flex_basis = tree
+            .compute_node_layout(
+                child.node,
+                available_space,
+                Size { width: width.maybe_min(child.max_size.width), height: height.maybe_min(child.max_size.height) },
+                LayoutMode::ContainerSize,
+                ClampMode::NoClamp,
+                1,
+            )
+            .main(constants.dir)
+            .maybe_min(child.max_size.main(constants.dir));
     }
 
     // The hypothetical main size is the item’s flex base size clamped according to its

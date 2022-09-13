@@ -39,7 +39,10 @@ pub(crate) fn compute(
     let node_min_size = style.min_size.maybe_resolve(available_space.as_options());
     let node_max_size = style.max_size.maybe_resolve(available_space.as_options());
 
+    // Debug logs
     println!("LEAF");
+    dbg!(sizing_mode, clamp_mode);
+    dbg!(available_space);
     dbg!(node_size);
     dbg!(node_min_size);
     dbg!(node_max_size);
@@ -91,6 +94,8 @@ pub(crate) fn compute(
           height: 0.0 + padding.vertical_axis_sum() + border.vertical_axis_sum(),
       }
     };
+
+    dbg!(content_size);
 
     // Adjust size according the size, min-size, and max-size if the SizingMode and ClampMode say that we should
     return match sizing_mode {

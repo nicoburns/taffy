@@ -140,7 +140,8 @@ impl LayoutTree for Taffy {
         <Self as LayoutTree>::mark_dirty(self, node, false);
 
 
-        println!("\nCOMPUTE {:?}", node.data());
+
+        println!("\nCOMPUTE {:?} {:?} {:?} {:?} {:?}", node.data(), sizing_mode, clamp_mode, available_space, size_override);
         println!("{} children", <Self as LayoutTree>::children(self, node).len());
 
         // If this is a leaf node we can skip a lot of this function in some cases
@@ -168,7 +169,7 @@ impl LayoutTree for Taffy {
             }
         };
 
-        println!("Computed size: w{} x h{}", computed_size.width, computed_size.height);
+        println!("Computed size {:?}: w{} x h{}\n", node.data(), computed_size.width, computed_size.height);
 
         
 

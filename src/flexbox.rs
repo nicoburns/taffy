@@ -893,19 +893,18 @@ fn resolve_flexible_lengths(
             // webkit handled various scenarios. Can probably be solved better by passing in
             // min-content max-content constraints from the top. Need to figure out correct thing to do here as
             // just piling on more conditionals.
+
             let min_main = if constants.is_row && !tree.needs_measure(child.node) {
-                compute_preliminary(
-                    tree,
+                let min_content_size = tree.compute_node_layout(
                     child.node,
+                    Size::max_content(),
                     Size::undefined(),
-                    available_space,
                     LayoutMode::ContainerSize,
-                    false,
-                )
-                .width
-                .maybe_min(child.size.width)
-                .maybe_max(child.min_size.width)
-                .into()
+                    ClampMode::NoClamp,
+                    SizingMode::ContentSize,
+                    1,
+                );
+                min_content_size.width.maybe_min(child.size.width).maybe_max(child.min_size.width).into()
             } else {
                 child.min_size.main(constants.dir)
             };

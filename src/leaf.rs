@@ -26,6 +26,7 @@ pub(crate) fn compute(
     size_override: Size<Option<f32>>,
     clamp_mode: ClampMode,
     sizing_mode: SizingMode,
+    cache_slot: usize,
 ) -> Size<f32> {
     let style = tree.style(node);
 
@@ -43,6 +44,8 @@ pub(crate) fn compute(
     dbg!(node_min_size);
     dbg!(node_max_size);
 
+    // If we are computing inherent size, and the node has a definite width and height
+    // then simply return those.
     match (sizing_mode, node_size.width, node_size.height) {
       (SizingMode::InherentSize, Some(width), Some(height)) => {
           println!("A");
@@ -56,6 +59,7 @@ pub(crate) fn compute(
       },
     };
 
+    // Compute the content size under the specified available space
     let content_size = if tree.needs_measure(node) {
         println!("B");
 
@@ -65,10 +69,19 @@ pub(crate) fn compute(
             height: available_space.height.maybe_set(node_size.height),
         };
 
-        // Measure node
-        let measured_size = tree.measure_node(node, available_space);
+        // First we check if we have a cached result for the given input
+        match tree.find_in_cache(node, available_space) {
 
-        measured_size
+            // If we do then return cached result
+            Some(cached_size) => cached_size,
+
+            // If not, then compute, cache, and then return result
+            None => {
+              let measured_size = tree.measure_node(node, available_space);
+              *tree.cache_entry_mut(node, cache_slot) = Some(Cache { constraint: available_space, cached_size: measured_size });
+              measured_size
+            }
+        }
     } else {
       println!("C");
       let padding = style.padding.resolve_or_default(available_space.width.as_option());

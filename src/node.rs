@@ -139,10 +139,6 @@ impl LayoutTree for Taffy {
         // clear the dirtiness of the node now that we've computed it
         <Self as LayoutTree>::mark_dirty(self, node, false);
 
-        // First we check if we have a cached result for the given input
-        if let Some(cached_size) = self.compute_from_cache(node, available_space) {
-            return cached_size;
-        }
 
         println!("\nCOMPUTE {:?}", node.data());
         println!("{} children", <Self as LayoutTree>::children(self, node).len());
@@ -150,11 +146,23 @@ impl LayoutTree for Taffy {
         // If this is a leaf node we can skip a lot of this function in some cases
         let computed_size = if <Self as LayoutTree>::children(self, node).is_empty() {
             println!("leaf");
-            crate::leaf::compute(self, node, available_space, size_override, clamp_mode, sizing_mode)
+            crate::leaf::compute(self, node, available_space, size_override, clamp_mode, sizing_mode, cache_slot)
         } else {
             println!("match {:?}", self.nodes[node].style.display);
             match self.nodes[node].style.display {
-                Display::Flex => crate::flexbox::compute(self, node, available_space, size_override, layout_mode),
+                Display::Flex => {
+                    // First we check if we have a cached result for the given input
+                    let computed_size = if let Some(cached_size) = self.find_in_cache(node, available_space) {
+                        cached_size
+                    } else {
+                        crate::flexbox::compute(self, node, available_space, size_override, layout_mode)
+                    };
+
+                    // Cache result
+                    self.nodes[node].set_cache(cache_slot, available_space, computed_size);
+
+                    computed_size
+                },
                 Display::Grid => crate::grid::compute(self, node, available_space),
                 Display::None => Size { width: 0.0, height: 0.0 },
             }
@@ -162,8 +170,7 @@ impl LayoutTree for Taffy {
 
         println!("Computed size: w{} x h{}", computed_size.width, computed_size.height);
 
-        // Cache result
-        self.nodes[node].set_cache(cache_slot, available_space, computed_size);
+        
 
         computed_size
     }
@@ -405,22 +412,6 @@ impl Taffy {
     /// Indicates whether the layout of this node (and its children) need to be recomputed
     pub fn dirty(&self, node: Node) -> TaffyResult<bool> {
         Ok(self.nodes[node].is_dirty)
-    }
-
-    /// Try to get the computation result from the cache.
-    #[inline]
-    fn compute_from_cache(&mut self, node: Node, available_space: Size<AvailableSpace>) -> Option<Size<f32>> {
-        for entry in self.nodes[node].intrinsic_size_cache {
-            if let Some(entry) = entry {
-                if entry.constraint.width.is_roughly_equal(available_space.width)
-                    && entry.constraint.height.is_roughly_equal(available_space.height)
-                {
-                    return Some(entry.cached_size);
-                }
-            }
-        }
-
-        None
     }
 
     /// Rounds the calculated [`NodeData`] according to the spec

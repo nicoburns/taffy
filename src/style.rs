@@ -930,8 +930,8 @@ mod tests {
 
     #[test]
     fn defaults_match() {
-        use super::Dimension;
-        use crate::geometry::Size;
+        use super::{Dimension, GridPlacement};
+        use crate::geometry::{Size, Line};
 
         let old_defaults = FlexboxLayout {
             display: Default::default(),

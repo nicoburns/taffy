@@ -73,10 +73,10 @@ pub(super) struct GridTrack {
     pub min_track_sizing_function: MinTrackSizingFunction,
     pub max_track_sizing_function: MaxTrackSizingFunction,
     pub base_size: f32,
-    pub growth_limit: f32,                     // Note: can be infinity
+    pub growth_limit: f32, // Note: can be infinity
     // pub base_size_planned_increase: f32,    // A temporary scratch value when "distributing space" to avoid clobbering the main variable
     // pub growth_limit_planned_increase: f32, // A temporary scratch value when "distributing space" to avoid clobbering the main variable
-    pub infinitely_growable: bool,             // https://www.w3.org/TR/css3-grid-layout/#infinitely-growable
+    pub infinitely_growable: bool, // https://www.w3.org/TR/css3-grid-layout/#infinitely-growable
 }
 
 impl GridTrack {
@@ -383,12 +383,11 @@ impl GridItem {
             node,
             row: row_span,
             column: col_span,
-            row_indexes: Line { start: 0, end: 0 },    // Properly initialised later
+            row_indexes: Line { start: 0, end: 0 }, // Properly initialised later
             column_indexes: Line { start: 0, end: 0 }, // Properly initialised later
-            crosses_flexible_row: false,               // Properly initialised later
-            crosses_flexible_column: false,            // Properly initialised later
-            intrinsic_size_cache: [AvailableSpaceCache::empty(); 4]
-            // source_order: 1,
+            crosses_flexible_row: false,            // Properly initialised later
+            crosses_flexible_column: false,         // Properly initialised later
+            intrinsic_size_cache: [AvailableSpaceCache::empty(); 4], // source_order: 1,
         }
     }
 
@@ -449,7 +448,7 @@ impl GridItem {
         }
     }
 
-     pub fn axis_agnostic_intrinsic_size_cached(
+    pub fn axis_agnostic_intrinsic_size_cached(
         &mut self,
         measure_node: impl Fn(Node, Size<AvailableSpace>) -> Size<f32>,
         axis: GridAxis,

@@ -113,7 +113,6 @@ impl Size<AvailableSpace> {
     }
 }
 
-
 /// The final result of a layout algorithm for a single [`Node`](crate::node::Node).
 #[derive(Copy, Debug, Clone)]
 pub struct Layout {

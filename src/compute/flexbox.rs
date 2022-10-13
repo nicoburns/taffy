@@ -169,7 +169,6 @@ fn compute_preliminary(
 ) -> Size<f32> {
     // Define some general constants we will need for the remainder of the algorithm.
     let mut constants = compute_constants(tree.style(node), known_dimensions, parent_size);
-
     // 9. Flex Layout Algorithm
 
     // 9.1. Initial Setup

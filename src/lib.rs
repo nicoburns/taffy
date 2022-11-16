@@ -30,8 +30,8 @@ pub mod tree;
 #[cfg(feature = "random")]
 pub mod randomizable;
 
+mod compute;
 mod data;
-mod flexbox;
 mod resolve;
 mod sys;
 

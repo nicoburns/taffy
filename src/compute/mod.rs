@@ -14,6 +14,67 @@ use crate::tree::LayoutTree;
 #[cfg(feature = "debug")]
 use crate::debug::NODE_LOGGER;
 
+pub (crate) trait LayoutAlgorithm {
+    /// A boolean indicating whether `compute_size` and `perform_layout` are equivalent for this layout algorithm.
+    /// This is a performance optimisation which allows us to avoid calling the `perform_layout` function if the `compute_size`
+    /// function has already been called and the two perform the same work.
+    ///
+    /// This should be true if:
+    ///   - The node is simple and has no children or not sub-layouting of it's children is required.
+    ///   - It is not possible to compute the size of the node without performing a full layout.
+    ///
+    /// It is false for layout modes like Flexbox where half of the algorithm can be skipped if one only needs
+    /// to compute the size of the container.
+    const COMPUTE_SIZE_AND_PERFORM_LAYOUT_ARE_SAME : bool = false;
+
+    /// Compute the size of the node.
+    /// 
+    /// # Arguments
+    ///
+    /// * `tree` - Storage for node data and styles
+    /// * `node` - ID of the node to be laid out. Can be used to lookup styles in the tree.
+    /// * `known_dimensions` - Dimensions of the node that are already set. Used for multipass rendering where a dimension is set from a previous iteration.
+    /// * `available_space` - Either the size of the parent node, or a min/max-content sizing constraint if the parent does not yet have a definite size.
+    /// * `sizing_mode` - Whether to take into account inherent styles or just content when computing sizing.
+    ///
+    /// # Return
+    /// The size computed should be the "border box" in the CSS box model (inclusive of padding and borders, but exclusive of margins.
+    /// If `known_dimensions` is set in a given dimension then the size returned in that dimension will be ignored.
+    fn compute_size(
+        tree: &mut impl LayoutTree,
+        node: Node,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode,
+    ) -> Size<f32>;
+
+    /// Perform a full layout of the node.
+    /// This should involve computing the size of the node like `compute_size`, but also ensuring that the full layouts (
+    /// (sizes and positions) of all descendant nodes are determined (recursively calling `perform_layout` on each child as
+    /// necessary).
+    /// 
+    /// # Arguments
+    ///
+    /// * `tree` - Storage for node data and styles
+    /// * `node` - ID of the node to be laid out. Can be used to lookup styles in the tree.
+    /// * `known_dimensions` - Dimensions of the node that are already set. Used for multipass rendering where a dimension is set from a previous iteration.
+    /// * `available_space` - Either the size of the parent node, or a min/max-content sizing constraint if the parent does not yet have a definite size.
+    /// * `sizing_mode` - Whether to take into account inherent styles or just content when computing sizing.
+    ///
+    /// # Return
+    /// The size computed should be the "border box" in the CSS box model (inclusive of padding and borders, but exclusive of margins.
+    /// If `known_dimensions` is set in a given dimension then the size returned in that dimension will be ignored.
+    fn perform_layout(
+        tree: &mut impl LayoutTree,
+        node: Node,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode,
+    ) -> Size<f32> {
+        Self::compute_size(tree, node, known_dimensions, available_space, sizing_mode)
+    }
+}
+
 /// Updates the stored layout of the provided `node` and its children
 pub fn compute_layout(
     tree: &mut impl LayoutTree,
@@ -22,7 +83,7 @@ pub fn compute_layout(
 ) -> Result<(), TaffyError> {
     // Recursively compute node layout
     let size =
-        compute_node_layout(tree, root, Size::NONE, available_space, RunMode::PeformLayout, SizingMode::InherentSize);
+        perform_node_layout(tree, root, Size::NONE, available_space, SizingMode::InherentSize);
 
     let layout = Layout { order: 0, size, location: Point::ZERO };
     *tree.layout_mut(root) = layout;
@@ -33,8 +94,28 @@ pub fn compute_layout(
     Ok(())
 }
 
+pub fn perform_node_layout(
+    tree: &mut impl LayoutTree,
+    node: Node,
+    known_dimensions: Size<Option<f32>>,
+    available_space: Size<AvailableSpace>,
+    sizing_mode: SizingMode,
+) -> Size<f32> {
+   compute_node_layout_inner(tree, node, known_dimensions, available_space, RunMode::PeformLayout, sizing_mode)
+}
+
+pub fn compute_node_size(
+    tree: &mut impl LayoutTree,
+    node: Node,
+    known_dimensions: Size<Option<f32>>,
+    available_space: Size<AvailableSpace>,
+    sizing_mode: SizingMode,
+) -> Size<f32> {
+   compute_node_layout_inner(tree, node, known_dimensions, available_space, RunMode::ComputeSize, sizing_mode)
+}
+
 /// Updates the stored layout of the provided `node` and its children
-fn compute_node_layout(
+fn compute_node_layout_inner(
     tree: &mut impl LayoutTree,
     node: Node,
     known_dimensions: Size<Option<f32>>,

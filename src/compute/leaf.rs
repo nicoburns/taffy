@@ -6,9 +6,37 @@ use crate::math::MaybeMath;
 use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrDefault};
 use crate::tree::LayoutTree;
+use super::LayoutAlgorithm;
 
 #[cfg(feature = "debug")]
 use crate::debug::NODE_LOGGER;
+
+
+struct LeafAlgorithm;
+
+impl LayoutAlgorithm for LeafAlgorithm {
+    const COMPUTE_SIZE_AND_PERFORM_LAYOUT_ARE_SAME : bool = true;
+
+    fn compute_size(
+        tree: &mut impl LayoutTree,
+        node: Node,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode,
+    ) -> Size<f32> {
+        compute(tree, node, known_dimensions, available_space, RunMode::ComputeSize, sizing_mode)
+    }
+
+    fn perform_layout(
+            tree: &mut impl LayoutTree,
+            node: Node,
+            known_dimensions: Size<Option<f32>>,
+            available_space: Size<AvailableSpace>,
+            sizing_mode: SizingMode,
+        ) -> Size<f32> {
+        compute(tree, node, known_dimensions, available_space, RunMode::PeformLayout, sizing_mode)
+    }
+}
 
 /// Compute the size of a leaf node (node with no children)
 pub(crate) fn compute(

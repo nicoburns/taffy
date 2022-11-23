@@ -27,7 +27,7 @@ impl<T: Copy> InBothAbsAxis<T> {
 /// Place items into the grid, generating new rows/column into the implicit grid as required
 ///
 /// [Specification](https://www.w3.org/TR/css-grid-2/#auto-placement-algo)
-pub(in super) fn place_grid_items<'a>(
+pub(super) fn place_grid_items<'a>(
     cell_occupancy_matrix: &mut CellOccupancyMatrix,
     items: &mut Vec<GridItem>,
     children_iter: impl Iterator<Item = (Node, &'a FlexboxLayout)> + Clone,

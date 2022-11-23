@@ -11,7 +11,7 @@ pub(crate) fn compute_explicit_grid_size(style: &FlexboxLayout) -> (u16, u16) {
     (explicit_col_count, explicit_row_count)
 }
 
-pub(in super) fn initialize_grid_tracks(
+pub(super) fn initialize_grid_tracks(
     tracks: &mut Vec<GridTrack>,
     counts: TrackCounts,
     track_template: &GridTrackVec<TrackSizingFunction>,

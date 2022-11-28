@@ -218,6 +218,8 @@ function describeElement(e) {
       }),
     },
 
+    html: e.outerHTML,
+
     layout: {
       width: e.offsetWidth,
       height: e.offsetHeight,

@@ -1,0 +1,23 @@
+{
+  "!! NOTE !!": "This file is generated! Do not edit directly. Run the script at scripts/gentest to regenerate.",
+  "html": "<div id=\"test-root\" style=\"width:100px; height: 100px;\">\n  <div style=\"height: 10px; width: 10px; align-self: center;\"></div>\n</div>",
+  "tree": {
+    "children": [
+      {
+        "children": [],
+        "layout": {
+          "height": 10,
+          "width": 10,
+          "x": 0,
+          "y": 45
+        }
+      }
+    ],
+    "layout": {
+      "height": 100,
+      "width": 100,
+      "x": 0,
+      "y": 0
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "!! NOTE !!": "This file is generated! Do not edit directly. Run the script at scripts/gentest to regenerate.",
+  "html": "<div id=\"test-root\" style=\"width: 200px; height: 200px; align-items: center;\">\n  <div style=\"flex: 1; margin-left:auto;\"></div>\n  <div style=\"width: 50px; height: 50px;\"></div>\n</div>",
+  "tree": {
+    "children": [
+      {
+        "children": [],
+        "layout": {
+          "height": 0,
+          "width": 150,
+          "x": 0,
+          "y": 100
+        }
+      },
+      {
+        "children": [],
+        "layout": {
+          "height": 50,
+          "width": 50,
+          "x": 150,
+          "y": 75
+        }
+      }
+    ],
+    "layout": {
+      "height": 200,
+      "width": 200,
+      "x": 0,
+      "y": 0
+    }
+  }
+}

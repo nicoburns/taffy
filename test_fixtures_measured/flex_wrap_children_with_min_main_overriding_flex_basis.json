@@ -1,0 +1,32 @@
+{
+  "!! NOTE !!": "This file is generated! Do not edit directly. Run the script at scripts/gentest to regenerate.",
+  "html": "<div id=\"test-root\" style=\"width: 100px; flex-wrap: wrap; flex-direction: row;\">\n  <div style=\"flex-basis: 50px; height: 50px; min-width: 55px;\"></div>\n  <div style=\"flex-basis: 50px; height: 50px; min-width: 55px;\"></div>\n</div>",
+  "tree": {
+    "children": [
+      {
+        "children": [],
+        "layout": {
+          "height": 50,
+          "width": 55,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "children": [],
+        "layout": {
+          "height": 50,
+          "width": 55,
+          "x": 0,
+          "y": 50
+        }
+      }
+    ],
+    "layout": {
+      "height": 100,
+      "width": 100,
+      "x": 0,
+      "y": 0
+    }
+  }
+}

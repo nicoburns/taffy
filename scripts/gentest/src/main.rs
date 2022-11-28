@@ -61,6 +61,14 @@ async fn main() {
 
     info!("generating test sources and concatenating...");
 
+    let json_measured_fixtures: Vec<_> = test_descs
+        .iter()
+        .map(|(name, description)| {
+            debug!("generating json measure fixture contents for {}", &name);
+            (name.clone(), generate_json_measured_fixture(description))
+        })
+        .collect();
+
     let bench_descs: Vec<_> = test_descs
         .iter()
         .map(|(name, description)| {
@@ -108,7 +116,19 @@ async fn main() {
         criterion_main!(benches);
     );
 
-    info!("writing generated benchmarks file to disk...");
+    info!("writing json measured fixture files to disk...");
+    let measure_json_fixtures_base_path = repo_root.join("test_fixtures_measured");
+    fs::remove_dir_all(&measure_json_fixtures_base_path).unwrap();
+    fs::create_dir(&measure_json_fixtures_base_path).unwrap();
+    for (name, body) in json_measured_fixtures {
+        let mut filename = measure_json_fixtures_base_path.join(&name);
+        filename.set_extension("json");
+        debug!("writing {} to disk...", &name);
+        fs::write(filename, serde_json::to_string_pretty(&body).unwrap()).unwrap();
+    }
+    fs::write(measure_json_fixtures_base_path.join("mod.rs"), bench_mods.to_string()).unwrap();
+
+    info!("writing generated benchmarks files to disk...");
     let benches_base_path = repo_root.join("benches").join("generated");
     fs::remove_dir_all(&benches_base_path).unwrap();
     fs::create_dir(&benches_base_path).unwrap();
@@ -120,7 +140,7 @@ async fn main() {
     }
     fs::write(benches_base_path.join("mod.rs"), bench_mods.to_string()).unwrap();
 
-    info!("writing generated test file to disk...");
+    info!("writing generated test files to disk...");
     let tests_base_path = repo_root.join("tests").join("generated");
     fs::remove_dir_all(&tests_base_path).unwrap();
     fs::create_dir(&tests_base_path).unwrap();
@@ -153,6 +173,24 @@ async fn test_root_element(
     let description_string = description.as_str().unwrap();
     let description: Value = serde_json::from_str(description_string).unwrap();
     (name, description)
+}
+
+fn generate_json_measured_fixture(description: &serde_json::Value) -> serde_json::Value {
+    serde_json::json!({
+        "!! NOTE !!": "This file is generated! Do not edit directly. Run the script at scripts/gentest to regenerate.",
+        "html": description["html"],
+        "tree": generate_node_measurements(description),
+    })
+}
+
+fn generate_node_measurements(description: &serde_json::Value) -> serde_json::Value {
+    let mut node = serde_json::json!({
+        "layout": description["layout"]
+    });
+    if let Some(Value::Array(children)) = description.get("children") {
+        node["children"] = Value::Array(children.iter().map(generate_node_measurements).collect());
+    }
+    node
 }
 
 fn generate_bench(description: &serde_json::Value) -> TokenStream {

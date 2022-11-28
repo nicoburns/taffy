@@ -8,6 +8,7 @@ use fantoccini::{Client, ClientBuilder};
 use log::*;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
+use serde_json::Value;
 use syn::Ident;
 
 #[tokio::main]
@@ -135,7 +136,11 @@ async fn main() {
     Command::new("cargo").arg("fmt").current_dir(repo_root).status().unwrap();
 }
 
-async fn test_root_element(client: Client, name: String, fixture_path: impl AsRef<Path>) -> (String, json::JsonValue) {
+async fn test_root_element(
+    client: Client,
+    name: String,
+    fixture_path: impl AsRef<Path>,
+) -> (String, serde_json::Value) {
     let fixture_path = fixture_path.as_ref();
 
     let url = format!("file://{}", fixture_path.display());
@@ -146,11 +151,11 @@ async fn test_root_element(client: Client, name: String, fixture_path: impl AsRe
         .await
         .unwrap();
     let description_string = description.as_str().unwrap();
-    let description = json::parse(description_string).unwrap();
+    let description: Value = serde_json::from_str(description_string).unwrap();
     (name, description)
 }
 
-fn generate_bench(description: &json::JsonValue) -> TokenStream {
+fn generate_bench(description: &serde_json::Value) -> TokenStream {
     let node_description = generate_node("node", description);
 
     quote!(
@@ -164,7 +169,7 @@ fn generate_bench(description: &json::JsonValue) -> TokenStream {
     )
 }
 
-fn generate_test(name: impl AsRef<str>, description: &json::JsonValue) -> TokenStream {
+fn generate_test(name: impl AsRef<str>, description: &serde_json::Value) -> TokenStream {
     let name = name.as_ref();
     let name = Ident::new(name, Span::call_site());
     let node_description = generate_node("node", description);
@@ -188,10 +193,10 @@ fn generate_test(name: impl AsRef<str>, description: &json::JsonValue) -> TokenS
     )
 }
 
-fn generate_assertions(ident: &str, node: &json::JsonValue) -> TokenStream {
+fn generate_assertions(ident: &str, node: &serde_json::Value) -> TokenStream {
     let layout = &node["layout"];
 
-    let read_f32 = |s: &str| layout[s].as_f32().unwrap();
+    let read_f32 = |s: &str| layout[s].as_f64().unwrap() as f32;
     let width = read_f32("width");
     let height = read_f32("height");
     let x = read_f32("x");
@@ -199,7 +204,7 @@ fn generate_assertions(ident: &str, node: &json::JsonValue) -> TokenStream {
 
     let children = {
         let mut c = Vec::new();
-        if let json::JsonValue::Array(ref value) = node["children"] {
+        if let serde_json::Value::Array(ref value) = node["children"] {
             for (idx, child) in value.iter().enumerate() {
                 c.push(generate_assertions(&format!("{}{}", ident, idx), child));
             }
@@ -222,7 +227,7 @@ fn generate_assertions(ident: &str, node: &json::JsonValue) -> TokenStream {
 macro_rules! dim_quoted_renamed {
     ($obj:ident, $in_name:ident, $out_name:ident, $value_mapper:ident) => {
         let $out_name = match $obj.get(stringify!($in_name)) {
-            Some(json::JsonValue::Object(ref value)) => {
+            Some(serde_json::Value::Object(ref value)) => {
                 let dim = $value_mapper(value);
                 quote!($out_name: #dim,)
             }
@@ -240,7 +245,7 @@ macro_rules! dim_quoted {
 macro_rules! edges_quoted {
     ($style:ident, $val:ident, $value_mapper:ident, $default_value: expr) => {
         let $val = match $style[stringify!($val)] {
-            json::JsonValue::Object(ref value) => {
+            serde_json::Value::Object(ref value) => {
                 dim_quoted!(value, left, $value_mapper);
                 dim_quoted!(value, right, $value_mapper);
                 dim_quoted!(value, top, $value_mapper);
@@ -260,19 +265,19 @@ macro_rules! edges_quoted {
     };
 }
 
-fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
+fn generate_node(ident: &str, node: &serde_json::Value) -> TokenStream {
     let style = &node["style"];
 
     fn quote_object_prop(
         prop_name: &str,
-        style: &json::JsonValue,
-        quoter: impl Fn(&json::object::Object) -> TokenStream,
+        style: &serde_json::Value,
+        quoter: impl Fn(&serde_json::Map<String, Value>) -> TokenStream,
     ) -> TokenStream {
         let prop_name_snake_case = prop_name.to_case(Case::Snake);
         let prop_name_camel_case = prop_name.to_case(Case::Camel);
         let prop_name_ident = format_ident!("{}", prop_name_snake_case);
         match style[prop_name_camel_case] {
-            json::JsonValue::Object(ref value) => {
+            serde_json::Value::Object(ref value) => {
                 let prop_value = quoter(value);
                 quote!(#prop_name_ident: #prop_value,)
             }
@@ -282,14 +287,14 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
 
     fn quote_array_prop(
         prop_name: &str,
-        style: &json::JsonValue,
-        quoter: impl Fn(&[json::JsonValue]) -> TokenStream,
+        style: &serde_json::Value,
+        quoter: impl Fn(&[serde_json::Value]) -> TokenStream,
     ) -> TokenStream {
         let prop_name_snake_case = prop_name.to_case(Case::Snake);
         let prop_name_camel_case = prop_name.to_case(Case::Camel);
         let prop_name_ident = format_ident!("{}", prop_name_snake_case);
         match style[prop_name_camel_case] {
-            json::JsonValue::Array(ref value) => {
+            serde_json::Value::Array(ref value) => {
                 let prop_value = quoter(value);
                 quote!(#prop_name_ident: #prop_value,)
             }
@@ -301,18 +306,14 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     #[allow(dead_code)]
     fn quote_string_prop(
         prop_name: &str,
-        style: &json::JsonValue,
+        style: &serde_json::Value,
         quoter: impl Fn(&str) -> TokenStream,
     ) -> TokenStream {
         let prop_name_snake_case = prop_name.to_case(Case::Snake);
         let prop_name_camel_case = prop_name.to_case(Case::Camel);
         let prop_name_ident = format_ident!("{}", prop_name_snake_case);
         match style[prop_name_camel_case] {
-            json::JsonValue::Short(ref value) => {
-                let prop_value = quoter(value.as_ref());
-                quote!(#prop_name_ident: #prop_value,)
-            }
-            json::JsonValue::String(ref value) => {
+            Value::String(ref value) => {
                 let prop_value = quoter(value.as_ref());
                 quote!(#prop_name_ident: #prop_value,)
             }
@@ -320,17 +321,17 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
         }
     }
 
-    fn quote_number_prop<T: From<json::number::Number>>(
+    fn quote_number_prop(
         prop_name: &str,
-        style: &json::JsonValue,
-        quoter: impl Fn(T) -> TokenStream,
+        style: &serde_json::Value,
+        quoter: impl Fn(f32) -> TokenStream,
     ) -> TokenStream {
         let prop_name_snake_case = prop_name.to_case(Case::Snake);
         let prop_name_camel_case = prop_name.to_case(Case::Camel);
         let prop_name_ident = format_ident!("{}", prop_name_snake_case);
         match style[prop_name_camel_case] {
-            json::JsonValue::Number(ref value) => {
-                let prop_value = quoter((*value).into());
+            serde_json::Value::Number(ref value) => {
+                let prop_value = quoter((value.as_f64().unwrap() as f32).into());
                 quote!(#prop_name_ident: #prop_value,)
             }
             _ => quote!(),
@@ -338,7 +339,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     }
 
     let display = match style["display"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "none" => quote!(display: taffy::style::Display::None,),
             "grid" => quote!(display: taffy::style::Display::Grid,),
             _ => quote!(display: taffy::style::Display::Flex,),
@@ -347,7 +348,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let position_type = match style["positionType"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "absolute" => quote!(position_type: taffy::style::PositionType::Absolute,),
             _ => quote!(),
         },
@@ -355,7 +356,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let direction = match style["direction"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "rtl" => quote!(direction: taffy::style::Direction::RTL,),
             "ltr" => quote!(direction: taffy::style::Direction::LTR,),
             _ => quote!(),
@@ -364,7 +365,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let flex_direction = match style["flexDirection"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "row-reverse" => quote!(flex_direction: taffy::style::FlexDirection::RowReverse,),
             "column" => quote!(flex_direction: taffy::style::FlexDirection::Column,),
             "column-reverse" => quote!(flex_direction: taffy::style::FlexDirection::ColumnReverse,),
@@ -374,7 +375,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let flex_wrap = match style["flexWrap"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "wrap" => quote!(flex_wrap: taffy::style::FlexWrap::Wrap,),
             "wrap-reverse" => quote!(flex_wrap: taffy::style::FlexWrap::WrapReverse,),
             _ => quote!(),
@@ -383,7 +384,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let overflow = match style["overflow"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "hidden" => quote!(overflow: taffy::style::Overflow::Hidden,),
             "scroll" => quote!(overflow: taffy::style::Overflow::Scroll,),
             _ => quote!(),
@@ -392,7 +393,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let align_items = match style["alignItems"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "flex-start" => quote!(align_items: taffy::style::AlignItems::FlexStart,),
             "flex-end" => quote!(align_items: taffy::style::AlignItems::FlexEnd,),
             "center" => quote!(align_items: taffy::style::AlignItems::Center,),
@@ -403,7 +404,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let align_self = match style["alignSelf"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "flex-start" => quote!(align_self: taffy::style::AlignSelf::FlexStart,),
             "flex-end" => quote!(align_self: taffy::style::AlignSelf::FlexEnd,),
             "center" => quote!(align_self: taffy::style::AlignSelf::Center,),
@@ -415,7 +416,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let align_content = match style["alignContent"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "flex-start" => quote!(align_content: taffy::style::AlignContent::FlexStart,),
             "flex-end" => quote!(align_content: taffy::style::AlignContent::FlexEnd,),
             "center" => quote!(align_content: taffy::style::AlignContent::Center,),
@@ -428,7 +429,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     };
 
     let justify_content = match style["justifyContent"] {
-        json::JsonValue::Short(ref value) => match value.as_ref() {
+        serde_json::Value::String(ref value) => match value.as_ref() {
             "flex-end" => quote!(justify_content: taffy::style::JustifyContent::FlexEnd,),
             "center" => quote!(justify_content: taffy::style::JustifyContent::Center,),
             "space-between" => quote!(justify_content: taffy::style::JustifyContent::SpaceBetween,),
@@ -466,7 +467,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     edges_quoted!(style, position, generate_length_percentage_auto, quote!(Rect::auto()));
 
     let (children_body, children) = match node["children"] {
-        json::JsonValue::Array(ref value) => {
+        serde_json::Value::Array(ref value) => {
             if !value.is_empty() {
                 let body = value
                     .iter()
@@ -529,7 +530,7 @@ fn generate_node(ident: &str, node: &json::JsonValue) -> TokenStream {
     ).unwrap();)
 }
 
-fn generate_size(size: &json::object::Object) -> TokenStream {
+fn generate_size(size: &serde_json::Map<String, Value>) -> TokenStream {
     dim_quoted!(size, width, generate_dimension);
     dim_quoted!(size, height, generate_dimension);
     quote!(
@@ -540,7 +541,7 @@ fn generate_size(size: &json::object::Object) -> TokenStream {
     )
 }
 
-fn generate_gap(size: &json::object::Object) -> TokenStream {
+fn generate_gap(size: &serde_json::Map<String, Value>) -> TokenStream {
     dim_quoted_renamed!(size, column, width, generate_length_percentage);
     dim_quoted_renamed!(size, row, height, generate_length_percentage);
     quote!(
@@ -551,12 +552,12 @@ fn generate_gap(size: &json::object::Object) -> TokenStream {
     )
 }
 
-fn generate_length_percentage(dimen: &json::object::Object) -> TokenStream {
+fn generate_length_percentage(dimen: &serde_json::Map<String, Value>) -> TokenStream {
     let unit = dimen.get("unit").unwrap();
-    let value = || dimen.get("value").unwrap().as_f32().unwrap();
+    let value = || dimen.get("value").unwrap().as_f64().unwrap() as f32;
 
     match unit {
-        json::JsonValue::Short(ref unit) => match unit.as_ref() {
+        serde_json::Value::String(ref unit) => match unit.as_ref() {
             "points" => {
                 let value = value();
                 quote!(taffy::style::LengthPercentage::Points(#value))
@@ -571,12 +572,12 @@ fn generate_length_percentage(dimen: &json::object::Object) -> TokenStream {
     }
 }
 
-fn generate_length_percentage_auto(dimen: &json::object::Object) -> TokenStream {
+fn generate_length_percentage_auto(dimen: &serde_json::Map<String, Value>) -> TokenStream {
     let unit = dimen.get("unit").unwrap();
-    let value = || dimen.get("value").unwrap().as_f32().unwrap();
+    let value = || dimen.get("value").unwrap().as_f64().unwrap() as f32;
 
     match unit {
-        json::JsonValue::Short(ref unit) => match unit.as_ref() {
+        serde_json::Value::String(ref unit) => match unit.as_ref() {
             "auto" => quote!(taffy::style::LengthPercentageAuto::Auto),
             "points" => {
                 let value = value();
@@ -592,12 +593,12 @@ fn generate_length_percentage_auto(dimen: &json::object::Object) -> TokenStream 
     }
 }
 
-fn generate_dimension(dimen: &json::object::Object) -> TokenStream {
+fn generate_dimension(dimen: &serde_json::Map<String, Value>) -> TokenStream {
     let unit = dimen.get("unit").unwrap();
-    let value = || dimen.get("value").unwrap().as_f32().unwrap();
+    let value = || dimen.get("value").unwrap().as_f64().unwrap() as f32;
 
     match unit {
-        json::JsonValue::Short(ref unit) => match unit.as_ref() {
+        serde_json::Value::String(ref unit) => match unit.as_ref() {
             "auto" => quote!(taffy::style::Dimension::Auto),
             "points" => {
                 let value = value();
@@ -613,7 +614,7 @@ fn generate_dimension(dimen: &json::object::Object) -> TokenStream {
     }
 }
 
-fn generate_grid_auto_flow(auto_flow: &json::object::Object) -> TokenStream {
+fn generate_grid_auto_flow(auto_flow: &serde_json::Map<String, Value>) -> TokenStream {
     let direction = auto_flow.get("direction").unwrap().as_str().unwrap();
     let algorithm = auto_flow.get("algorithm").unwrap().as_str().unwrap();
 
@@ -626,12 +627,12 @@ fn generate_grid_auto_flow(auto_flow: &json::object::Object) -> TokenStream {
     }
 }
 
-fn generate_grid_position(grid_position: &json::object::Object) -> TokenStream {
+fn generate_grid_position(grid_position: &serde_json::Map<String, Value>) -> TokenStream {
     let kind = grid_position.get("kind").unwrap();
-    let value = || grid_position.get("value").unwrap().as_f32().unwrap();
+    let value = || grid_position.get("value").unwrap().as_f64().unwrap() as f32;
 
     match kind {
-        json::JsonValue::Short(ref kind) => match kind.as_ref() {
+        serde_json::Value::String(ref kind) => match kind.as_ref() {
             "auto" => quote!(taffy::style::GridLine::Auto),
             "span" => {
                 let value = value() as u16;
@@ -647,16 +648,16 @@ fn generate_grid_position(grid_position: &json::object::Object) -> TokenStream {
     }
 }
 
-fn generate_track_definition_list(raw_list: &[json::JsonValue]) -> TokenStream {
+fn generate_track_definition_list(raw_list: &[serde_json::Value]) -> TokenStream {
     let list = raw_list.iter().map(|obj| match obj {
-        json::JsonValue::Object(inner) => generate_track_definition(inner),
+        serde_json::Value::Object(inner) => generate_track_definition(inner),
         _ => unreachable!(),
     });
 
     quote!(vec![#(#list),*])
 }
 
-fn generate_track_definition(track_definition: &json::object::Object) -> TokenStream {
+fn generate_track_definition(track_definition: &serde_json::Map<String, Value>) -> TokenStream {
     let kind = track_definition.get("kind").unwrap().as_str().unwrap();
     let name = || track_definition.get("name").unwrap().as_str().unwrap();
     let arguments = || track_definition.get("arguments").unwrap();
@@ -664,16 +665,16 @@ fn generate_track_definition(track_definition: &json::object::Object) -> TokenSt
     match kind {
         "scalar" => generate_scalar_definition(track_definition),
         "function" => match (name(), arguments()) {
-            ("minmax", json::JsonValue::Array(arguments)) => {
+            ("minmax", serde_json::Value::Array(arguments)) => {
                 if arguments.len() != 2 {
                     panic!("minmax function with the wrong number of arguments");
                 }
                 let min = match arguments[0] {
-                    json::JsonValue::Object(ref arg) => generate_scalar_definition(arg),
+                    serde_json::Value::Object(ref arg) => generate_scalar_definition(arg),
                     _ => unreachable!(),
                 };
                 let max = match arguments[1] {
-                    json::JsonValue::Object(ref arg) => generate_scalar_definition(arg),
+                    serde_json::Value::Object(ref arg) => generate_scalar_definition(arg),
                     _ => unreachable!(),
                 };
                 quote!(taffy::style::GridTrackSizingFunction::MinMax{ min: #min, max: #max })
@@ -685,9 +686,9 @@ fn generate_track_definition(track_definition: &json::object::Object) -> TokenSt
     }
 }
 
-fn generate_scalar_definition(track_definition: &json::object::Object) -> TokenStream {
+fn generate_scalar_definition(track_definition: &serde_json::Map<String, Value>) -> TokenStream {
     let unit = || track_definition.get("unit").unwrap().as_str().unwrap();
-    let value = || track_definition.get("value").unwrap().as_f32().unwrap();
+    let value = || track_definition.get("value").unwrap().as_f64().unwrap() as f32;
 
     match unit() {
         "auto" => quote!(taffy::style::GridTrackSizingFunction::Auto),

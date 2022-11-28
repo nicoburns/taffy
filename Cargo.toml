@@ -31,7 +31,7 @@ serde = ["dep:serde"]
 
 [dev-dependencies]
 criterion = "0.3"
-rstest = "0.15.0"
+rstest = "0.16.0"
 
 [profile.release]
 lto = true

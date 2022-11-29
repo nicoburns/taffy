@@ -233,4 +233,93 @@ impl<T: FromPoints> Rect<T> {
     pub fn points<Input: Into<f32> + Copy>(points_value: Input) -> Self {
         points::<Input, Self>(points_value)
     }
+
+    /// Create a new Rect with [`Dimension::Points`]
+    #[must_use]
+    pub fn from_points<Input: Into<f32> + Copy>(start: Input, end: Input, top: Input, bottom: Input) -> Self {
+        Rect {
+            left: T::from_points(start),
+            right: T::from_points(end),
+            top: T::from_points(top),
+            bottom: T::from_points(bottom),
+        }
+    }
+}
+
+/// Returns a value of the inferred type which represent a constant of points
+pub fn percent<Input: Into<f32> + Copy, T: FromPercent>(percent: Input) -> T {
+    T::from_percent(percent)
+}
+
+/// Trait to create constant points values from plain numbers
+pub trait FromPercent {
+    /// Converts into an Into<f32> into Self
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self;
+}
+impl FromPercent for LengthPercentage {
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self {
+        LengthPercentage::Percent(points.into())
+    }
+}
+impl FromPercent for LengthPercentageAuto {
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self {
+        LengthPercentageAuto::Percent(points.into())
+    }
+}
+impl FromPercent for Dimension {
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self {
+        Dimension::Percent(points.into())
+    }
+}
+impl<T: FromPercent> FromPercent for Point<T> {
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self {
+        Point { x: T::from_percent(points.into()), y: T::from_percent(points.into()) }
+    }
+}
+impl<T: FromPercent> Point<T> {
+    /// Returns a Point where both the x and y values are the constant points value of the contained type
+    /// (e.g. 2.1, Some(2.1), or Dimension::Points(2.1))
+    pub fn percent<Input: Into<f32> + Copy>(percent_value: Input) -> Self {
+        percent::<Input, Self>(percent_value)
+    }
+}
+impl<T: FromPercent> FromPercent for Size<T> {
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self {
+        Size { width: T::from_percent(points.into()), height: T::from_percent(points.into()) }
+    }
+}
+impl<T: FromPercent> Size<T> {
+    /// Returns a Size where both the width and height values are the constant points value of the contained type
+    /// (e.g. 2.1, Some(2.1), or Dimension::Points(2.1))
+    pub fn percent<Input: Into<f32> + Copy>(percent_value: Input) -> Self {
+        percent::<Input, Self>(percent_value)
+    }
+}
+impl<T: FromPercent> FromPercent for Rect<T> {
+    fn from_percent<Input: Into<f32> + Copy>(points: Input) -> Self {
+        Rect {
+            left: T::from_percent(points.into()),
+            right: T::from_percent(points.into()),
+            top: T::from_percent(points.into()),
+            bottom: T::from_percent(points.into()),
+        }
+    }
+}
+impl<T: FromPercent> Rect<T> {
+    /// Returns a Rect where the left, right, top and bottom values are all constant points value of the contained type
+    /// (e.g. 2.1, Some(2.1), or Dimension::Points(2.1))
+    pub fn percent<Input: Into<f32> + Copy>(percent_value: Input) -> Self {
+        percent::<Input, Self>(percent_value)
+    }
+
+    /// Create a new Rect with [`Dimension::Percent`]
+    #[must_use]
+    pub fn from_percent<Input: Into<f32> + Copy>(start: Input, end: Input, top: Input, bottom: Input) -> Self {
+        Rect {
+            left: T::from_percent(start),
+            right: T::from_percent(end),
+            top: T::from_percent(top),
+            bottom: T::from_percent(bottom),
+        }
+    }
 }

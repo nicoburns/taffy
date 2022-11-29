@@ -27,7 +27,6 @@ pub mod math;
 pub mod node;
 pub mod prelude;
 pub mod style;
-pub mod style_helpers;
 pub mod tree;
 
 #[cfg(feature = "random")]

@@ -1,7 +1,7 @@
 //! Helper trait to calculate dimensions during layout resolution
 
 use crate::prelude::{Dimension, LengthPercentage, LengthPercentageAuto, Rect, Size};
-use crate::style_helpers::TaffyZero;
+use crate::style::TaffyZero;
 
 /// Trait to encapsulate behaviour where we need to resolve from a
 /// potentially context-dependent size or dimension into

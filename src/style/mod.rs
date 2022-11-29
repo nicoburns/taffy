@@ -127,6 +127,12 @@ pub struct Style {
     pub aspect_ratio: Option<f32>,
 }
 
+impl Default for Style {
+    fn default() -> Self {
+        Style::DEFAULT
+    }
+}
+
 impl Style {
     /// The [`Default`] layout, in a form that can be used in const functions
     pub const DEFAULT: Style = Style {
@@ -151,15 +157,7 @@ impl Style {
         max_size: Size::auto(),
         aspect_ratio: None,
     };
-}
 
-impl Default for Style {
-    fn default() -> Self {
-        Style::DEFAULT
-    }
-}
-
-impl Style {
     /// Computes the final alignment of this item based on the parent's [`AlignItems`] and this item's [`AlignSelf`]
     pub(crate) fn align_self(&self, parent: &Style) -> AlignSelf {
         // FUTURE WARNING: This function should never return AlignSelf::Auto

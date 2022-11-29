@@ -1082,9 +1082,9 @@ fn calculate_cross_size(
                 .map(|child| {
                     let child_style = tree.style(child.node);
                     if child_style.align_self(tree.style(node)) == AlignSelf::Baseline
-                        && child_style.cross_margin_start(constants.dir) != LengthPercentageAuto::Auto
-                        && child_style.cross_margin_end(constants.dir) != LengthPercentageAuto::Auto
-                        && child_style.cross_size(constants.dir) == Dimension::Auto
+                        && child_style.margin.cross_start(constants.dir) != LengthPercentageAuto::Auto
+                        && child_style.margin.cross_end(constants.dir) != LengthPercentageAuto::Auto
+                        && child_style.size.cross(constants.dir) == Dimension::Auto
                     {
                         max_baseline - child.baseline + child.hypothetical_outer_size.cross(constants.dir)
                     } else {
@@ -1152,9 +1152,9 @@ fn determine_used_cross_size(
             child.target_size.set_cross(
                 constants.dir,
                 if child_style.align_self(tree.style(node)) == AlignSelf::Stretch
-                    && child_style.cross_margin_start(constants.dir) != LengthPercentageAuto::Auto
-                    && child_style.cross_margin_end(constants.dir) != LengthPercentageAuto::Auto
-                    && child_style.cross_size(constants.dir) == Dimension::Auto
+                    && child_style.margin.cross_start(constants.dir) != LengthPercentageAuto::Auto
+                    && child_style.margin.cross_end(constants.dir) != LengthPercentageAuto::Auto
+                    && child_style.size.cross(constants.dir) == Dimension::Auto
                 {
                     (line_cross_size - child.margin.cross_axis_sum(constants.dir))
                         .maybe_clamp(child.min_size.cross(constants.dir), child.max_size.cross(constants.dir))
@@ -1197,10 +1197,10 @@ fn distribute_remaining_free_space(
 
         for child in line.items.iter_mut() {
             let child_style = tree.style(child.node);
-            if child_style.main_margin_start(constants.dir) == LengthPercentageAuto::Auto {
+            if child_style.margin.main_start(constants.dir) == LengthPercentageAuto::Auto {
                 num_auto_margins += 1;
             }
-            if child_style.main_margin_end(constants.dir) == LengthPercentageAuto::Auto {
+            if child_style.margin.main_end(constants.dir) == LengthPercentageAuto::Auto {
                 num_auto_margins += 1;
             }
         }
@@ -1210,14 +1210,14 @@ fn distribute_remaining_free_space(
 
             for child in line.items.iter_mut() {
                 let child_style = tree.style(child.node);
-                if child_style.main_margin_start(constants.dir) == LengthPercentageAuto::Auto {
+                if child_style.margin.main_start(constants.dir) == LengthPercentageAuto::Auto {
                     if constants.is_row {
                         child.margin.left = margin;
                     } else {
                         child.margin.top = margin;
                     }
                 }
-                if child_style.main_margin_end(constants.dir) == LengthPercentageAuto::Auto {
+                if child_style.margin.main_end(constants.dir) == LengthPercentageAuto::Auto {
                     if constants.is_row {
                         child.margin.right = margin;
                     } else {
@@ -1323,8 +1323,8 @@ fn resolve_cross_axis_auto_margins(
             let free_space = line_cross_size - child.outer_target_size.cross(constants.dir);
             let child_style = tree.style(child.node);
 
-            if child_style.cross_margin_start(constants.dir) == LengthPercentageAuto::Auto
-                && child_style.cross_margin_end(constants.dir) == LengthPercentageAuto::Auto
+            if child_style.margin.cross_start(constants.dir) == LengthPercentageAuto::Auto
+                && child_style.margin.cross_end(constants.dir) == LengthPercentageAuto::Auto
             {
                 if constants.is_row {
                     child.margin.top = free_space / 2.0;
@@ -1333,13 +1333,13 @@ fn resolve_cross_axis_auto_margins(
                     child.margin.left = free_space / 2.0;
                     child.margin.right = free_space / 2.0;
                 }
-            } else if child_style.cross_margin_start(constants.dir) == LengthPercentageAuto::Auto {
+            } else if child_style.margin.cross_start(constants.dir) == LengthPercentageAuto::Auto {
                 if constants.is_row {
                     child.margin.top = free_space;
                 } else {
                     child.margin.left = free_space;
                 }
-            } else if child_style.cross_margin_end(constants.dir) == LengthPercentageAuto::Auto {
+            } else if child_style.margin.cross_end(constants.dir) == LengthPercentageAuto::Auto {
                 if constants.is_row {
                     child.margin.bottom = free_space;
                 } else {
@@ -1735,12 +1735,14 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
                 .main(constants.dir)
                 .maybe_max(
                     child_style
-                        .min_main_size(constants.dir)
+                        .min_size
+                        .main(constants.dir)
                         .maybe_resolve(constants.node_inner_size.main(constants.dir)),
                 )
                 .maybe_min(
                     child_style
-                        .max_main_size(constants.dir)
+                        .max_size
+                        .main(constants.dir)
                         .maybe_resolve(constants.node_inner_size.main(constants.dir)),
                 );
 
@@ -1749,12 +1751,14 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
                 .cross(constants.dir)
                 .maybe_max(
                     child_style
-                        .min_cross_size(constants.dir)
+                        .min_size
+                        .cross(constants.dir)
                         .maybe_resolve(constants.node_inner_size.cross(constants.dir)),
                 )
                 .maybe_min(
                     child_style
-                        .max_cross_size(constants.dir)
+                        .max_size
+                        .cross(constants.dir)
                         .maybe_resolve(constants.node_inner_size.cross(constants.dir)),
                 );
 

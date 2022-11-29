@@ -2,10 +2,12 @@
 
 mod alignment;
 mod dimension;
+mod dimension_helpers;
 mod flex;
 
 pub use alignment::*;
 pub use dimension::*;
+pub use dimension_helpers::*;
 pub use flex::*;
 
 use crate::geometry::{Rect, Size};

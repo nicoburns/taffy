@@ -1,19 +1,23 @@
 //! A representation of [CSS layout properties](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) in Rust, used for flexbox layout
 
-use crate::geometry::{Rect, Size};
+use crate::axis::{AbsoluteAxis, AbstractAxis};
+use crate::geometry::{Line, Rect, Size};
+use crate::layout::AvailableSpace;
+use crate::sys::GridTrackVec;
+use core::cmp::{max, min};
 
-/// How [`Nodes`](crate::node::Node) are aligned relative to the cross axis
+/// Used to control how child [`Nodes`](crate::node::Node) are aligned.
+/// For Flexbox it controls alignment in the cross axis
+/// For Grid it controls alignment in the block axis
 ///
-/// The default behavior is [`AlignItems::Stretch`].
-///
-/// [Specification](https://www.w3.org/TR/css-flexbox-1/#align-items-property)
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/align-items)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum AlignItems {
     /// Items are packed toward the start of the cross axis
-    FlexStart,
+    Start,
     /// Items are packed toward the end of the cross axis
-    FlexEnd,
+    End,
     /// Items are packed along the center of the cross axis
     Center,
     /// Items are aligned such as their baselines align
@@ -21,55 +25,39 @@ pub enum AlignItems {
     /// Stretch to fill the container
     Stretch,
 }
+/// Used to control how child [`Nodes`](crate::node::Node) are aligned.
+/// Does not apply to Flexbox, and will be ignored if specified on a flex container
+/// For Grid it controls alignment in the inline axis
+///
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/justify-items)
+pub type JustifyItems = AlignItems;
+/// Used to control how the specified [`Nodes`](crate::node::Node) is aligned.
+/// Overrides the parent Node's `AlignItems` property.
+/// For Flexbox it controls alignment in the cross axis
+/// For Grid it controls alignment in the block axis
+///
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/align-self)
+pub type AlignSelf = AlignItems;
+/// Used to control how the specified [`Nodes`](crate::node::Node) is aligned.
+/// Overrides the parent Node's `JustifyItems` property.
+/// Does not apply to Flexbox, and will be ignored if specified on a flex child
+/// For Grid it controls alignment in the inline axis
+///
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/justify-self)
+pub type JustifySelf = AlignItems;
 
-impl Default for AlignItems {
-    fn default() -> Self {
-        Self::Stretch
-    }
-}
-
-/// Overrides the inherited [`AlignItems`] behavior for this node.
+/// Sets the distribution of space between and around content items
+/// For Flexbox it controls alignment in the cross axis
+/// For Grid it controls alignment in the block axis
 ///
-/// The behavior of any child nodes will be controlled by this node's [`AlignItems`] value.
-///
-/// The default behavior is [`AlignSelf::Auto`].
-///
-/// [Specification](https://www.w3.org/TR/css-flexbox-1/#align-items-property)
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum AlignSelf {
-    /// Inherits the [`AlignItems`] behavior of the parent
-    Auto,
-    /// Items are packed toward the start of the cross axis
-    FlexStart,
-    /// Items are packed toward the end of the cross axis
-    FlexEnd,
-    /// Items are packed along the center of the cross axis
-    Center,
-    /// Items are aligned such as their baselines align
-    Baseline,
-    /// Distribute items evenly, but stretch them to fill the container
-    Stretch,
-}
-
-impl Default for AlignSelf {
-    fn default() -> Self {
-        Self::Auto
-    }
-}
-
-/// Sets the distribution of space between and around content items along the cross-axis
-///
-/// The default value is [`AlignContent::Stretch`].
-///
-/// [Specification](https://www.w3.org/TR/css-flexbox-1/#align-content-property)
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/align-content)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum AlignContent {
     /// Items are packed toward the start of the axis
-    FlexStart,
+    Start,
     /// Items are packed toward the end of the axis
-    FlexEnd,
+    End,
     /// Items are centered around the middle of the axis
     Center,
     /// Items are stretched to fill the container
@@ -85,11 +73,12 @@ pub enum AlignContent {
     SpaceAround,
 }
 
-impl Default for AlignContent {
-    fn default() -> Self {
-        Self::Stretch
-    }
-}
+/// Sets the distribution of space between and around content items
+/// For Flexbox it controls alignment in the main axis
+/// For Grid it controls alignment in the inline axis
+///
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/justify-content)
+pub type JustifyContent = AlignContent;
 
 /// Sets the layout used for the children of this node
 ///
@@ -167,37 +156,6 @@ impl FlexDirection {
     }
 }
 
-/// Sets the distribution of space between and around content items along the main-axis
-///
-/// The default value is [`JustifyContent::FlexStart`].
-///
-/// [Specification](https://www.w3.org/TR/css-flexbox-1/#justify-content-property)
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum JustifyContent {
-    /// Items are packed toward the start of the main axis
-    FlexStart,
-    /// Items are packed toward the end of the main axis
-    FlexEnd,
-    /// Items are packed along the center of the main axis
-    Center,
-    /// The first and last items are aligned flush with the edges of the container (no gap)
-    /// The gaps between items are distributed evenly.
-    SpaceBetween,
-    /// The gap between the first and last items is exactly THE SAME as the gap between items.
-    /// The gaps are distributed evenly
-    SpaceEvenly,
-    /// The gap between the first and last items is exactly HALF the gap between items.
-    /// The gaps are distributed evenly in proportion to these ratios.
-    SpaceAround,
-}
-
-impl Default for JustifyContent {
-    fn default() -> Self {
-        Self::FlexStart
-    }
-}
-
 /// The positioning strategy for this item.
 ///
 /// This controls both how the origin is determined for the [`Style::position`] field,
@@ -249,6 +207,305 @@ impl Default for FlexWrap {
     }
 }
 
+/// Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
+/// The "dense" packing algorithm attempts to fill in holes earlier in the grid, if smaller items come up later. This may cause items to appear out-of-order, when doing so would fill in holes left by larger items.
+///
+/// Defaults to [`GridAutoFlow::Row`]
+///
+/// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow)
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum GridAutoFlow {
+    /// Items are placed by filling each row in turn, adding new rows as necessary
+    Row,
+    /// Items are placed by filling each column in turn, adding new columns as necessary.
+    Column,
+    /// Combines `Row` with the dense packing algorithm.
+    RowDense,
+    /// Combines `Column` with the dense packing algorithm.
+    ColumnDense,
+}
+
+impl Default for GridAutoFlow {
+    fn default() -> Self {
+        Self::Row
+    }
+}
+
+impl GridAutoFlow {
+    /// Whether grid auto placement uses the sparse placement algorithm or the dense placement algorithm
+    /// See: https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow#values
+    pub fn is_dense(&self) -> bool {
+        match self {
+            Self::Row | Self::Column => false,
+            Self::RowDense | Self::ColumnDense => true,
+        }
+    }
+
+    /// Whether grid auto placement fills areas row-wise or column-wise
+    /// See: https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow#values
+    pub fn primary_axis(&self) -> AbsoluteAxis {
+        match self {
+            Self::Row | Self::RowDense => AbsoluteAxis::Horizontal,
+            Self::Column | Self::ColumnDense => AbsoluteAxis::Vertical,
+        }
+    }
+}
+
+/// A track placement specicification. Used for grid-[row/column]-[start/end]. Named tracks are not implemented.
+///
+/// Defaults to [`GridLine::Auto`]
+///
+/// [Specification](https://www.w3.org/TR/css3-grid-layout/#typedef-grid-row-start-grid-line)
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum GridPlacement {
+    /// Place item according to the auto-placement algorithm, and the parent's grid_auto_flow property
+    Auto,
+    /// Place item at specified track (column or row) index
+    Track(i16),
+    /// Item should span specified number of tracks (columns or rows)
+    Span(u16),
+}
+
+impl Default for GridPlacement {
+    fn default() -> Self {
+        Self::Auto
+    }
+}
+
+impl GridPlacement {
+    /// Apply a mapping function if the GridPlacement is a Track. Otherwise return `self` unmodified.
+    pub fn map_track(&self, map_fn: impl FnOnce(i16) -> i16) -> Self {
+        use GridPlacement::*;
+        match *self {
+            Auto => Auto,
+            Span(span) => Span(span),
+            Track(track) => Track(map_fn(track)),
+        }
+    }
+}
+
+/// Represents the start and end points of a GridItem within a given axis
+impl Line<GridPlacement> {
+    #[inline]
+    /// Whether the track position is definite in this axis (or the item will need auto placement)
+    /// The track position is definite if least one of the start and end positions is a track index
+    pub fn is_definite(&self) -> bool {
+        use GridPlacement::*;
+        matches!((self.start, self.end), (Track(_), _) | (_, Track(_)))
+    }
+
+    /// If at least one of the of the start and end positions is a track index then the other end can be resolved
+    /// into a track index purely based on the information contained with the placement specification
+    pub fn resolve_definite_grid_tracks(&self) -> Line<i16> {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Track(track1), Track(track2)) => {
+                if track1 == track2 {
+                    Line { start: track1, end: track1 + 1 }
+                } else {
+                    Line { start: min(track1, track2), end: max(track1, track2) }
+                }
+            }
+            (Track(track), Span(span)) => Line { start: track, end: track + span as i16 },
+            (Track(track), Auto) => Line { start: track, end: track + 1_i16 },
+            (Span(span), Track(track)) => Line { start: track - span as i16, end: track },
+            (Auto, Track(track)) => Line { start: track - 1_i16, end: track },
+            _ => panic!("resolve_definite_grid_tracks should only be called on definite grid tracks"),
+        }
+    }
+
+    /// If neither of the start and end positions is a track index then the other end can be resolved
+    /// into a track index if a definite start position is supplied externally
+    pub fn resolve_indefinite_grid_tracks(&self, start: i16) -> Line<i16> {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Auto, Auto) => Line { start, end: start + 1 },
+            (Span(span), Auto) => Line { start, end: start + span as i16 },
+            (Auto, Span(span)) => Line { start, end: start + span as i16 },
+            (Span(span), Span(_)) => Line { start, end: start + span as i16 },
+            _ => panic!("resolve_indefinite_grid_tracks should only be called on indefinite grid tracks"),
+        }
+    }
+
+    /// Resolves the span for an indefinite placement (a placement that does not consist of two `Track`s).
+    /// Panics if called on a definite placement
+    pub fn indefinite_span(&self) -> u16 {
+        use GridPlacement::*;
+        match (self.start, self.end) {
+            (Track(_), Auto) => 1,
+            (Auto, Track(_)) => 1,
+            (Auto, Auto) => 1,
+            (Track(_), Span(span)) => span,
+            (Span(span), Track(_)) => span,
+            (Span(span), Auto) => span,
+            (Auto, Span(span)) => span,
+            (Span(span), Span(_)) => span,
+            (Track(_), Track(_)) => panic!("indefinite_span should only be called on indefinite grid tracks"),
+        }
+    }
+}
+
+/// Represents the start and end points of a GridItem within a given axis
+impl Default for Line<GridPlacement> {
+    fn default() -> Self {
+        Line { start: GridPlacement::Auto, end: GridPlacement::Auto }
+    }
+}
+
+/// Minimum track sizing function
+/// Specifies the maximum size of a grid track
+/// See https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum MaxTrackSizingFunction {
+    /// Track maximum size should be a fixed points or percentage value
+    Fixed(Dimension),
+    /// Track maximum size should be content sized under a min-content constraint
+    MinContent,
+    /// Track maximum size should be content sized under a max-content constraint
+    MaxContent,
+    /// Track maximum size should be automatically sized
+    Auto,
+    /// The dimension as a fraction of the total available grid space.
+    /// Specified value is the numerator of the fraction. Denominator is the sum of all fraction specified in that grid dimension
+    /// Spec: https://www.w3.org/TR/css3-grid-layout/#fr-unit
+    Flex(f32),
+}
+
+impl MaxTrackSizingFunction {
+    /// Returns true if the max track sizing function is `MinContent`, `MaxContent` or `Auto`, else false.
+    #[inline(always)]
+    pub fn is_intrinsic(&self) -> bool {
+        use MaxTrackSizingFunction::*;
+        match self {
+            MinContent | MaxContent | Auto => true,
+            Fixed(_) | Flex(_) => false,
+        }
+    }
+
+    /// Returns true if the max track sizing function is `MaxContent`, else false.
+    #[inline(always)]
+    pub fn is_max_content(&self) -> bool {
+        use MaxTrackSizingFunction::*;
+        match self {
+            MaxContent => true,
+            Auto | MinContent | Fixed(_) | Flex(_) => false,
+        }
+    }
+
+    /// Returns true if the max track sizing function is `Flex`, else false.
+    #[inline(always)]
+    pub fn is_flexible(&self) -> bool {
+        matches!(self, MaxTrackSizingFunction::Flex(_))
+    }
+
+    /// Returns fixed point values directly. Attempts to resolve percentage values against
+    /// the passed available_space and returns if this results in a concrete value (which it
+    /// will if the available_space is `Some`). Otherwise returns None.
+    #[inline(always)]
+    pub fn definite_value(self, available_space: AvailableSpace) -> Option<f32> {
+        use MaxTrackSizingFunction::{Auto, *};
+        match self {
+            Fixed(Dimension::Points(size)) => Some(size),
+            Fixed(Dimension::Percent(fraction)) => match available_space {
+                AvailableSpace::Definite(available_size) => Some(fraction * available_size),
+                _ => None,
+            },
+            Fixed(Dimension::Auto) | MinContent | MaxContent | Auto | Flex(_) => None,
+        }
+    }
+}
+
+/// Minimum track sizing function
+/// Specifies the minimum size of a grid track
+/// See https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum MinTrackSizingFunction {
+    /// Track minimum size should be a fixed points or percentage value
+    Fixed(Dimension),
+    /// Track minimum size should be content sized under a min-content constraint
+    MinContent,
+    /// Track minimum size should be content sized under a max-content constraint
+    MaxContent,
+    /// Track minimum size should be automatically sized
+    Auto,
+}
+
+impl MinTrackSizingFunction {
+    /// Returns fixed point values directly. Attempts to resolve percentage values against
+    /// the passed available_space and returns if this results in a concrete value (which it
+    /// will if the available_space is `Some`). Otherwise returns None.
+    #[inline(always)]
+    pub fn definite_value(self, available_space: AvailableSpace) -> Option<f32> {
+        use MinTrackSizingFunction::{Auto, *};
+        match self {
+            Fixed(Dimension::Points(size)) => Some(size),
+            Fixed(Dimension::Percent(fraction)) => match available_space {
+                AvailableSpace::Definite(available_size) => Some(fraction * available_size),
+                _ => None,
+            },
+            Fixed(Dimension::Auto) | MinContent | MaxContent | Auto => None,
+        }
+    }
+}
+
+/// The sizing function for a grid track (row/column).
+/// May either a MinMax variant which specifies separate values for the min-/max- track sizing functions
+/// or a scalar value which applies to both track sizing functions.
+/// See https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum TrackSizingFunction {
+    /// Track should be a fixed points or percentage value
+    Fixed(Dimension),
+    /// Track should be content sized under a min-content constraint
+    MinContent,
+    /// Track should be content sized under a max-content constraint
+    MaxContent,
+    /// Track should be automatically sized
+    Auto,
+    /// The dimension as a fraction of the total available grid space.
+    /// Specified value is the numerator of the fraction. Denominator is the sum of all fraction specified in that grid dimension
+    /// Spec: https://www.w3.org/TR/css3-grid-layout/#fr-unit
+    Flex(f32),
+    /// Specify the min tracking sizing function and the max sizing function separately
+    MinMax {
+        /// The min tracking sizing function
+        min: MinTrackSizingFunction,
+        /// The max tracking sizing function
+        max: MaxTrackSizingFunction,
+    },
+}
+
+impl TrackSizingFunction {
+    /// Getter for the min_track_sizing_function. This is either the `min` property of the MinMax Variant,
+    /// or else another variant converted to the same variant in the MinTrackSizingFunction enum
+    /// Flex is not valid MinTrackingSizingFunction, and thus gets converted to Auto
+    pub fn min_sizing_function(&self) -> MinTrackSizingFunction {
+        match self {
+            Self::MinMax { min, .. } => *min,
+            Self::Fixed(value) => MinTrackSizingFunction::Fixed(*value),
+            Self::MinContent => MinTrackSizingFunction::MinContent,
+            Self::MaxContent => MinTrackSizingFunction::MaxContent,
+            Self::Auto => MinTrackSizingFunction::Auto,
+            Self::Flex(_) => MinTrackSizingFunction::Auto,
+        }
+    }
+
+    /// Getter for the max_track_sizing_function. This is either the `max` property of the MinMax Variant,
+    /// or else another variant converted to the same variant in the MaxTrackSizingFunction enum
+    pub fn max_sizing_function(&self) -> MaxTrackSizingFunction {
+        match self {
+            Self::MinMax { max, .. } => *max,
+            Self::Fixed(value) => MaxTrackSizingFunction::Fixed(*value),
+            Self::MinContent => MaxTrackSizingFunction::MinContent,
+            Self::MaxContent => MaxTrackSizingFunction::MaxContent,
+            Self::Auto => MaxTrackSizingFunction::Auto,
+            Self::Flex(value) => MaxTrackSizingFunction::Flex(*value),
+        }
+    }
+}
+
 /// A unit of linear measurement
 ///
 /// This is commonly combined with [`Rect`], [`Point`](crate::geometry::Point) and [`Size<T>`].
@@ -277,6 +534,15 @@ pub enum LengthPercentageAuto {
     Auto,
 }
 
+impl From<LengthPercentage> for LengthPercentageAuto {
+    fn from(input: LengthPercentage) -> Self {
+        match input {
+            LengthPercentage::Points(value) => Self::Points(value),
+            LengthPercentage::Percent(value) => Self::Percent(value),
+        }
+    }
+}
+
 /// A unit of linear measurement
 ///
 /// This is commonly combined with [`Rect`], [`Point`](crate::geometry::Point) and [`Size<T>`].
@@ -292,10 +558,37 @@ pub enum Dimension {
     Auto,
 }
 
+impl From<LengthPercentage> for Dimension {
+    fn from(input: LengthPercentage) -> Self {
+        match input {
+            LengthPercentage::Points(value) => Self::Points(value),
+            LengthPercentage::Percent(value) => Self::Percent(value),
+        }
+    }
+}
+
+impl From<LengthPercentageAuto> for Dimension {
+    fn from(input: LengthPercentageAuto) -> Self {
+        match input {
+            LengthPercentageAuto::Points(value) => Self::Points(value),
+            LengthPercentageAuto::Percent(value) => Self::Percent(value),
+            LengthPercentageAuto::Auto => Self::Auto,
+        }
+    }
+}
+
 impl Dimension {
     /// Is this value defined?
     pub(crate) fn is_defined(self) -> bool {
         matches!(self, Dimension::Points(_) | Dimension::Percent(_))
+    }
+
+    /// Get Points value if value is Points variant
+    pub(crate) fn get_absolute(self) -> Option<f32> {
+        match self {
+            Dimension::Points(value) => Some(value),
+            _ => None,
+        }
     }
 }
 
@@ -365,49 +658,21 @@ impl Rect<Dimension> {
 /// this [introduction to the box model](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Box_Model/Introduction_to_the_CSS_box_model).
 ///
 /// If the behavior does not match the flexbox layout algorithm on the web, please file a bug!
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(default))]
 pub struct Style {
     /// What layout strategy should be used?
     pub display: Display,
+
+    // Position properties
     /// What should the `position` value of this struct use as a base offset?
     pub position_type: PositionType,
-    /// Which direction does the main axis flow in?
-    pub flex_direction: FlexDirection,
-    /// Should elements wrap, or stay in a single line?
-    pub flex_wrap: FlexWrap,
-    /// How should items be aligned relative to the cross axis?
-    pub align_items: AlignItems,
-    /// Should this item violate the cross axis alignment specified by its parent's [`AlignItems`]?
-    pub align_self: AlignSelf,
-    /// How should content contained within this item be aligned relative to the cross axis?
-    pub align_content: AlignContent,
-    /// How should items be aligned relative to the main axis?
-    pub justify_content: JustifyContent,
     /// How should the position of this element be tweaked relative to the layout defined?
     pub position: Rect<LengthPercentageAuto>,
-    /// How large should the margin be on each side?
-    pub margin: Rect<LengthPercentageAuto>,
-    /// How large should the padding be on each side?
-    pub padding: Rect<LengthPercentage>,
-    /// How large should the border be on each side?
-    pub border: Rect<LengthPercentage>,
-    // Gap
-    /// How large should the gaps between items in a grid or flex container be?
-    pub gap: Size<LengthPercentage>,
-    /// The relative rate at which this item grows when it is expanding to fill space
-    ///
-    /// 0.0 is the default value, and this value must not be negative.
-    pub flex_grow: f32,
-    /// The relative rate at which this item shrinks when it is contracting to fit into space
-    ///
-    /// 1.0 is the default value, and this value must not be negative.
-    pub flex_shrink: f32,
-    /// Sets the initial main axis size of the item
-    pub flex_basis: Dimension,
+
+    // Size properies
     /// Sets the initial size of the item
-    // TODO: why does this exist as distinct from flex_basis? How do they interact?
     pub size: Size<Dimension>,
     /// Controls the minimum size of the item
     pub min_size: Size<Dimension>,
@@ -417,6 +682,66 @@ pub struct Style {
     ///
     /// The ratio is calculated as width divided by height.
     pub aspect_ratio: Option<f32>,
+
+    // Spacing Properties
+    /// How large should the margin be on each side?
+    pub margin: Rect<LengthPercentageAuto>,
+    /// How large should the padding be on each side?
+    pub padding: Rect<LengthPercentage>,
+    /// How large should the border be on each side?
+    pub border: Rect<LengthPercentage>,
+
+    // Alignment properties
+    /// How this node's children aligned in the cross/block axis?
+    pub align_items: Option<AlignItems>,
+    /// How this node should be aligned in the cross/block axis
+    /// Falls back to the parents [`AlignItems`] if not set
+    pub align_self: Option<AlignSelf>,
+    /// How this node's children should be aligned in the inline axis
+    pub justify_items: Option<AlignItems>,
+    /// How this node should be aligned in the inline axis
+    /// Falls back to the parents [`JustifyItems`] if not set
+    pub justify_self: Option<AlignSelf>,
+    /// How should content contained within this item be aligned in the cross/block axis
+    pub align_content: Option<AlignContent>,
+    /// How should contained within this item be aligned in the main/inline axis
+    pub justify_content: Option<JustifyContent>,
+    /// How large should the gaps between items in a grid or flex container be?
+    pub gap: Size<LengthPercentage>,
+
+    // Flexbox properies
+    /// Which direction does the main axis flow in?
+    pub flex_direction: FlexDirection,
+    /// Should elements wrap, or stay in a single line?
+    pub flex_wrap: FlexWrap,
+    /// Sets the initial main axis size of the item
+    pub flex_basis: Dimension,
+    /// The relative rate at which this item grows when it is expanding to fill space
+    ///
+    /// 0.0 is the default value, and this value must be positive.
+    pub flex_grow: f32,
+    /// The relative rate at which this item shrinks when it is contracting to fit into space
+    ///
+    /// 1.0 is the default value, and this value must be positive.
+    pub flex_shrink: f32,
+
+    // Grid container properies
+    /// Defines the track sizing functions (widths) of the grid rows
+    pub grid_template_rows: GridTrackVec<TrackSizingFunction>,
+    /// Defines the track sizing functions (heights) of the grid columns
+    pub grid_template_columns: GridTrackVec<TrackSizingFunction>,
+    /// Defines the size of implicitly created rows
+    pub grid_auto_rows: GridTrackVec<TrackSizingFunction>,
+    /// Defined the size of implicitly created columns
+    pub grid_auto_columns: GridTrackVec<TrackSizingFunction>,
+    /// Controls how items get placed into the grid for auto-placed items
+    pub grid_auto_flow: GridAutoFlow,
+
+    // Grid child properties
+    /// Defines which row in the grid the item should start and end at
+    pub grid_row: Line<GridPlacement>,
+    /// Defines which column in the grid the item should start and end at
+    pub grid_column: Line<GridPlacement>,
 }
 
 impl Style {
@@ -426,10 +751,12 @@ impl Style {
         position_type: PositionType::Relative,
         flex_direction: FlexDirection::Row,
         flex_wrap: FlexWrap::NoWrap,
-        align_items: AlignItems::Stretch,
-        align_self: AlignSelf::Auto,
-        align_content: AlignContent::Stretch,
-        justify_content: JustifyContent::FlexStart,
+        align_items: None,
+        align_self: None,
+        justify_items: None,
+        justify_self: None,
+        align_content: None,
+        justify_content: None,
         position: Rect::auto(),
         margin: Rect::zero(),
         padding: Rect::zero(),
@@ -442,6 +769,13 @@ impl Style {
         min_size: Size::auto(),
         max_size: Size::auto(),
         aspect_ratio: None,
+        grid_template_rows: Vec::new(),
+        grid_template_columns: Vec::new(),
+        grid_auto_rows: Vec::new(),
+        grid_auto_columns: Vec::new(),
+        grid_auto_flow: GridAutoFlow::Row,
+        grid_row: Line { start: GridPlacement::Auto, end: GridPlacement::Auto },
+        grid_column: Line { start: GridPlacement::Auto, end: GridPlacement::Auto },
     };
 }
 
@@ -533,21 +867,19 @@ impl Style {
         }
     }
 
-    /// Computes the final alignment of this item based on the parent's [`AlignItems`] and this item's [`AlignSelf`]
-    pub(crate) fn align_self(&self, parent: &Style) -> AlignSelf {
-        // FUTURE WARNING: This function should never return AlignSelf::Auto
-        // See #169 https://github.com/DioxusLabs/taffy/pull/169#issuecomment-1157698840
+    /// Get a grid item's row or column placement depending on the axis passed
+    pub(crate) fn grid_placement(&self, axis: AbsoluteAxis) -> Line<GridPlacement> {
+        match axis {
+            AbsoluteAxis::Horizontal => self.grid_column,
+            AbsoluteAxis::Vertical => self.grid_row,
+        }
+    }
 
-        if self.align_self == AlignSelf::Auto {
-            match parent.align_items {
-                AlignItems::FlexStart => AlignSelf::FlexStart,
-                AlignItems::FlexEnd => AlignSelf::FlexEnd,
-                AlignItems::Center => AlignSelf::Center,
-                AlignItems::Baseline => AlignSelf::Baseline,
-                AlignItems::Stretch => AlignSelf::Stretch,
-            }
-        } else {
-            self.align_self
+    /// Get a grid container's align-content or justify-content alignment depending on the axis passed
+    pub(crate) fn grid_align_content(&self, axis: AbstractAxis) -> AlignContent {
+        match axis {
+            AbstractAxis::Inline => self.justify_content.unwrap_or(AlignContent::Stretch),
+            AbstractAxis::Block => self.align_content.unwrap_or(AlignContent::Stretch),
         }
     }
 }
@@ -556,10 +888,13 @@ impl Style {
 #[cfg(test)]
 mod tests {
     use super::Style;
-    use crate::geometry::{Rect, Size};
+    use crate::geometry::Rect;
 
     #[test]
     fn defaults_match() {
+        use super::GridPlacement;
+        use crate::geometry::{Line, Size};
+
         let old_defaults = Style {
             display: Default::default(),
             position_type: Default::default(),
@@ -567,6 +902,8 @@ mod tests {
             flex_wrap: Default::default(),
             align_items: Default::default(),
             align_self: Default::default(),
+            justify_items: Default::default(),
+            justify_self: Default::default(),
             align_content: Default::default(),
             justify_content: Default::default(),
             position: Rect::auto(),
@@ -581,6 +918,13 @@ mod tests {
             min_size: Size::auto(),
             max_size: Size::auto(),
             aspect_ratio: Default::default(),
+            grid_template_rows: Default::default(),
+            grid_template_columns: Default::default(),
+            grid_auto_rows: Default::default(),
+            grid_auto_columns: Default::default(),
+            grid_auto_flow: Default::default(),
+            grid_row: Line { start: GridPlacement::Auto, end: GridPlacement::Auto },
+            grid_column: Line { start: GridPlacement::Auto, end: GridPlacement::Auto },
         };
 
         assert_eq!(Style::DEFAULT, Style::default());
@@ -618,14 +962,6 @@ mod tests {
     mod test_flexbox_layout {
         use crate::style::*;
         use crate::style_helpers::*;
-
-        fn layout_from_align_items(align: AlignItems) -> Style {
-            Style { align_items: align, ..Default::default() }
-        }
-
-        fn layout_from_align_self(align: AlignSelf) -> Style {
-            Style { align_self: align, ..Default::default() }
-        }
 
         #[test]
         fn flexbox_layout_min_main_size() {
@@ -700,52 +1036,6 @@ mod tests {
             };
             assert_eq!(layout.cross_margin_end(FlexDirection::Row), points(1.0));
             assert_eq!(layout.cross_margin_end(FlexDirection::Column), points(2.0));
-        }
-
-        #[test]
-        fn flexbox_layout_align_self_auto() {
-            let parent = layout_from_align_items(AlignItems::FlexStart);
-            let layout = layout_from_align_self(AlignSelf::Auto);
-            assert_eq!(layout.align_self(&parent), AlignSelf::FlexStart);
-
-            let parent = layout_from_align_items(AlignItems::FlexEnd);
-            let layout = layout_from_align_self(AlignSelf::Auto);
-            assert_eq!(layout.align_self(&parent), AlignSelf::FlexEnd);
-
-            let parent = layout_from_align_items(AlignItems::Center);
-            let layout = layout_from_align_self(AlignSelf::Auto);
-            assert_eq!(layout.align_self(&parent), AlignSelf::Center);
-
-            let parent = layout_from_align_items(AlignItems::Baseline);
-            let layout = layout_from_align_self(AlignSelf::Auto);
-            assert_eq!(layout.align_self(&parent), AlignSelf::Baseline);
-
-            let parent = layout_from_align_items(AlignItems::Stretch);
-            let layout = layout_from_align_self(AlignSelf::Auto);
-            assert_eq!(layout.align_self(&parent), AlignSelf::Stretch);
-        }
-
-        #[test]
-        fn align_self() {
-            let parent = layout_from_align_items(AlignItems::FlexEnd);
-            let layout = layout_from_align_self(AlignSelf::FlexStart);
-            assert_eq!(layout.align_self(&parent), AlignSelf::FlexStart);
-
-            let parent = layout_from_align_items(AlignItems::FlexStart);
-            let layout = layout_from_align_self(AlignSelf::FlexEnd);
-            assert_eq!(layout.align_self(&parent), AlignSelf::FlexEnd);
-
-            let parent = layout_from_align_items(AlignItems::FlexStart);
-            let layout = layout_from_align_self(AlignSelf::Center);
-            assert_eq!(layout.align_self(&parent), AlignSelf::Center);
-
-            let parent = layout_from_align_items(AlignItems::FlexStart);
-            let layout = layout_from_align_self(AlignSelf::Baseline);
-            assert_eq!(layout.align_self(&parent), AlignSelf::Baseline);
-
-            let parent = layout_from_align_items(AlignItems::FlexStart);
-            let layout = layout_from_align_self(AlignSelf::Stretch);
-            assert_eq!(layout.align_self(&parent), AlignSelf::Stretch);
         }
     }
 }

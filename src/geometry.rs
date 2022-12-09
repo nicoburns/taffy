@@ -1,5 +1,6 @@
 //! Geometric primitives useful for layout
 
+use crate::axis::AbstractAxis;
 use crate::style::{Dimension, FlexDirection};
 use core::ops::Add;
 
@@ -160,6 +161,29 @@ impl Rect<f32> {
     }
 }
 
+/// An abstract "line". Represents any type that has a start and an end
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
+pub struct Line<T> {
+    /// The start position of a line
+    pub start: T,
+    /// The end position of a line
+    pub end: T,
+}
+
+impl<T> Line<T> {
+    /// Applies the function `f` to both the width and height
+    ///
+    /// This is used to transform a `Line<T>` into a `Line<R>`.
+    pub fn map<R, F>(self, f: F) -> Line<R>
+    where
+        F: Fn(T) -> R,
+    {
+        Line { start: f(self.start), end: f(self.end) }
+    }
+}
+
 /// The width and height of a [`Rect`]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -256,6 +280,24 @@ impl<T> Size<T> {
             self.width
         }
     }
+
+    /// Gets the extent of the specified layout axis
+    /// Whether this is the width or height depends on the `GridAxis` provided
+    pub(crate) fn get(self, axis: AbstractAxis) -> T {
+        match axis {
+            AbstractAxis::Inline => self.width,
+            AbstractAxis::Block => self.height,
+        }
+    }
+
+    /// Sets the extent of the specified layout axis
+    /// Whether this is the width or height depends on the `GridAxis` provided
+    pub(crate) fn set(&mut self, axis: AbstractAxis, value: T) {
+        match axis {
+            AbstractAxis::Inline => self.width = value,
+            AbstractAxis::Block => self.height = value,
+        }
+    }
 }
 
 impl Size<f32> {
@@ -272,14 +314,16 @@ impl Size<Option<f32>> {
     pub const fn new(width: f32, height: f32) -> Self {
         Size { width: Some(width), height: Some(height) }
     }
+}
 
+impl<T> Size<Option<T>> {
     /// Performs Option::unwrap_or on each component separately
-    pub fn unwrap_or(self, alt: Size<f32>) -> Size<f32> {
+    pub fn unwrap_or(self, alt: Size<T>) -> Size<T> {
         Size { width: self.width.unwrap_or(alt.width), height: self.height.unwrap_or(alt.height) }
     }
 
     /// Performs Option::or on each component separately
-    pub fn or(self, alt: Size<Option<f32>>) -> Size<Option<f32>> {
+    pub fn or(self, alt: Size<Option<T>>) -> Size<Option<T>> {
         Size { width: self.width.or(alt.width), height: self.height.or(alt.height) }
     }
 }

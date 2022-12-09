@@ -151,6 +151,7 @@ function parseGridPosition(input) {
 }
 
 function describeElement(e) {
+
   return {
     style: {
       display: parseEnum(e.style.display),
@@ -164,8 +165,10 @@ function describeElement(e) {
 
       alignItems: parseEnum(e.style.alignItems),
       alignSelf: parseEnum(e.style.alignSelf),
+      justifyItems: parseEnum(e.style.justifyItems),
+      justifySelf: parseEnum(e.style.justifySelf),
+
       alignContent: parseEnum(e.style.alignContent),
-      
       justifyContent: parseEnum(e.style.justifyContent),
 
       flexGrow: parseNumber(e.style.flexGrow),
@@ -217,6 +220,10 @@ function describeElement(e) {
         bottom: e.style.bottom,
       }),
     },
+
+    // The textContent is used for generating intrinsic sizing measure funcs
+    // So we're only interested in the text content of leaf nodes
+    textContent: e.childElementCount === 0 && e.textContent.length && e.textContent !== "\n" ? e.textContent : undefined,
 
     layout: {
       width: e.offsetWidth,

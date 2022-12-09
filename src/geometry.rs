@@ -1,6 +1,5 @@
 //! Geometric primitives useful for layout
 
-use crate::axis::AbstractAxis;
 use crate::style::{Dimension, FlexDirection};
 use core::ops::Add;
 
@@ -278,24 +277,6 @@ impl<T> Size<T> {
             self.height
         } else {
             self.width
-        }
-    }
-
-    /// Gets the extent of the specified layout axis
-    /// Whether this is the width or height depends on the `GridAxis` provided
-    pub(crate) fn get(self, axis: AbstractAxis) -> T {
-        match axis {
-            AbstractAxis::Inline => self.width,
-            AbstractAxis::Block => self.height,
-        }
-    }
-
-    /// Sets the extent of the specified layout axis
-    /// Whether this is the width or height depends on the `GridAxis` provided
-    pub(crate) fn set(&mut self, axis: AbstractAxis, value: T) {
-        match axis {
-            AbstractAxis::Inline => self.width = value,
-            AbstractAxis::Block => self.height = value,
         }
     }
 }

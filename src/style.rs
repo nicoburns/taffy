@@ -1,6 +1,6 @@
 //! A representation of [CSS layout properties](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) in Rust, used for flexbox layout
 
-use crate::axis::{AbsoluteAxis, AbstractAxis};
+use crate::axis::AbsoluteAxis;
 use crate::geometry::{Line, Rect, Size};
 use crate::layout::AvailableSpace;
 use crate::sys::GridTrackVec;
@@ -582,14 +582,6 @@ impl Dimension {
     pub(crate) fn is_defined(self) -> bool {
         matches!(self, Dimension::Points(_) | Dimension::Percent(_))
     }
-
-    /// Get Points value if value is Points variant
-    pub(crate) fn get_absolute(self) -> Option<f32> {
-        match self {
-            Dimension::Points(value) => Some(value),
-            _ => None,
-        }
-    }
 }
 
 impl Rect<Dimension> {
@@ -864,22 +856,6 @@ impl Style {
             self.margin.bottom
         } else {
             self.margin.right
-        }
-    }
-
-    /// Get a grid item's row or column placement depending on the axis passed
-    pub(crate) fn grid_placement(&self, axis: AbsoluteAxis) -> Line<GridPlacement> {
-        match axis {
-            AbsoluteAxis::Horizontal => self.grid_column,
-            AbsoluteAxis::Vertical => self.grid_row,
-        }
-    }
-
-    /// Get a grid container's align-content or justify-content alignment depending on the axis passed
-    pub(crate) fn grid_align_content(&self, axis: AbstractAxis) -> AlignContent {
-        match axis {
-            AbstractAxis::Inline => self.justify_content.unwrap_or(AlignContent::Stretch),
-            AbstractAxis::Block => self.align_content.unwrap_or(AlignContent::Stretch),
         }
     }
 }

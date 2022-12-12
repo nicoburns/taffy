@@ -40,6 +40,10 @@ rand_chacha = "0.3.1"
 yoga = "0.4.0"
 ordered-float = "3.4.0"
 serde_json = "1.0.93"
+html_parser = "0.6.3"
+swc_css_parser = "0.137.0"
+swc_common = "0.29.20"
+swc_css_ast = "0.128.3"
 
 # Enable example and test-specific features
 taffy = { path = ".", features = ["random"] }

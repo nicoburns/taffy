@@ -287,6 +287,16 @@ impl FromFlex for MaxTrackSizingFunction {
         Self::Fraction(flex.into())
     }
 }
+impl From<MinTrackSizingFunction> for MaxTrackSizingFunction {
+    fn from(input: MinTrackSizingFunction) -> Self {
+        match input {
+            MinTrackSizingFunction::Fixed(value) => Self::Fixed(value),
+            MinTrackSizingFunction::Auto => Self::Auto,
+            MinTrackSizingFunction::MinContent => Self::MinContent,
+            MinTrackSizingFunction::MaxContent => Self::MaxContent,
+        }
+    }
+}
 
 impl MaxTrackSizingFunction {
     /// Returns true if the max track sizing function is `MinContent`, `MaxContent`, `FitContent` or `Auto`, else false.
@@ -394,6 +404,18 @@ impl FromPoints for MinTrackSizingFunction {
 impl FromPercent for MinTrackSizingFunction {
     fn from_percent<Input: Into<f32> + Copy>(percent: Input) -> Self {
         Self::Fixed(LengthPercentage::from_percent(percent))
+    }
+}
+impl TryFrom<MaxTrackSizingFunction> for MinTrackSizingFunction {
+    type Error = ();
+    fn try_from(input: MaxTrackSizingFunction) -> Result<Self, ()> {
+        match input {
+            MaxTrackSizingFunction::Fixed(value) => Ok(Self::Fixed(value)),
+            MaxTrackSizingFunction::Auto => Ok(Self::Auto),
+            MaxTrackSizingFunction::MinContent => Ok(Self::MinContent),
+            MaxTrackSizingFunction::MaxContent => Ok(Self::MaxContent),
+            _ => Err(()),
+        }
     }
 }
 

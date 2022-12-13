@@ -26,7 +26,7 @@ const HTML: &str = r###"
 
 const HTML2: &str = r###"
   <div id="test-root" style="width: 140px; display: grid; grid-auto-flow: column dense;grid-auto-rows: 1fr min-content max-content auto 40px minmax(20px, 40px) 40px;grid-template-rows: repeat(auto-fill, 40px 20px) ;">
-    <div></div>
+    <div style="grid-column-end: span 2"></div>
   </div>
 "###;
 
@@ -310,13 +310,35 @@ fn parse_style(style_text: &str) -> Style {
             }
 
             // Grid Child
-            // TODO
+            "grid-row-start" => {
+                let Some(start) = parse_grid_placement(&decl.value) else { continue; };
+                style.grid_row.start = start;
+            }
+            "grid-row-end" => {
+                let Some(end) = parse_grid_placement(&decl.value) else { continue; };
+                style.grid_row.end = end;
+            }
+            "grid-row" => {
+                let Some([start, end]) = parse_slash_delimited_values(&decl.value, parse_grid_placement) else { continue; };
+                style.grid_row.start = start;
+                style.grid_row.end = end;
+            }
+            "grid-column-start" => {
+                let Some(start) = parse_grid_placement(&decl.value) else { continue; };
+                style.grid_column.start = start;
+            }
+            "grid-column-end" => {
+                let Some(end) = parse_grid_placement(&decl.value) else { continue; };
+                style.grid_column.end = end;
+            }
+            "grid-column" => {
+                let Some([start, end]) = parse_slash_delimited_values(&decl.value, parse_grid_placement) else { continue; };
+                style.grid_column.start = start;
+                style.grid_column.end = end;
+            }
             _ => {}
         };
-        // dbg!(decl);
     }
-
-    dbg!(&style.grid_auto_flow);
 
     style
 }
@@ -461,6 +483,65 @@ fn parse_max_track_sizing_function(raw_value: &ComponentValue) -> Option<MaxTrac
             "max-content" => max_content(),
             _ => None,
         },
+        _ => None,
+    }
+}
+
+fn parse_grid_placement(raw_values: &[ComponentValue]) -> Option<GridPlacement> {
+    let mut number: Option<i16> = None;
+    let mut span: bool = false;
+    for value in raw_values {
+        match value {
+            ComponentValue::Ident(ident) if ident_as_str(ident) == "span" => {
+                if span {
+                    return None;
+                } else {
+                    span = true;
+                }
+            }
+            ComponentValue::Integer(integer) => {
+                if number.is_some() {
+                    return None;
+                } else {
+                    number = Some(integer.value as i16);
+                }
+            }
+            _ => return None,
+        }
+    }
+
+    if span {
+        match number {
+            Some(num) if num > 0 => Some(GridPlacement::Span(num as u16)),
+            _ => None,
+        }
+    } else {
+        number.map(|num| GridPlacement::Track(num))
+    }
+}
+
+fn parse_slash_delimited_values<T: Clone>(
+    raw_values: &[ComponentValue],
+    parser: impl Fn(&[ComponentValue]) -> Option<T>,
+) -> Option<[T; 2]> {
+    // Split value by '/' character
+    let parts: Vec<Option<T>> = raw_values
+        .split(|value| {
+            matches!(value, ComponentValue::Delimiter(ast::Delimiter { value: ast::DelimiterValue::Solidus, .. }))
+        })
+        .map(|sub_slice| parser(sub_slice))
+        .collect();
+    let part_count = parts.len();
+
+    // Filter out parts that did parse correctly. If any did not parse correctly, then we return None.
+    let valid_parts: Vec<T> = parts.into_iter().filter_map(|part| part).collect();
+    if valid_parts.len() < part_count {
+        return None;
+    }
+
+    match part_count {
+        1 => Some([valid_parts[0].clone(), valid_parts[0].clone()]),
+        2 => Some([valid_parts[0].clone(), valid_parts[1].clone()]),
         _ => None,
     }
 }

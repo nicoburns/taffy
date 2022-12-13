@@ -7,6 +7,7 @@ use crate::style_helpers::*;
 use crate::sys::GridTrackVec;
 use core::cmp::{max, min};
 use core::convert::Infallible;
+use core::str::FromStr;
 
 /// Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
 ///
@@ -31,6 +32,20 @@ pub enum GridAutoFlow {
 impl Default for GridAutoFlow {
     fn default() -> Self {
         Self::Row
+    }
+}
+
+impl FromStr for GridAutoFlow {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        match s {
+            "row" => Ok(Self::Row),
+            "column" => Ok(Self::Column),
+            "dense" => Ok(Self::RowDense),
+            "row dense" => Ok(Self::RowDense),
+            "column dense" => Ok(Self::ColumnDense),
+            _ => Err(()),
+        }
     }
 }
 

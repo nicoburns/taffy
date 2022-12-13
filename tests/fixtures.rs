@@ -264,7 +264,14 @@ fn parse_style(style_text: &str) -> Style {
             }
 
             // Flex Container
-            // TODO
+            "flex-wrap" => {
+                let Some(flex_wrap) = parse_string(&decl.value) else { continue; };
+                style.flex_wrap = flex_wrap;
+            }
+            "flex-direction" => {
+                let Some(flex_direction) = parse_string(&decl.value) else { continue; };
+                style.flex_direction = flex_direction;
+            }
 
             // Flex Child
             "flex-basis" => {

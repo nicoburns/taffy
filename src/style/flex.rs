@@ -1,5 +1,7 @@
 //! Style types for Flexbox layout
 
+use core::str::FromStr;
+
 /// Controls whether flex items are forced onto one line or can wrap onto multiple lines.
 ///
 /// Defaults to [`FlexWrap::NoWrap`]
@@ -19,6 +21,18 @@ pub enum FlexWrap {
 impl Default for FlexWrap {
     fn default() -> Self {
         Self::NoWrap
+    }
+}
+
+impl FromStr for FlexWrap {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        match s {
+            "row" => Ok(Self::NoWrap),
+            "wrap" => Ok(Self::Wrap),
+            "wrap-reverse" => Ok(Self::WrapReverse),
+            _ => Err(()),
+        }
     }
 }
 
@@ -57,6 +71,19 @@ pub enum FlexDirection {
 impl Default for FlexDirection {
     fn default() -> Self {
         Self::Row
+    }
+}
+
+impl FromStr for FlexDirection {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        match s {
+            "row" => Ok(Self::Row),
+            "column" => Ok(Self::Column),
+            "row-reverse" => Ok(Self::RowReverse),
+            "column-reverse" => Ok(Self::ColumnReverse),
+            _ => Err(()),
+        }
     }
 }
 

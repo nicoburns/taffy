@@ -1,5 +1,7 @@
 //! Style types for controlling alignment
 
+use core::str::FromStr;
+
 /// Used to control how child [`Nodes`](crate::node::Node) are aligned.
 /// For Flexbox it controls alignment in the cross axis
 /// For Grid it controls alignment in the block axis
@@ -50,6 +52,20 @@ pub type AlignSelf = AlignItems;
 /// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/justify-self)
 pub type JustifySelf = AlignItems;
 
+impl FromStr for AlignItems {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        match s {
+            "start" => Ok(Self::Start),
+            "end" => Ok(Self::End),
+            "center" => Ok(Self::Center),
+            "baseline" => Ok(Self::Baseline),
+            "stretch" => Ok(Self::Stretch),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Sets the distribution of space between and around content items
 /// For Flexbox it controls alignment in the cross axis
 /// For Grid it controls alignment in the block axis
@@ -93,3 +109,19 @@ pub enum AlignContent {
 ///
 /// [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/justify-content)
 pub type JustifyContent = AlignContent;
+
+impl FromStr for AlignContent {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        match s {
+            "start" => Ok(Self::Start),
+            "end" => Ok(Self::End),
+            "center" => Ok(Self::Center),
+            "stretch" => Ok(Self::Stretch),
+            "space-between" => Ok(Self::SpaceBetween),
+            "space-evenly" => Ok(Self::SpaceEvenly),
+            "space-around" => Ok(Self::SpaceAround),
+            _ => Err(()),
+        }
+    }
+}

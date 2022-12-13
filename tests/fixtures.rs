@@ -3,6 +3,8 @@
 // and to keep each test in a separate file
 mod generated;
 
+use core::str::FromStr;
+
 use html_parser::{Dom, Element, Node};
 use swc_common::input::StringInput;
 use swc_common::source_map::BytePos;
@@ -23,7 +25,7 @@ const HTML: &str = r###"
 "###;
 
 const HTML2: &str = r###"
-  <div id="test-root" style="width: 140px; display: grid; grid-auto-rows: 1fr min-content max-content auto 40px minmax(20px, 40px) 40px;grid-template-rows: repeat(auto-fill, 40px 20px) ;">
+  <div id="test-root" style="width: 140px; display: grid; grid-auto-flow: column dense;grid-auto-rows: 1fr min-content max-content auto 40px minmax(20px, 40px) 40px;grid-template-rows: repeat(auto-fill, 40px 20px) ;">
     <div></div>
   </div>
 "###;
@@ -227,7 +229,24 @@ fn parse_style(style_text: &str) -> Style {
             }
 
             // Alignment
-            // TODO
+            "align-content" => {
+                style.align_content = parse_string(&decl.value);
+            }
+            "justify-content" => {
+                style.justify_content = parse_string(&decl.value);
+            }
+            "align-items" => {
+                style.align_items = parse_string(&decl.value);
+            }
+            "justify-items" => {
+                style.justify_items = parse_string(&decl.value);
+            }
+            "align-self" => {
+                style.align_self = parse_string(&decl.value);
+            }
+            "justify-self" => {
+                style.justify_self = parse_string(&decl.value);
+            }
 
             // Gap
             "column-gap" => {
@@ -278,7 +297,10 @@ fn parse_style(style_text: &str) -> Style {
                 let Some(track_list) = parse_vec(&decl.value, parse_track_sizing_function) else { continue; };
                 style.grid_auto_rows = track_list;
             }
-            // TODO: GridAutoFlow
+            "grid-auto-flow" => {
+                let Some(auto_flow) = parse_string(&decl.value) else { continue; };
+                style.grid_auto_flow = auto_flow;
+            }
 
             // Grid Child
             // TODO
@@ -287,13 +309,20 @@ fn parse_style(style_text: &str) -> Style {
         // dbg!(decl);
     }
 
-    // dbg!(&style.grid_auto_rows);
+    dbg!(&style.grid_auto_flow);
 
     style
 }
 
 fn ident_as_str(ident: &Ident) -> &str {
     ident.raw.as_ref().unwrap()
+}
+
+fn try_component_value_ident_as_str(raw_value: &ComponentValue) -> Option<&str> {
+    match raw_value {
+        ComponentValue::Ident(ident) => Some(&ident.raw.as_ref().unwrap()),
+        _ => None,
+    }
 }
 
 fn parse_float(raw_value: &ComponentValue) -> Option<f32> {
@@ -304,6 +333,17 @@ fn parse_float(raw_value: &ComponentValue) -> Option<f32> {
             dbg!(raw_value);
             None
         }
+    }
+}
+
+fn parse_string<T: FromStr>(raw_values: &[ComponentValue]) -> Option<T> {
+    match raw_values.len() {
+        1 => try_component_value_ident_as_str(&raw_values[0])?.parse().ok(),
+        2 => {
+            let string = raw_values.iter().filter_map(try_component_value_ident_as_str).collect::<Vec<_>>().join(" ");
+            string.parse().ok()
+        }
+        _ => None,
     }
 }
 
@@ -398,6 +438,8 @@ fn parse_track_sizing_function(raw_value: &ComponentValue) -> Option<NonRepeated
     }
 }
 
+// MaxTrackSizingFunction has a TryInto impl for MinTrackSizingFunction, so this function is also
+// used from parsing MinTrackSizingFunction
 fn parse_max_track_sizing_function(raw_value: &ComponentValue) -> Option<MaxTrackSizingFunction> {
     match raw_value {
         ComponentValue::Percentage(percentage) => Some(percent(percentage.value.value as f32)),

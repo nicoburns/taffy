@@ -1665,30 +1665,31 @@ fn final_layout_pass(tree: &mut impl LayoutTree, node: Node, flex_lines: &mut [F
 /// Perform absolute layout on all absolutely positioned children.
 #[inline]
 fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node: Node, constants: &AlgoConstants) {
-    // TODO: remove number of Vec<_> generated
-    let candidates = tree
-        .children(node)
-        .cloned()
-        .enumerate()
-        .filter(|(_, child)| tree.style(*child).position_type == PositionType::Absolute)
-        .collect::<Vec<_>>();
+    let container_width = constants.container_size.width;
+    let container_height = constants.container_size.height;
 
-    for (order, child) in candidates {
-        let container_width = constants.container_size.width;
-        let container_height = constants.container_size.height;
-
+    // Iterate over children
+    let child_indexes = 0..tree.child_count(node);
+    for child_index in child_indexes {
+        // Lookup the child's Node and Style by index
+        let child = tree.child(node, child_index);
         let child_style = tree.style(child);
 
-        // X-axis
-        let child_position_start = child_style.position.left.maybe_resolve(container_width);
-        let child_margin_start = child_style.margin.left.maybe_resolve(container_width);
-        let start = child_position_start.maybe_add(child_margin_start);
+        // Skip non-absolutely positioned children
+        if child_style.position_type != PositionType::Absolute {
+            continue;
+        }
 
-        let child_position_end = child_style.position.right.maybe_resolve(container_width);
-        let child_margin_end = child_style.margin.right.maybe_resolve(container_width);
-        let end = child_position_end.maybe_add(child_margin_end);
+        // Compute X-axis position
+        let child_position_left = child_style.position.left.maybe_resolve(container_width);
+        let child_margin_left = child_style.margin.left.maybe_resolve(container_width);
+        let left = child_position_left.maybe_add(child_margin_left);
 
-        // Y-axis
+        let child_position_right = child_style.position.right.maybe_resolve(container_width);
+        let child_margin_right = child_style.margin.right.maybe_resolve(container_width);
+        let right = child_position_right.maybe_add(child_margin_right);
+
+        // Compute Y-axis position
         let child_position_top = child_style.position.top.maybe_resolve(container_height);
         let child_margin_top = child_style.margin.top.maybe_resolve(container_height);
         let top = child_position_top.maybe_add(child_margin_top);
@@ -1697,8 +1698,8 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
         let child_margin_bottom = child_style.margin.bottom.maybe_resolve(container_height);
         let bottom = child_position_bottom.maybe_add(child_margin_bottom);
 
-        let (start_main, end_main) = if constants.is_row { (start, end) } else { (top, bottom) };
-        let (start_cross, end_cross) = if constants.is_row { (top, bottom) } else { (start, end) };
+        let (start_main, end_main) = if constants.is_row { (left, right) } else { (top, bottom) };
+        let (start_cross, end_cross) = if constants.is_row { (top, bottom) } else { (left, right) };
 
         // Compute known dimensions from min/max/inherent size styles
         let style_size = child_style.size.maybe_resolve(constants.container_size);
@@ -1707,8 +1708,8 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
         let mut known_dimensions = style_size.maybe_clamp(min_size, max_size);
 
         // Fill in width from left/right and height from top/bottom is appropriate
-        if known_dimensions.width.is_none() && start.is_some() && end.is_some() {
-            known_dimensions.width = Some(container_width.maybe_sub(start).maybe_sub(end));
+        if known_dimensions.width.is_none() && left.is_some() && right.is_some() {
+            known_dimensions.width = Some(container_width.maybe_sub(left).maybe_sub(right));
         }
         if known_dimensions.height.is_none() && top.is_some() && bottom.is_some() {
             known_dimensions.height = Some(container_height.maybe_sub(top).maybe_sub(bottom));
@@ -1808,7 +1809,7 @@ fn perform_absolute_layout_on_absolute_children(tree: &mut impl LayoutTree, node
         };
 
         *tree.layout_mut(child) = Layout {
-            order: order as u32,
+            order: child_index as u32,
             size: preliminary_size,
             location: Point {
                 x: if constants.is_row { offset_main } else { offset_cross },

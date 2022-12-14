@@ -109,6 +109,14 @@ pub trait LayoutAlgorithm {
         sizing_mode: SizingMode,
     ) -> Size<f32>;
 
+    /// Calculate this node's baseline
+    fn calculate_baseline<Node: LayoutNode>(
+        node: &mut Node,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode
+    ) -> f32;
+
     /// Opt-in performance optimization. If this function returns true the cached results from `measure`
     /// will be assumed to be valid for requests to `perform_layout`.
     /// A layout algorithm should only opt-in to this optimization if both:
@@ -162,7 +170,16 @@ pub trait LayoutNode {
         known_dimensions: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
         sizing_mode: SizingMode,
+        is_hidden: bool,
     ) -> Size<f32>;
+
+    /// See LayoutAlgorithm trait for documentation
+    fn calculate_baseline<Node: LayoutNode>(
+        &mut self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode
+    ) -> f32;
 
     /// See LayoutAlgorithm trait for documentation
     fn measurement_requires_full_layout(&mut self) -> bool {

@@ -63,6 +63,7 @@ fn parse_element(element: &Element) {
     }
 }
 
+/// Convert the string text of inline string block into a taffy Style type
 fn parse_style(style_text: &str) -> Style {
     let input = StringInput::new(style_text, BytePos(0), BytePos(style_text.len() as u32));
     let mut errors = vec![];
@@ -343,17 +344,12 @@ fn parse_style(style_text: &str) -> Style {
     style
 }
 
+/// Extract an &str from an &Ident
 fn ident_as_str(ident: &Ident) -> &str {
     ident.raw.as_ref().unwrap()
 }
 
-fn try_component_value_ident_as_str(raw_value: &ComponentValue) -> Option<&str> {
-    match raw_value {
-        ComponentValue::Ident(ident) => Some(&ident.raw.as_ref().unwrap()),
-        _ => None,
-    }
-}
-
+/// Parse a numeric value
 fn parse_float(raw_value: &ComponentValue) -> Option<f32> {
     match raw_value {
         ComponentValue::Integer(integer) => Some(points(integer.value as f32)),
@@ -365,7 +361,17 @@ fn parse_float(raw_value: &ComponentValue) -> Option<f32> {
     }
 }
 
+/// Parse a value by attempting to call to FromStr implementation on the generic type
+/// (which can inferred from the return type)
 fn parse_string<T: FromStr>(raw_values: &[ComponentValue]) -> Option<T> {
+    /// Return Some(&str) if ComponentValue is an Ident, else return None
+    fn try_component_value_ident_as_str(raw_value: &ComponentValue) -> Option<&str> {
+        match raw_value {
+            ComponentValue::Ident(ident) => Some(&ident.raw.as_ref().unwrap()),
+            _ => None,
+        }
+    }
+
     match raw_values.len() {
         1 => try_component_value_ident_as_str(&raw_values[0])?.parse().ok(),
         2 => {
@@ -376,6 +382,7 @@ fn parse_string<T: FromStr>(raw_values: &[ComponentValue]) -> Option<T> {
     }
 }
 
+/// Parse a Dimension
 fn parse_dimension(raw_value: &ComponentValue) -> Option<Dimension> {
     match raw_value {
         ComponentValue::Percentage(percentage) => Some(Dimension::Percent(percentage.value.value as f32)),
@@ -394,14 +401,17 @@ fn parse_dimension(raw_value: &ComponentValue) -> Option<Dimension> {
     }
 }
 
+/// Parse a LengthPercentageAuto by first parsing a Dimension then attempting to convert it to a LengthPercentageAuto
 fn parse_length_percentage_auto(raw_value: &ComponentValue) -> Option<LengthPercentageAuto> {
     parse_dimension(raw_value).and_then(|dim| dim.try_into().ok())
 }
 
+/// Parse a LengthPercentage by first parsing a Dimension then attempting to convert it to a LengthPercentage
 fn parse_length_percentage(raw_value: &ComponentValue) -> Option<LengthPercentage> {
     parse_dimension(raw_value).and_then(|dim| dim.try_into().ok())
 }
 
+/// Parse a single track definition which can either be a track sizing function or a repeat()
 fn parse_repeatable_track_definition(raw_value: &ComponentValue) -> Option<TrackSizingFunction> {
     match parse_track_sizing_function(raw_value) {
         Some(sizing_function) => Some(TrackSizingFunction::Single(sizing_function)),
@@ -439,6 +449,7 @@ fn parse_repeatable_track_definition(raw_value: &ComponentValue) -> Option<Track
     }
 }
 
+/// Parse a single track sizing function, including the possibility that it is a minmax() track sizing function
 fn parse_track_sizing_function(raw_value: &ComponentValue) -> Option<NonRepeatedTrackSizingFunction> {
     match parse_max_track_sizing_function(raw_value) {
         Some(max) => {
@@ -467,8 +478,8 @@ fn parse_track_sizing_function(raw_value: &ComponentValue) -> Option<NonRepeated
     }
 }
 
-// MaxTrackSizingFunction has a TryInto impl for MinTrackSizingFunction, so this function is also
-// used from parsing MinTrackSizingFunction
+/// MaxTrackSizingFunction has a TryInto impl for MinTrackSizingFunction, so this function is also
+/// used from parsing MinTrackSizingFunction
 fn parse_max_track_sizing_function(raw_value: &ComponentValue) -> Option<MaxTrackSizingFunction> {
     match raw_value {
         ComponentValue::Percentage(percentage) => Some(percent(percentage.value.value as f32)),
@@ -487,6 +498,7 @@ fn parse_max_track_sizing_function(raw_value: &ComponentValue) -> Option<MaxTrac
     }
 }
 
+/// Parse a grid placement (grid-{row,column}-{start,end}) property
 fn parse_grid_placement(raw_values: &[ComponentValue]) -> Option<GridPlacement> {
     let mut number: Option<i16> = None;
     let mut span: bool = false;
@@ -520,6 +532,8 @@ fn parse_grid_placement(raw_values: &[ComponentValue]) -> Option<GridPlacement> 
     }
 }
 
+/// Parses shorthand properties with two parts split by a `/` like grid-row and grid-column.
+/// Hands each part to the passed parser for parsing
 fn parse_slash_delimited_values<T: Clone>(
     raw_values: &[ComponentValue],
     parser: impl Fn(&[ComponentValue]) -> Option<T>,
@@ -546,6 +560,9 @@ fn parse_slash_delimited_values<T: Clone>(
     }
 }
 
+/// Splits properties that accept an unlimited number of space separated parts into it's constituent parts,
+/// hands each part to the passed parser to parse, and then collects the results into a vector. Returns None
+/// if any part fails to parse.
 fn parse_vec<T>(raw_values: &[ComponentValue], parser: impl Fn(&ComponentValue) -> Option<T>) -> Option<Vec<T>> {
     let results: Vec<T> = raw_values.into_iter().filter_map(|value| parser(value)).collect();
     if results.len() == raw_values.len() {
@@ -555,6 +572,9 @@ fn parse_vec<T>(raw_values: &[ComponentValue], parser: impl Fn(&ComponentValue) 
     }
 }
 
+/// Splits 2-value shorthand properties (like "padding" and "margin" properties)
+/// into it's 2 constituent parts, and hands each part to the passed parser to be parsed
+/// Also handles the cases were 1 parameter is passed to such a shorthand property
 fn two_value_shorthand<T: Clone>(
     raw_values: &[ComponentValue],
     parser: impl Fn(&ComponentValue) -> Option<T>,
@@ -573,6 +593,9 @@ fn two_value_shorthand<T: Clone>(
     }
 }
 
+/// Splits 4-value shorthand properties (like "padding" and "margin" properties)
+/// into it's 4 constituent parts, and hands each part to the passed parser to be parsed
+/// Also handles the cases were 1 or 2 parameters are passed to such a shorthand property
 fn four_value_shorthand<T: Clone>(
     raw_values: &[ComponentValue],
     parser: impl Fn(&ComponentValue) -> Option<T>,

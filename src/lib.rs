@@ -29,6 +29,7 @@ pub mod prelude;
 pub mod style;
 pub mod style_helpers;
 pub mod tree;
+pub mod layout_algorithm_trait_prototype;
 
 #[cfg(feature = "random")]
 pub mod randomizable;

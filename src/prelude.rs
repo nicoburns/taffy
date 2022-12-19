@@ -10,5 +10,5 @@ pub use crate::{
         LengthPercentage, LengthPercentageAuto, PositionType, Style,
     },
     style_helpers::{auto, points, zero},
-    tree::LayoutTree,
+    tree::{LayoutTree, LayoutNode, LayoutAlgorithm},
 };

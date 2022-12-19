@@ -1,6 +1,8 @@
 //! UI [`Node`] types and related data structures.
 //!
 //! Layouts are composed of multiple nodes, which live in a tree-like data structure.
+use core::any::{Any, TypeId};
+
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 
 /// A node in a layout.
@@ -8,8 +10,8 @@ pub type Node = slotmap::DefaultKey;
 
 use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::Size;
-use crate::layout::{AvailableSpace, Cache, Layout};
-use crate::prelude::LayoutTree;
+use crate::layout::{AvailableSpace, Cache, Layout, RunMode, SizingMode};
+use crate::prelude::LayoutNode;
 use crate::style::Style;
 #[cfg(any(feature = "std", feature = "alloc"))]
 use crate::sys::Box;
@@ -30,6 +32,16 @@ pub enum MeasureFunc {
     /// Stores a boxed function
     #[cfg(any(feature = "std", feature = "alloc"))]
     Boxed(Box<dyn Measurable>),
+}
+
+impl MeasureFunc {
+    pub fn measure(&self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>) -> Size<f32> {
+        match self {
+            MeasureFunc::Raw(measure) => measure(known_dimensions, available_space),
+            #[cfg(any(feature = "std", feature = "alloc"))]
+            MeasureFunc::Boxed(measure) => (measure as &dyn Fn(_, _) -> _)(known_dimensions, available_space),
+        }
+    }
 }
 
 /// A tree of UI [`Nodes`](`Node`), suitable for UI layout
@@ -57,66 +69,83 @@ impl Default for Taffy {
     }
 }
 
-impl LayoutTree for Taffy {
-    type ChildIter<'a> = std::slice::Iter<'a, DefaultKey>;
+pub(crate) struct TaffyNode<'taffy> {
+    node: Node,
+    taffy: &'taffy mut Taffy,
+}
 
-    fn children(&self, node: Node) -> Self::ChildIter<'_> {
-        self.children[node].iter()
+impl<'tree> LayoutNode<'tree> for TaffyNode<'tree> {
+    type Child<'subtree> = TaffyNode<'subtree> where Self : 'subtree;// where Self : 'tree, 'tree: 'subtree, Self: 'subtree,;
+
+    fn child_count(&self) -> usize {
+        self.taffy.children[self.node].len()
     }
 
-    fn child_count(&self, node: Node) -> usize {
-        self.children[node].len()
+    // fn with_child_mut<'this, T : 'static, Callback: FnMut(&mut Self::Child<'tree>) -> T>(&'this mut self, index: usize, mut callback: Callback) -> T
+    // where 'this: 'tree {
+    //     let child_id = self.taffy.children[self.node][index];
+    //     callback(&mut Self { taffy: self.taffy, node: child_id })
+    // }
+
+    fn with_child_mut<'this, 'subtree, T: 'static, Callback>(&'this mut self, index: usize, mut callback: Callback) -> T
+    where
+        'this: 'tree,
+        'tree: 'subtree,
+        Self: 'subtree,
+        Callback: FnOnce(Self::Child<'subtree>) -> T
+    {
+        let child_id = self.taffy.children[self.node][index];
+        callback(Self { taffy: self.taffy, node: child_id })
     }
 
-    fn is_childless(&self, node: Node) -> bool {
-        self.children[node].is_empty()
+    fn style<T: Any>(&self) -> Option<&T> {
+        let requested_type_id = TypeId::of::<T>();
+
+        if requested_type_id == TypeId::of::<Style>() {
+            let style = &self.taffy.nodes[self.node].style;
+            // SAFETY: It has been checked that Style and T have the same TypeId and thus are the same type.
+            return Some(unsafe { std::mem::transmute(style) });
+        }
+
+        if requested_type_id == TypeId::of::<MeasureFunc>() {
+            return self.taffy.measure_funcs.get(self.node).map(|measure_func| {
+                // SAFETY: It has been checked that Style and T have the same TypeId and thus are the same type.
+                unsafe { std::mem::transmute(measure_func) }
+            });
+        }
+
+        None
     }
 
-    fn parent(&self, node: Node) -> Option<Node> {
-        self.parents.get(node).copied().flatten()
+    fn layout(&self) -> &Layout {
+        &self.taffy.nodes[self.node].layout
     }
 
-    fn style(&self, node: Node) -> &Style {
-        &self.nodes[node].style
+    fn layout_mut(&mut self) -> &mut Layout {
+        &mut self.taffy.nodes[self.node].layout
     }
 
-    fn layout(&self, node: Node) -> &Layout {
-        &self.nodes[node].layout
+    fn cache_mut(&mut self, index: usize) -> &mut Option<Cache> {
+        &mut self.taffy.nodes[self.node].size_cache[index]
     }
 
-    fn layout_mut(&mut self, node: Node) -> &mut Layout {
-        &mut self.nodes[node].layout
-    }
-
-    #[inline(always)]
-    fn mark_dirty(&mut self, node: Node) -> TaffyResult<()> {
-        self.mark_dirty_internal(node)
-    }
-
-    fn measure_node(
-        &self,
-        node: Node,
+    fn measure(
+        &mut self,
         known_dimensions: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode,
     ) -> Size<f32> {
-        match &self.measure_funcs[node] {
-            MeasureFunc::Raw(measure) => measure(known_dimensions, available_space),
-
-            #[cfg(any(feature = "std", feature = "alloc"))]
-            MeasureFunc::Boxed(measure) => (measure as &dyn Fn(_, _) -> _)(known_dimensions, available_space),
-        }
+        crate::compute::compute_node_layout(self, known_dimensions, available_space, RunMode::ComputeSize, sizing_mode)
     }
 
-    fn needs_measure(&self, node: Node) -> bool {
-        self.nodes[node].needs_measure && self.measure_funcs.get(node).is_some()
-    }
-
-    fn cache_mut(&mut self, node: Node, index: usize) -> &mut Option<Cache> {
-        &mut self.nodes[node].size_cache[index]
-    }
-
-    fn child(&self, node: Node, id: usize) -> Node {
-        self.children[node][id]
+    fn perform_layout(
+        &mut self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        sizing_mode: SizingMode,
+        // is_hidden: bool,
+    ) -> Size<f32> {
+        crate::compute::compute_node_layout(self, known_dimensions, available_space, RunMode::PeformLayout, sizing_mode)
     }
 }
 
@@ -362,7 +391,8 @@ impl Taffy {
 
     /// Updates the stored layout of the provided `node` and its children
     pub fn compute_layout(&mut self, node: Node, available_space: Size<AvailableSpace>) -> Result<(), TaffyError> {
-        crate::compute::compute_layout(self, node, available_space)
+        let mut root = TaffyNode { taffy: self, node };
+        crate::compute::compute_layout(&mut root, available_space)
     }
 }
 

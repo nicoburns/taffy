@@ -1,25 +1,25 @@
 //! Computes size using styles and measure functions
 
 use crate::geometry::Size;
+use crate::style::Style;
 use crate::layout::{AvailableSpace, RunMode, SizingMode};
+use crate::node::MeasureFunc;
 use crate::math::MaybeMath;
-use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrZero};
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 
 #[cfg(feature = "debug")]
 use crate::debug::NODE_LOGGER;
 
 /// Compute the size of a leaf node (node with no children)
-pub(crate) fn compute(
-    tree: &mut impl LayoutTree,
-    node: Node,
+pub(crate) fn compute<'tree>(
+    node: &mut impl LayoutNode<'tree>,
     known_dimensions: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     _run_mode: RunMode,
     sizing_mode: SizingMode,
 ) -> Size<f32> {
-    let style = tree.style(node);
+    let style = node.style::<Style>().unwrap();
 
     // Resolve node's preferred/min/max sizes (width/heights) against the available space (percentages resolve to pixel values)
     // For ContentSize mode, we pretend that the node has no size styles as these should be ignored.
@@ -53,7 +53,7 @@ pub(crate) fn compute(
         return Size { width, height }.maybe_clamp(node_min_size, node_max_size);
     };
 
-    if tree.needs_measure(node) {
+    if let Some(measure_func) = node.style::<MeasureFunc>() {
         // Compute available space
         let available_space = Size {
             width: available_space.width.maybe_set(node_size.width),
@@ -61,7 +61,7 @@ pub(crate) fn compute(
         };
 
         // Measure node
-        let measured_size = tree.measure_node(node, known_dimensions, available_space);
+        let measured_size = measure_func.measure(known_dimensions, available_space);
 
         return node_size.unwrap_or(measured_size).maybe_clamp(node_min_size, node_max_size);
     }

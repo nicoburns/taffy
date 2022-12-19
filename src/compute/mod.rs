@@ -6,37 +6,33 @@ pub(crate) mod leaf;
 use crate::error::TaffyError;
 use crate::geometry::{Point, Size};
 use crate::layout::{AvailableSpace, Cache, Layout, RunMode, SizingMode};
-use crate::node::Node;
-use crate::style::Display;
+use crate::style::{Display, Style};
 use crate::sys::round;
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 
 #[cfg(feature = "debug")]
 use crate::debug::NODE_LOGGER;
 
 /// Updates the stored layout of the provided `node` and its children
-pub fn compute_layout(
-    tree: &mut impl LayoutTree,
-    root: Node,
+pub fn compute_layout<'tree>(
+    root: &mut impl LayoutNode<'tree>,
     available_space: Size<AvailableSpace>,
 ) -> Result<(), TaffyError> {
     // Recursively compute node layout
-    let size =
-        compute_node_layout(tree, root, Size::NONE, available_space, RunMode::PeformLayout, SizingMode::InherentSize);
+    let size = compute_node_layout(root, Size::NONE, available_space, RunMode::PeformLayout, SizingMode::InherentSize);
 
     let layout = Layout { order: 0, size, location: Point::ZERO };
-    *tree.layout_mut(root) = layout;
+    *root.layout_mut() = layout;
 
     // Recursively round the layout's of this node and all children
-    round_layout(tree, root, 0.0, 0.0);
+    round_layout(root, 0.0, 0.0);
 
     Ok(())
 }
 
 /// Updates the stored layout of the provided `node` and its children
-fn compute_node_layout(
-    tree: &mut impl LayoutTree,
-    node: Node,
+pub(crate) fn compute_node_layout<'node, 'tree: 'node>(
+    node: &'node mut impl LayoutNode<'tree>,
     known_dimensions: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     run_mode: RunMode,
@@ -48,9 +44,8 @@ fn compute_node_layout(
     println!();
 
     // First we check if we have a cached result for the given input
-    let cache_run_mode = if tree.is_childless(node) { RunMode::PeformLayout } else { run_mode };
-    if let Some(cached_size) =
-        compute_from_cache(tree, node, known_dimensions, available_space, cache_run_mode, sizing_mode)
+    let cache_run_mode = if node.child_count() == 0 { RunMode::PeformLayout } else { run_mode };
+    if let Some(cached_size) = compute_from_cache(node, known_dimensions, available_space, cache_run_mode, sizing_mode)
     {
         #[cfg(feature = "debug")]
         NODE_LOGGER.labelled_debug_log("CACHE", cached_size);
@@ -103,17 +98,17 @@ fn compute_node_layout(
     // }
 
     // If this is a leaf node we can skip a lot of this function in some cases
-    let computed_size = if tree.is_childless(node) {
+    let computed_size = if node.child_count() == 0 {
         #[cfg(feature = "debug")]
         NODE_LOGGER.log("Algo: leaf");
-        self::leaf::compute(tree, node, known_dimensions, available_space, run_mode, sizing_mode)
+        self::leaf::compute(node, known_dimensions, available_space, run_mode, sizing_mode)
     } else {
         // println!("match {:?}", tree.style(node).display);
-        match tree.style(node).display {
+        match node.style::<Style>().unwrap().display {
             Display::Flex => {
                 #[cfg(feature = "debug")]
                 NODE_LOGGER.log("Algo: flexbox");
-                self::flexbox::compute(tree, node, known_dimensions, available_space, run_mode)
+                self::flexbox::compute(node, known_dimensions, available_space, run_mode)
             }
             Display::None => {
                 #[cfg(feature = "debug")]
@@ -125,7 +120,7 @@ fn compute_node_layout(
 
     // Cache result
     let cache_slot = (known_dimensions.width.is_some() as usize) + (known_dimensions.height.is_some() as usize * 2);
-    *tree.cache_mut(node, cache_slot) =
+    *node.cache_mut(cache_slot) =
         Some(Cache { known_dimensions, available_space, run_mode: cache_run_mode, cached_size: computed_size });
 
     #[cfg(feature = "debug")]
@@ -138,16 +133,15 @@ fn compute_node_layout(
 
 /// Try to get the computation result from the cache.
 #[inline]
-fn compute_from_cache(
-    tree: &mut impl LayoutTree,
-    node: Node,
+fn compute_from_cache<'tree>(
+    node: &mut impl LayoutNode<'tree>,
     known_dimensions: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     run_mode: RunMode,
     sizing_mode: SizingMode,
 ) -> Option<Size<f32>> {
     for idx in 0..4 {
-        let entry = tree.cache_mut(node, idx);
+        let entry = node.cache_mut(idx);
         #[cfg(feature = "debug")]
         NODE_LOGGER.labelled_debug_log("cache_entry", &entry);
         if let Some(entry) = entry {
@@ -184,8 +178,8 @@ fn compute_from_cache(
 }
 
 /// Rounds the calculated [`NodeData`] according to the spec
-fn round_layout(tree: &mut impl LayoutTree, root: Node, abs_x: f32, abs_y: f32) {
-    let layout = tree.layout_mut(root);
+fn round_layout<'tree>(node: &'tree mut impl LayoutNode<'tree>, abs_x: f32, abs_y: f32) {
+    let layout = node.layout_mut();
     let abs_x = abs_x + layout.location.x;
     let abs_y = abs_y + layout.location.y;
 
@@ -196,8 +190,7 @@ fn round_layout(tree: &mut impl LayoutTree, root: Node, abs_x: f32, abs_y: f32) 
     layout.size.height = round(layout.size.height);
 
     // Satisfy the borrow checker here by re-indexing to shorten the lifetime to the loop scope
-    for x in 0..tree.child_count(root) {
-        let child = tree.child(root, x);
-        round_layout(tree, child, abs_x, abs_y);
+    for x in 0..node.child_count() {
+        node.with_child_mut(x, move |child| round_layout(&mut child, abs_x, abs_y));
     }
 }

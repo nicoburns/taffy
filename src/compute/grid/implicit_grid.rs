@@ -3,6 +3,7 @@
 use crate::geometry::Line;
 use crate::style::{GridPlacement, Style};
 use core::cmp::{max, min};
+use core::num::NonZeroI16;
 
 use super::types::TrackCounts;
 use super::util::css_grid_line_into_origin_zero_coords;
@@ -98,7 +99,7 @@ fn child_min_line_max_line_span(line: Line<GridPlacement>, explicit_track_count:
     // C. If the placement contains two spans, remove the one contributed by the end grid-placement property.
     // D. If the placement contains only a span for a named line, replace it with a span of 1.
 
-    let into_oz = |grid_line: i16| css_grid_line_into_origin_zero_coords(grid_line, explicit_track_count);
+    let into_oz = |grid_line: NonZeroI16| css_grid_line_into_origin_zero_coords(grid_line, explicit_track_count);
 
     let min = match (line.start, line.end) {
         // Both tracks specified

@@ -12,15 +12,16 @@
 //!     - The next line to the right (or down) is 1, and so on
 //!     - The next line to the left (or up) is -1, and so on
 //!
-use core::cmp::Ordering;
+use core::{cmp::Ordering, num::NonZeroI16};
 
 /// Convert from CSS Grid Line coordinates to our custom OriginZero coordinates
-pub(crate) fn css_grid_line_into_origin_zero_coords(grid_line: i16, explicit_track_count: u16) -> i16 {
+pub(crate) fn css_grid_line_into_origin_zero_coords(grid_line: NonZeroI16, explicit_track_count: u16) -> i16 {
     let explicit_line_count = explicit_track_count + 1;
+    let grid_line = i16::from(grid_line);
     match grid_line.cmp(&0) {
         Ordering::Greater => grid_line - 1,
         Ordering::Less => grid_line + explicit_line_count as i16,
-        Ordering::Equal => panic!("Grid line of zero is invalid"),
+        Ordering::Equal => unreachable!(),
     }
 }
 

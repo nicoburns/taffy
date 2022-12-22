@@ -1,8 +1,57 @@
 //! Contains numerical helper traits and functions
 #![allow(clippy::manual_clamp)]
 
+use core::num::NonZeroI16;
+
 use crate::geometry::Size;
 use crate::style::AvailableSpace;
+
+/// Trait for arithmatic with NonZero types that skips over zero if that would
+/// otherwise have the result of a calculation
+pub(crate) trait NonZeroMath<Rhs, Output> {
+    /// Adds rhs to self. If the result would be zero, then 1 is returned instead
+    fn zero_skipping_add(self, rhs: Rhs) -> Output;
+
+    /// Adds rhs to self. If the result would be zero, then -1 is returned instead
+    fn zero_skipping_sub(self, rhs: Rhs) -> Output;
+}
+
+// Implement Non
+impl NonZeroMath<i16, NonZeroI16> for NonZeroI16 {
+    /// Adds rhs to self. If the result would be zero, then 1 is returned instead
+    fn zero_skipping_add(self, rhs: i16) -> NonZeroI16 {
+        NonZeroI16::new(self.get() + rhs).or_else(|| NonZeroI16::new(1)).unwrap()
+    }
+
+    /// Adds rhs to self. If the result would be zero, then -1 is returned instead
+    fn zero_skipping_sub(self, rhs: i16) -> NonZeroI16 {
+        NonZeroI16::new(self.get() + rhs).or_else(|| NonZeroI16::new(1)).unwrap()
+    }
+}
+
+impl NonZeroMath<u16, NonZeroI16> for NonZeroI16 {
+    /// Adds rhs to self. If the result would be zero, then 1 is returned instead
+    fn zero_skipping_add(self, rhs: u16) -> NonZeroI16 {
+        NonZeroI16::new(self.get() + rhs as i16).or_else(|| NonZeroI16::new(1)).unwrap()
+    }
+
+    /// Adds rhs to self. If the result would be zero, then -1 is returned instead
+    fn zero_skipping_sub(self, rhs: u16) -> NonZeroI16 {
+        NonZeroI16::new(self.get() + rhs as i16).or_else(|| NonZeroI16::new(1)).unwrap()
+    }
+}
+
+impl NonZeroMath<NonZeroI16, NonZeroI16> for NonZeroI16 {
+    /// Adds rhs to self. If the result would be zero, then 1 is returned instead
+    fn zero_skipping_add(self, rhs: NonZeroI16) -> NonZeroI16 {
+        NonZeroI16::new(self.get() + rhs.get()).or_else(|| NonZeroI16::new(1)).unwrap()
+    }
+
+    /// Adds rhs to self. If the result would be zero, then -1 is returned instead
+    fn zero_skipping_sub(self, rhs: NonZeroI16) -> NonZeroI16 {
+        NonZeroI16::new(self.get() + rhs.get()).or_else(|| NonZeroI16::new(1)).unwrap()
+    }
+}
 
 /// A trait to conveniently calculate minimums and maximums when some data may not be defined
 ///

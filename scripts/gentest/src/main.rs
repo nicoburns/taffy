@@ -53,6 +53,7 @@ async fn main() {
 
     let mut test_descs = vec![];
     for (name, fixture_path) in fixtures {
+        debug!("Collecting test description for {}", &name);
         test_descs.push(test_root_element(client.clone(), name, fixture_path).await);
     }
 

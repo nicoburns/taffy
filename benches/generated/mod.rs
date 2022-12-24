@@ -263,6 +263,10 @@ mod grid_auto_fill_with_empty_auto_track;
 #[cfg(feature = "experimental_grid")]
 mod grid_auto_fit_with_empty_auto_track;
 #[cfg(feature = "experimental_grid")]
+mod grid_auto_flex_column_child;
+#[cfg(feature = "experimental_grid")]
+mod grid_auto_flex_row_child;
+#[cfg(feature = "experimental_grid")]
 mod grid_auto_single_item;
 #[cfg(feature = "experimental_grid")]
 mod grid_auto_single_item_fixed_width;
@@ -746,6 +750,10 @@ fn benchmark(c: &mut Criterion) {
             grid_auto_fill_with_empty_auto_track::compute();
             #[cfg(feature = "experimental_grid")]
             grid_auto_fit_with_empty_auto_track::compute();
+            #[cfg(feature = "experimental_grid")]
+            grid_auto_flex_column_child::compute();
+            #[cfg(feature = "experimental_grid")]
+            grid_auto_flex_row_child::compute();
             #[cfg(feature = "experimental_grid")]
             grid_auto_single_item::compute();
             #[cfg(feature = "experimental_grid")]

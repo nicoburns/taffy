@@ -381,6 +381,10 @@ mod grid_min_max_column_fixed_width_within_range;
 #[cfg(feature = "experimental_grid")]
 mod grid_out_of_order_items;
 #[cfg(feature = "experimental_grid")]
+mod grid_percent_container_definite_available_space;
+#[cfg(feature = "experimental_grid")]
+mod grid_percent_container_indefinite_available_space;
+#[cfg(feature = "experimental_grid")]
 mod grid_size_child_fixed_tracks;
 mod justify_content_column_center;
 mod justify_content_column_flex_end;
@@ -860,6 +864,10 @@ fn benchmark(c: &mut Criterion) {
             grid_min_max_column_fixed_width_within_range::compute();
             #[cfg(feature = "experimental_grid")]
             grid_out_of_order_items::compute();
+            #[cfg(feature = "experimental_grid")]
+            grid_percent_container_definite_available_space::compute();
+            #[cfg(feature = "experimental_grid")]
+            grid_percent_container_indefinite_available_space::compute();
             #[cfg(feature = "experimental_grid")]
             grid_size_child_fixed_tracks::compute();
             justify_content_column_center::compute();

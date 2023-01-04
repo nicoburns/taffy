@@ -55,10 +55,18 @@ fn measure_standard_text(
         }
         (line_count as f32) * H_HEIGHT
     });
-    match writing_mode {
+    let res = match writing_mode {
         WritingMode::Horizontal => Size { width: inline_size, height: block_size },
         WritingMode::Vertical => Size { width: block_size, height: inline_size },
-    }
+    };
+
+    dbg!(text_content);
+    dbg!(writing_mode);
+    dbg!(known_dimensions);
+    dbg!(available_space);
+    dbg!(res);
+
+    res
 }
 mod absolute_aspect_ratio_aspect_ratio_overrides_height_of_full_inset;
 mod absolute_aspect_ratio_fill_height;
@@ -423,6 +431,8 @@ mod grid_basic_implicit_tracks;
 mod grid_basic_with_overflow;
 #[cfg(feature = "grid")]
 mod grid_basic_with_padding;
+#[cfg(feature = "grid")]
+mod grid_fit_content_percent_definite_argument;
 #[cfg(feature = "grid")]
 mod grid_fit_content_points_argument;
 #[cfg(feature = "grid")]

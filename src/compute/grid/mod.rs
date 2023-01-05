@@ -154,7 +154,7 @@ pub fn compute(
     };
 
     let outer_node_size = size.maybe_clamp(min_size, max_size).or(parent_size.maybe_sub(margin.sum_axes()));
-    let inner_node_size = Size {
+    let mut inner_node_size = Size {
         width: outer_node_size.width.map(|space| space - padding.horizontal_axis_sum() - border.horizontal_axis_sum()),
         height: outer_node_size.height.map(|space| space - padding.vertical_axis_sum() - border.vertical_axis_sum()),
     };
@@ -177,6 +177,9 @@ pub fn compute(
     // Record this as a boolean (per-axis) on each item for later use in the track-sizing algorithm
     determine_if_item_crosses_flexible_tracks(&mut items, &columns, &rows);
 
+    dbg!(inner_node_size.width);
+    dbg!(inner_node_size.height);
+
     // Run track sizing algorithm for Inline axis
     track_sizing_algorithm(
         tree,
@@ -192,6 +195,13 @@ pub fn compute(
             track.max_track_sizing_function.definite_value(available_space)
         },
     );
+
+    inner_node_size.width = inner_node_size.width.or_else(|| -> Option<f32> {
+        let column_sum: f32 = columns.iter().map(|track| track.base_size).sum::<f32>();
+        Some(column_sum)
+    });
+    dbg!(inner_node_size.width);
+
     // Run track sizing algorithm for Block axis
     track_sizing_algorithm(
         tree,
@@ -207,6 +217,13 @@ pub fn compute(
             track.max_track_sizing_function.definite_value(available_space)
         },
     );
+
+    inner_node_size.height = inner_node_size.height.or_else(|| -> Option<f32> {
+        let row_sum: f32 = rows.iter().map(|track| track.base_size).sum::<f32>();
+        Some(row_sum)
+    });
+    dbg!(inner_node_size.height);
+
     // Re-run track sizing algorithm for Inline axis
     track_sizing_algorithm(
         tree,
@@ -220,6 +237,13 @@ pub fn compute(
         &mut items,
         |track: &GridTrack, _| Some(track.base_size),
     );
+
+    inner_node_size.width = inner_node_size.width.or_else(|| -> Option<f32> {
+        let column_sum: f32 = columns.iter().map(|track| track.base_size).sum::<f32>();
+        Some(column_sum)
+    });
+    dbg!(inner_node_size.width);
+
     // Re-run track sizing algorithm for Block axis
     track_sizing_algorithm(
         tree,
@@ -233,6 +257,12 @@ pub fn compute(
         &mut items,
         |track: &GridTrack, _| Some(track.base_size),
     );
+
+    inner_node_size.height = inner_node_size.height.or_else(|| -> Option<f32> {
+        let row_sum: f32 = rows.iter().map(|track| track.base_size).sum::<f32>();
+        Some(row_sum)
+    });
+    dbg!(inner_node_size.height);
 
     // 6. Compute container size
     let resolved_style_size = known_dimensions.or(style.size.maybe_resolve(parent_size));

@@ -55,18 +55,10 @@ fn measure_standard_text(
         }
         (line_count as f32) * H_HEIGHT
     });
-    let res = match writing_mode {
+    match writing_mode {
         WritingMode::Horizontal => Size { width: inline_size, height: block_size },
         WritingMode::Vertical => Size { width: block_size, height: inline_size },
-    };
-
-    dbg!(text_content);
-    dbg!(writing_mode);
-    dbg!(known_dimensions);
-    dbg!(available_space);
-    dbg!(res);
-
-    res
+    }
 }
 mod absolute_aspect_ratio_aspect_ratio_overrides_height_of_full_inset;
 mod absolute_aspect_ratio_fill_height;

@@ -22,7 +22,7 @@ pub(crate) use types::{GridCoordinate, GridLine, OriginZeroLine};
 #[cfg(feature = "debug")]
 use crate::debug::NODE_LOGGER;
 
-use super::{GenericAlgorithm, LayoutAlgorithm};
+use super::LayoutAlgorithm;
 
 mod alignment;
 mod explicit_grid;
@@ -320,14 +320,7 @@ pub fn compute(
         // Position hidden child
         if child_style.display == Display::None {
             *tree.layout_mut(node) = Layout::with_order(order);
-            GenericAlgorithm::perform_layout(
-                tree,
-                child,
-                Size::NONE,
-                Size::NONE,
-                Size::MAX_CONTENT,
-                SizingMode::InherentSize,
-            );
+            tree.perform_child_layout(child, Size::NONE, Size::NONE, Size::MAX_CONTENT, SizingMode::InherentSize);
             order += 1;
             return;
         }

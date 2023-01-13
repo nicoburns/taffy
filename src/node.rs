@@ -407,7 +407,7 @@ impl Taffy {
     /// Performs a recursive depth-first search up the tree until the root node is reached
     ///
     /// WARNING: this will stack-overflow if the tree contains a cycle
-    fn mark_dirty(&mut self, node: Node) -> TaffyResult<()> {
+    pub fn mark_dirty(&mut self, node: Node) -> TaffyResult<()> {
         /// WARNING: this will stack-overflow if the tree contains a cycle
         fn mark_dirty_recursive(
             nodes: &mut SlotMap<Node, NodeData>,

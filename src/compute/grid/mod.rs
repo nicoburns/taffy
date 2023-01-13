@@ -70,7 +70,7 @@ pub fn compute<Tree: LayoutTree>(
     available_space: Size<AvailableSpace>,
     _run_mode: RunMode,
 ) -> SizeAndBaselines {
-    let get_child_styles_iter = || tree.children().map(|child_node: &Tree::ChildId| tree.child_style(*child_node));
+    let get_child_styles_iter = || tree.children().map(|child_node: Tree::ChildId| tree.child_style(child_node));
     let style = tree.style().clone();
     let child_styles_iter = get_child_styles_iter();
 
@@ -92,7 +92,6 @@ pub fn compute<Tree: LayoutTree>(
     let grid_auto_flow = style.grid_auto_flow;
     let in_flow_children_iter = || {
         tree.children()
-            .copied()
             .enumerate()
             .map(|(index, child_node)| (index, child_node, tree.child_style(child_node)))
             .filter(|(_, _, style)| style.display != Display::None && style.position != Position::Absolute)

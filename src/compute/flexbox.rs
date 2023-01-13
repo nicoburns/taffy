@@ -476,13 +476,13 @@ fn generate_anonymous_flex_items<Tree: LayoutTree>(
     constants: &AlgoConstants,
 ) -> Vec<FlexItem<Tree::ChildId>> {
     tree.children()
-        .map(|child| (child, tree.child_style(*child)))
+        .map(|child| (child, tree.child_style(child)))
         .filter(|(_, style)| style.position != Position::Absolute)
         .filter(|(_, style)| style.display != Display::None)
         .map(|(child, child_style)| {
             let aspect_ratio = child_style.aspect_ratio;
             FlexItem {
-                node: *child,
+                node: child,
                 size: child_style.size.maybe_resolve(constants.node_inner_size).maybe_apply_aspect_ratio(aspect_ratio),
                 min_size: child_style
                     .min_size
@@ -1537,7 +1537,7 @@ fn calculate_flex_item<Tree: LayoutTree>(
         item.baseline = baseline_offset_main + inner_baseline;
     }
 
-    let order = tree.children().position(|n| *n == item.node).unwrap() as u32;
+    let order = tree.children().position(|n| n == item.node).unwrap() as u32;
 
     *tree.child_layout_mut(item.node) = Layout {
         order,

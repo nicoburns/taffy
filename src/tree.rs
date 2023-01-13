@@ -41,7 +41,7 @@ pub trait LayoutTree {
     type ChildId: Copy + PartialEq + Debug;
 
     /// Type representing an iterator of the children of a node
-    type ChildIter<'a>: Iterator<Item = &'a Self::ChildId>
+    type ChildIter<'a>: Iterator<Item = Self::ChildId>
     where
         Self: 'a;
 

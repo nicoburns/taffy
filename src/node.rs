@@ -85,7 +85,7 @@ impl<'tree> TaffyNodeRef<'tree> {
 
 impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
     type ChildId = Node;
-    type ChildIter<'a> = std::slice::Iter<'a, DefaultKey> where Self: 'a;
+    type ChildIter<'a> = core::iter::Copied<core::slice::Iter<'a, DefaultKey>> where Self: 'a;
 
     fn current_node_id(&self) -> Node {
         self.node_id
@@ -100,7 +100,7 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
     }
 
     fn children(&self) -> Self::ChildIter<'_> {
-        self.tree.children[self.node_id].iter()
+        self.tree.children[self.node_id].iter().copied()
     }
 
     fn child(&self, index: usize) -> Node {

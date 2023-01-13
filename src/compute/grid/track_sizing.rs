@@ -162,8 +162,8 @@ pub(super) fn determine_if_item_crosses_flexible_tracks(
 /// Track sizing algorithm
 /// Note: Gutters are treated as empty fixed-size tracks for the purpose of the track sizing algorithm.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
-    tree: &mut Tree,
+pub(super) fn track_sizing_algorithm(
+    tree: &mut impl LayoutTree,
     axis: AbstractAxis,
     available_space: Size<AvailableSpace>,
     available_grid_space: Size<AvailableSpace>,

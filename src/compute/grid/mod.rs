@@ -39,24 +39,22 @@ impl LayoutAlgorithm for CssGridAlgorithm {
 
     fn perform_layout(
         tree: &mut impl LayoutTree,
-        node: Node,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
         _sizing_mode: SizingMode,
     ) -> SizeAndBaselines {
-        compute(tree, node, known_dimensions, parent_size, available_space, RunMode::PeformLayout)
+        compute(tree, known_dimensions, parent_size, available_space, RunMode::PeformLayout)
     }
 
     fn measure_size(
         tree: &mut impl LayoutTree,
-        node: Node,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
         _sizing_mode: SizingMode,
     ) -> Size<f32> {
-        compute(tree, node, known_dimensions, parent_size, available_space, RunMode::ComputeSize).size
+        compute(tree, known_dimensions, parent_size, available_space, RunMode::ComputeSize).size
     }
 }
 
@@ -68,15 +66,14 @@ impl LayoutAlgorithm for CssGridAlgorithm {
 ///   - Alignment & Final item placement
 pub fn compute(
     tree: &mut impl LayoutTree,
-    node: Node,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     _run_mode: RunMode,
 ) -> SizeAndBaselines {
-    let get_child_styles_iter = |node| tree.children(node).map(|child_node: &Node| tree.style(*child_node));
-    let style = tree.style(node).clone();
-    let child_styles_iter = get_child_styles_iter(node);
+    let get_child_styles_iter = || tree.children().map(|child_node: &Node| tree.child_style(*child_node));
+    let style = tree.style().clone();
+    let child_styles_iter = get_child_styles_iter();
 
     // 1. Resolve the explicit grid
     // Exactly compute the number of rows and columns in the explicit grid.
@@ -91,14 +88,14 @@ pub fn compute(
 
     // 2. Grid Item Placement
     // Match items (children) to a definite grid position (row start/end and column start/end position)
-    let mut items = Vec::with_capacity(tree.child_count(node));
+    let mut items = Vec::with_capacity(tree.child_count());
     let mut cell_occupancy_matrix = CellOccupancyMatrix::with_track_counts(est_col_counts, est_row_counts);
     let grid_auto_flow = style.grid_auto_flow;
     let in_flow_children_iter = || {
-        tree.children(node)
+        tree.children()
             .copied()
             .enumerate()
-            .map(|(index, child_node)| (index, child_node, tree.style(child_node)))
+            .map(|(index, child_node)| (index, child_node, tree.child_style(child_node)))
             .filter(|(_, _, style)| style.display != Display::None && style.position != Position::Absolute)
     };
     place_grid_items(&mut cell_occupancy_matrix, &mut items, in_flow_children_iter, grid_auto_flow);
@@ -313,13 +310,13 @@ pub fn compute(
 
     // Position hidden and absolutely positioned children
     let mut order = items.len() as u32;
-    (0..tree.child_count(node)).for_each(|index| {
-        let child = tree.child(node, index);
-        let child_style = tree.style(child);
+    (0..tree.child_count()).for_each(|index| {
+        let child = tree.child(index);
+        let child_style = tree.child_style(child);
 
         // Position hidden child
         if child_style.display == Display::None {
-            *tree.layout_mut(node) = Layout::with_order(order);
+            *tree.layout_mut() = Layout::with_order(order);
             tree.perform_child_layout(child, Size::NONE, Size::NONE, Size::MAX_CONTENT, SizingMode::InherentSize);
             order += 1;
             return;

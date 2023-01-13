@@ -4,7 +4,6 @@ use crate::compute::LayoutAlgorithm;
 use crate::geometry::{Point, Size};
 use crate::layout::{SizeAndBaselines, SizingMode};
 use crate::math::MaybeMath;
-use crate::node::Node;
 use crate::resolve::{MaybeResolve, ResolveOrZero};
 use crate::style::AvailableSpace;
 use crate::sys::f32_max;
@@ -20,37 +19,34 @@ impl LayoutAlgorithm for LeafAlgorithm {
 
     fn perform_layout(
         tree: &mut impl LayoutTree,
-        node: Node,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
         sizing_mode: SizingMode,
     ) -> SizeAndBaselines {
-        compute(tree, node, known_dimensions, parent_size, available_space, sizing_mode)
+        compute(tree, known_dimensions, parent_size, available_space, sizing_mode)
     }
 
     fn measure_size(
         tree: &mut impl LayoutTree,
-        node: Node,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
         sizing_mode: SizingMode,
     ) -> Size<f32> {
-        compute(tree, node, known_dimensions, parent_size, available_space, sizing_mode).size
+        compute(tree, known_dimensions, parent_size, available_space, sizing_mode).size
     }
 }
 
 /// Compute the size of a leaf node (node with no children)
 pub(crate) fn compute(
     tree: &mut impl LayoutTree,
-    node: Node,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     sizing_mode: SizingMode,
 ) -> SizeAndBaselines {
-    let style = tree.style(node);
+    let style = tree.style();
 
     // Resolve node's preferred/min/max sizes (width/heights) against the available space (percentages resolve to pixel values)
     // For ContentSize mode, we pretend that the node has no size styles as these should be ignored.
@@ -87,7 +83,7 @@ pub(crate) fn compute(
         return SizeAndBaselines { size, first_baselines: Point::NONE };
     };
 
-    if tree.needs_measure(node) {
+    if tree.needs_measure() {
         // Compute available space
         let available_space = Size {
             width: available_space
@@ -103,7 +99,7 @@ pub(crate) fn compute(
         };
 
         // Measure node
-        let measured_size = tree.measure_node(node, known_dimensions, available_space);
+        let measured_size = tree.measure_node(known_dimensions, available_space);
 
         let measured_size = Size {
             width: measured_size.width,

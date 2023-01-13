@@ -235,7 +235,7 @@ impl GridItem {
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
         self.minimum_contribution_cache.unwrap_or_else(|| {
-            let style = tree.style(self.node);
+            let style = tree.child_style(self.node);
             style
                 .size
                 .maybe_resolve(available_space.into_options())

@@ -3,7 +3,6 @@
 use slotmap::DefaultKey;
 
 use crate::{
-    error::TaffyResult,
     layout::{Cache, Layout, SizeAndBaselines, SizingMode},
     prelude::*,
 };
@@ -44,11 +43,6 @@ pub trait LayoutTree {
 
     /// Modify the node's output layout
     fn layout_mut(&mut self, node: Node) -> &mut Layout;
-
-    /// Mark a node as dirty to tell Taffy that something has changed and it needs to be recomputed.
-    ///
-    /// Commonly done if the style of the node has changed.
-    fn mark_dirty(&mut self, node: Node) -> TaffyResult<()>;
 
     /// Measure a node. Taffy uses this to force reflows of things like text and overflowing content.
     fn measure_node(

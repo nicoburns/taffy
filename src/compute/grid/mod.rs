@@ -32,7 +32,7 @@ mod types;
 mod util;
 
 /// The public interface to Taffy's CSS Grid algorithm implementation
-pub(crate) struct CssGridAlgorithm;
+pub struct CssGridAlgorithm;
 impl LayoutAlgorithm for CssGridAlgorithm {
     const NAME: &'static str = "CSS GRID";
 

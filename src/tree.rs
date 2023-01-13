@@ -29,9 +29,6 @@ pub trait LayoutTree {
     /// Get a specific child of a node, where the index represents the nth child
     fn child(&self, node: Node, index: usize) -> Node;
 
-    /// Get any available parent for this node
-    fn parent(&self, node: Node) -> Option<Node>;
-
     // todo: allow abstractions over this so we don't prescribe how layout works
     // for reference, CSS cascades require context, and storing a full flexbox layout for each node could be inefficient
     //

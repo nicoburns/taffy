@@ -73,10 +73,6 @@ impl LayoutTree for Taffy {
         self.children[node].is_empty()
     }
 
-    fn parent(&self, node: Node) -> Option<Node> {
-        self.parents.get(node).copied().flatten()
-    }
-
     fn style(&self, node: Node) -> &Style {
         &self.nodes[node].style
     }
@@ -330,6 +326,11 @@ impl Taffy {
     /// Returns a list of children that belong to the [`Parent`]
     pub fn children(&self, parent: Node) -> TaffyResult<Vec<Node>> {
         Ok(self.children[parent].iter().copied().collect::<_>())
+    }
+
+    /// Get any available parent for this node
+    pub fn parent(&self, node: Node) -> Option<Node> {
+        self.parents.get(node).copied().flatten()
     }
 
     /// Sets the [`Style`] of the provided `node`

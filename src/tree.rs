@@ -1,11 +1,10 @@
 //! The baseline requirements of any UI Tree so Taffy can efficiently calculate the layout
 
-use slotmap::DefaultKey;
-
 use crate::{
     layout::{Cache, Layout, SizeAndBaselines, SizingMode},
     prelude::*,
 };
+use core::fmt::Debug;
 
 /// Any item that implements the LayoutTree can be layed out using Taffy's algorithms.
 ///
@@ -37,8 +36,12 @@ pub trait LayoutTree {
 
     // Child methods
 
+    /// Type of an id that represents a child of the current node
+    /// This can be a usize if you are storing children in a vector
+    type ChildId: Copy + PartialEq + Debug;
+
     /// Type representing an iterator of the children of a node
-    type ChildIter<'a>: Iterator<Item = &'a DefaultKey>
+    type ChildIter<'a>: Iterator<Item = &'a Self::ChildId>
     where
         Self: 'a;
 
@@ -52,21 +55,21 @@ pub trait LayoutTree {
     fn is_childless(&self) -> bool;
 
     /// Get a specific child of a node, where the index represents the nth child
-    fn child(&self, index: usize) -> Node;
+    fn child(&self, index: usize) -> Self::ChildId;
 
     /// Get the [`Style`] for this child.
-    fn child_style(&self, child_node_id: Node) -> &Style;
+    fn child_style(&self, child_node_id: Self::ChildId) -> &Style;
 
     /// Get the child's output "Final Layout"
-    fn child_layout(&self, child_node_id: Node) -> &Layout;
+    fn child_layout(&self, child_node_id: Self::ChildId) -> &Layout;
 
     /// Modify the child's output layout
-    fn child_layout_mut(&mut self, child_node_id: Node) -> &mut Layout;
+    fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut Layout;
 
     /// Compute the size of the node given the specified constraints
     fn measure_child_size(
         &mut self,
-        child_node_id: Node,
+        child_node_id: Self::ChildId,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -76,7 +79,7 @@ pub trait LayoutTree {
     /// Perform a full layout on the node given the specified constraints
     fn perform_child_layout(
         &mut self,
-        child_node_id: Node,
+        child_node_id: Self::ChildId,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -84,5 +87,5 @@ pub trait LayoutTree {
     ) -> SizeAndBaselines;
 
     /// Perform a hidden layout (mark the node as invisible)
-    fn perform_child_hidden_layout(&mut self, child_node_id: Node, order: u32);
+    fn perform_child_hidden_layout(&mut self, child_node_id: Self::ChildId, order: u32);
 }

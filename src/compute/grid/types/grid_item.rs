@@ -4,7 +4,6 @@ use crate::axis::AbstractAxis;
 use crate::compute::grid::OriginZeroLine;
 use crate::geometry::{Line, Rect, Size};
 use crate::layout::SizingMode;
-use crate::node::Node;
 use crate::prelude::LayoutTree;
 use crate::resolve::MaybeResolve;
 use crate::style::{AvailableSpace, LengthPercentageAuto, MaxTrackSizingFunction, MinTrackSizingFunction, Style};
@@ -13,9 +12,9 @@ use core::ops::Range;
 
 /// Represents a single grid item
 #[derive(Debug)]
-pub(in super::super) struct GridItem {
+pub(in super::super) struct GridItem<Tree: LayoutTree> {
     /// The id of the Node that this item represents
-    pub node: Node,
+    pub node: Tree::ChildId,
 
     /// The order of the item in the children array
     ///
@@ -56,10 +55,10 @@ pub(in super::super) struct GridItem {
     pub max_content_contribution_cache: Option<Size<f32>>,
 }
 
-impl GridItem {
+impl<Tree: LayoutTree> GridItem<Tree> {
     /// Create a new item given a concrete placement in both axes
     pub fn new_with_placement_style_and_order(
-        node: Node,
+        node: Tree::ChildId,
         col_span: Line<OriginZeroLine>,
         row_span: Line<OriginZeroLine>,
         style: &Style,
@@ -182,7 +181,7 @@ impl GridItem {
     /// Retrieve the item's min content contribution from the cache or compute it using the provided parameters
     pub fn min_content_contribution_cached(
         &mut self,
-        tree: &mut impl LayoutTree,
+        tree: &mut Tree,
         known_dimensions: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> Size<f32> {
@@ -202,7 +201,7 @@ impl GridItem {
     /// Retrieve the item's max content contribution from the cache or compute it using the provided parameters
     pub fn max_content_contribution_cached(
         &mut self,
-        tree: &mut impl LayoutTree,
+        tree: &mut Tree,
         known_dimensions: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> Size<f32> {
@@ -227,7 +226,7 @@ impl GridItem {
     /// Because the minimum contribution often depends on the size of the item’s content, it is considered a type of intrinsic size contribution.
     pub fn minimum_contribution_cached(
         &mut self,
-        tree: &mut impl LayoutTree,
+        tree: &mut Tree,
         axis: AbstractAxis,
         axis_tracks: &[GridTrack],
         available_space: Size<AvailableSpace>,

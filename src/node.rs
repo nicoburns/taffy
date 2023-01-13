@@ -84,6 +84,7 @@ impl<'tree> TaffyNodeRef<'tree> {
 }
 
 impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
+    type ChildId = Node;
     type ChildIter<'a> = std::slice::Iter<'a, DefaultKey> where Self: 'a;
 
     fn current_node_id(&self) -> Node {

@@ -11,6 +11,12 @@ use core::fmt::Debug;
 /// Generally, Taffy expects your Node tree to be indexable by stable indices. A "stable" index means that the Node's ID
 /// remains the same between re-layouts.
 pub trait LayoutTree {
+    /// Type for the reborrow method. Normally this will be the same type you are implementing this trait for,
+    /// but with a shorter lifegsttime
+    type Reborrow<'a>: LayoutTree
+    where
+        Self: 'a;
+
     /// Type of an id that represents a child of the current node
     /// This can be a usize if you are storing children in a vector
     type ChildId: Copy + PartialEq + Debug;
@@ -21,6 +27,11 @@ pub trait LayoutTree {
         Self: 'a;
 
     // Current node methods
+
+    /// Reborrow the node
+    fn reborrow<'a, 'this: 'a>(&'this mut self) -> Self::Reborrow<'a>
+    where
+        'this: 'a;
 
     /// Get the [`Style`] for this Node.
     fn style(&self) -> &Style;

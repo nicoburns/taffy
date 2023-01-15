@@ -99,10 +99,15 @@ impl<'tree> TaffyNodeRef<'tree> {
 }
 
 impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
+    type Reborrow<'subtree> = TaffyNodeRef<'subtree> where Self: 'subtree;
     type ChildId = Node;
     type ChildIter<'a> = core::iter::Copied<core::slice::Iter<'a, DefaultKey>> where Self: 'a;
 
     #[inline(always)]
+    fn reborrow<'a, 'this: 'a>(&'this mut self) -> Self::Reborrow<'a> {
+        TaffyNodeRef { tree: self.tree, node_id: self.node_id }
+    }
+
     fn child_count(&self) -> usize {
         self.tree.children[self.node_id].len()
     }

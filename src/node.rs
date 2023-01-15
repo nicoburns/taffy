@@ -99,42 +99,52 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
     type ChildId = Node;
     type ChildIter<'a> = core::iter::Copied<core::slice::Iter<'a, DefaultKey>> where Self: 'a;
 
+    #[inline(always)]
     fn current_node_id(&self) -> Node {
         self.node_id
     }
 
+    #[inline(always)]
     fn child_count(&self) -> usize {
         self.tree.children(self.node_id).unwrap().len()
     }
 
+    #[inline(always)]
     fn children(&self) -> Self::ChildIter<'_> {
         self.tree.children[self.node_id].iter().copied()
     }
 
+    #[inline(always)]
     fn child(&self, index: usize) -> Node {
         self.tree.children[self.node_id][index]
     }
 
+    #[inline(always)]
     fn style(&self) -> &Style {
         &self.node_data().style
     }
 
+    #[inline(always)]
     fn child_style(&self, child_node_id: Node) -> &Style {
         &self.tree.nodes[child_node_id].style
     }
 
+    #[inline(always)]
     fn layout_mut(&mut self) -> &mut Layout {
         &mut self.node_data_mut().layout
     }
 
+    #[inline(always)]
     fn child_layout_mut(&mut self, child_node_id: Node) -> &mut Layout {
         &mut self.tree.nodes[child_node_id].layout
     }
 
+    #[inline(always)]
     fn cache_mut(&mut self, index: usize) -> &mut Option<Cache> {
         &mut self.node_data_mut().size_cache[index]
     }
 
+    #[inline(always)]
     fn measure_child_size(
         &mut self,
         child_node_id: Node,
@@ -147,6 +157,7 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         compute::measure_size(self.tree, child_node_id, known_dimensions, parent_size, available_space, sizing_mode)
     }
 
+    #[inline(always)]
     fn perform_child_layout(
         &mut self,
         child_node_id: Node,
@@ -159,6 +170,7 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         compute::perform_layout(self.tree, child_node_id, known_dimensions, parent_size, available_space, sizing_mode)
     }
 
+    #[inline(always)]
     fn perform_child_hidden_layout(&mut self, child_node_id: Node, order: u32) {
         recursively_perform_hidden_layout(self.tree, child_node_id, order);
     }

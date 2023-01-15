@@ -11,6 +11,15 @@ use core::fmt::Debug;
 /// Generally, Taffy expects your Node tree to be indexable by stable indices. A "stable" index means that the Node's ID
 /// remains the same between re-layouts.
 pub trait LayoutTree {
+    /// Type of an id that represents a child of the current node
+    /// This can be a usize if you are storing children in a vector
+    type ChildId: Copy + PartialEq + Debug;
+
+    /// Type representing an iterator of the children of a node
+    type ChildIter<'a>: Iterator<Item = Self::ChildId>
+    where
+        Self: 'a;
+
     // Current node methods
 
     /// Get the ID for the given node
@@ -26,15 +35,6 @@ pub trait LayoutTree {
     fn cache_mut(&mut self, index: usize) -> &mut Option<Cache>;
 
     // Child methods
-
-    /// Type of an id that represents a child of the current node
-    /// This can be a usize if you are storing children in a vector
-    type ChildId: Copy + PartialEq + Debug;
-
-    /// Type representing an iterator of the children of a node
-    type ChildIter<'a>: Iterator<Item = Self::ChildId>
-    where
-        Self: 'a;
 
     /// Get the list of children IDs for the given node
     fn children(&self) -> Self::ChildIter<'_>;

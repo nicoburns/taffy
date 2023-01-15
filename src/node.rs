@@ -107,10 +107,6 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         self.tree.children(self.node_id).unwrap().len()
     }
 
-    fn is_childless(&self) -> bool {
-        self.child_count() == 0
-    }
-
     fn children(&self) -> Self::ChildIter<'_> {
         self.tree.children[self.node_id].iter().copied()
     }

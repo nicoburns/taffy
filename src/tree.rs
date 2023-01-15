@@ -42,9 +42,6 @@ pub trait LayoutTree {
     /// Get the number of children for the given node
     fn child_count(&self) -> usize;
 
-    /// Returns true if the node has no children
-    fn is_childless(&self) -> bool;
-
     /// Get a specific child of a node, where the index represents the nth child
     fn child(&self, index: usize) -> Self::ChildId;
 

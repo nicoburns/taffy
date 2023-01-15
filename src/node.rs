@@ -111,20 +111,12 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         &self.node_data().style
     }
 
-    fn layout(&self) -> &Layout {
-        &self.node_data().layout
-    }
-
     fn layout_mut(&mut self) -> &mut Layout {
         &mut self.node_data_mut().layout
     }
 
     fn child_style(&self, child_node_id: Node) -> &Style {
         &self.tree.nodes[child_node_id].style
-    }
-
-    fn child_layout(&self, child_node_id: Node) -> &Layout {
-        &self.tree.nodes[child_node_id].layout
     }
 
     fn child_layout_mut(&mut self, child_node_id: Node) -> &mut Layout {

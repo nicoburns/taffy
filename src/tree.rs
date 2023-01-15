@@ -19,9 +19,6 @@ pub trait LayoutTree {
     /// Get the [`Style`] for this Node.
     fn style(&self) -> &Style;
 
-    /// Get the node's output "Final Layout"
-    fn layout(&self) -> &Layout;
-
     /// Modify the node's output layout
     fn layout_mut(&mut self) -> &mut Layout;
 
@@ -59,9 +56,6 @@ pub trait LayoutTree {
 
     /// Get the [`Style`] for this child.
     fn child_style(&self, child_node_id: Self::ChildId) -> &Style;
-
-    /// Get the child's output "Final Layout"
-    fn child_layout(&self, child_node_id: Self::ChildId) -> &Layout;
 
     /// Modify the child's output layout
     fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut Layout;

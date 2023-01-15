@@ -6,7 +6,7 @@ use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 /// A node in a layout.
 pub type Node = slotmap::DefaultKey;
 
-use crate::compute::{recursively_perform_hidden_layout, GenericAlgorithm, LayoutAlgorithm};
+use crate::compute::{self, recursively_perform_hidden_layout};
 use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::Size;
 use crate::layout::{Cache, Layout};
@@ -31,6 +31,18 @@ pub enum MeasureFunc {
     /// Stores a boxed function
     #[cfg(any(feature = "std", feature = "alloc"))]
     Boxed(Box<dyn Measurable>),
+}
+
+impl MeasureFunc {
+    /// Call the measure function to measure to the node
+    #[inline(always)]
+    pub fn measure(&self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>) -> Size<f32> {
+        match self {
+            MeasureFunc::Raw(measure) => measure(known_dimensions, available_space),
+            #[cfg(any(feature = "std", feature = "alloc"))]
+            MeasureFunc::Boxed(measure) => (measure as &dyn Fn(_, _) -> _)(known_dimensions, available_space),
+        }
+    }
 }
 
 /// A tree of UI [`Nodes`](`Node`), suitable for UI layout
@@ -123,19 +135,6 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         &mut self.tree.nodes[child_node_id].layout
     }
 
-    fn measure_node(&self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>) -> Size<f32> {
-        match &self.tree.measure_funcs[self.node_id] {
-            MeasureFunc::Raw(measure) => measure(known_dimensions, available_space),
-
-            #[cfg(any(feature = "std", feature = "alloc"))]
-            MeasureFunc::Boxed(measure) => (measure as &dyn Fn(_, _) -> _)(known_dimensions, available_space),
-        }
-    }
-
-    fn needs_measure(&self) -> bool {
-        self.node_data().needs_measure && self.tree.measure_funcs.get(self.node_id).is_some()
-    }
-
     fn cache_mut(&mut self, index: usize) -> &mut Option<Cache> {
         &mut self.node_data_mut().size_cache[index]
     }
@@ -148,8 +147,8 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         available_space: Size<AvailableSpace>,
         sizing_mode: crate::layout::SizingMode,
     ) -> Size<f32> {
-        let mut tree = TaffyNodeRef::new(self.tree, child_node_id);
-        GenericAlgorithm::measure_size(&mut tree, known_dimensions, parent_size, available_space, sizing_mode)
+        // let mut tree = TaffyNodeRef::new(self.tree, child_node_id);
+        compute::measure_size(self.tree, child_node_id, known_dimensions, parent_size, available_space, sizing_mode)
     }
 
     fn perform_child_layout(
@@ -160,8 +159,8 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
         available_space: Size<AvailableSpace>,
         sizing_mode: crate::layout::SizingMode,
     ) -> crate::layout::SizeAndBaselines {
-        let mut tree = TaffyNodeRef::new(self.tree, child_node_id);
-        GenericAlgorithm::perform_layout(&mut tree, known_dimensions, parent_size, available_space, sizing_mode)
+        // let mut tree = TaffyNodeRef::new(self.tree, child_node_id);
+        compute::perform_layout(self.tree, child_node_id, known_dimensions, parent_size, available_space, sizing_mode)
     }
 
     fn perform_child_hidden_layout(&mut self, child_node_id: Node, order: u32) {

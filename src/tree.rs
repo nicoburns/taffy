@@ -25,12 +25,6 @@ pub trait LayoutTree {
     /// Get a cache entry for this Node by index
     fn cache_mut(&mut self, index: usize) -> &mut Option<Cache>;
 
-    /// Measure a node. Taffy uses this to force reflows of things like text and overflowing content.
-    fn measure_node(&self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>) -> Size<f32>;
-
-    /// Node needs to be measured
-    fn needs_measure(&self) -> bool;
-
     // Child methods
 
     /// Type of an id that represents a child of the current node

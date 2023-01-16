@@ -155,7 +155,7 @@ fn compute_node_layout(
 
     let computed_size_and_baselines = if child_count == 0 {
         #[cfg(feature = "debug")]
-        NODE_LOGGER.log(Algorithm::NAME);
+        NODE_LOGGER.log("LEAF");
 
         match run_mode {
             RunMode::PeformLayout => {
@@ -225,6 +225,7 @@ fn debug_log_node(
     NODE_LOGGER.labelled_debug_log("run_mode", run_mode);
     NODE_LOGGER.labelled_debug_log("sizing_mode", sizing_mode);
     NODE_LOGGER.labelled_debug_log("known_dimensions", known_dimensions);
+    NODE_LOGGER.labelled_debug_log("parent_size", parent_size);
     NODE_LOGGER.labelled_debug_log("available_space", available_space);
 }
 

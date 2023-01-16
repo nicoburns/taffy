@@ -100,11 +100,6 @@ impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
     type ChildIter<'a> = core::iter::Copied<core::slice::Iter<'a, DefaultKey>> where Self: 'a;
 
     #[inline(always)]
-    fn current_node_id(&self) -> Node {
-        self.node_id
-    }
-
-    #[inline(always)]
     fn child_count(&self) -> usize {
         self.tree.children(self.node_id).unwrap().len()
     }

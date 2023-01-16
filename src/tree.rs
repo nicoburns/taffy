@@ -22,9 +22,6 @@ pub trait LayoutTree {
 
     // Current node methods
 
-    /// Get the ID for the given node
-    fn current_node_id(&self) -> Node;
-
     /// Get the [`Style`] for this Node.
     fn style(&self) -> &Style;
 

@@ -36,6 +36,7 @@ pub struct CssGridAlgorithm;
 impl LayoutAlgorithm for CssGridAlgorithm {
     const NAME: &'static str = "CSS GRID";
 
+    #[inline(always)]
     fn perform_layout(
         tree: &mut impl LayoutTree,
         known_dimensions: Size<Option<f32>>,
@@ -46,6 +47,7 @@ impl LayoutAlgorithm for CssGridAlgorithm {
         compute(tree, known_dimensions, parent_size, available_space, RunMode::PeformLayout)
     }
 
+    #[inline(always)]
     fn measure_size(
         tree: &mut impl LayoutTree,
         known_dimensions: Size<Option<f32>>,

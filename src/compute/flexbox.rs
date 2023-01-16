@@ -27,6 +27,7 @@ pub struct FlexboxAlgorithm;
 impl LayoutAlgorithm for FlexboxAlgorithm {
     const NAME: &'static str = "FLEXBOX";
 
+    #[inline(always)]
     fn perform_layout(
         tree: &mut impl LayoutTree,
         known_dimensions: Size<Option<f32>>,
@@ -37,6 +38,7 @@ impl LayoutAlgorithm for FlexboxAlgorithm {
         compute(tree, known_dimensions, parent_size, available_space, RunMode::PeformLayout)
     }
 
+    #[inline(always)]
     fn measure_size(
         tree: &mut impl LayoutTree,
         known_dimensions: Size<Option<f32>>,

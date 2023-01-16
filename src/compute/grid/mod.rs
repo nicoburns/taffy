@@ -65,14 +65,14 @@ impl LayoutAlgorithm for CssGridAlgorithm {
 ///   - Placing items (which also resolves the implicit grid)
 ///   - Track (row/column) sizing
 ///   - Alignment & Final item placement
-pub fn compute<Tree: LayoutNode>(
-    tree: &mut Tree,
+pub fn compute<NodeRef: LayoutNode>(
+    tree: &mut NodeRef,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     _run_mode: RunMode,
 ) -> SizeAndBaselines {
-    let get_child_styles_iter = || tree.children().map(|child_node: Tree::ChildId| tree.child_style(child_node));
+    let get_child_styles_iter = || tree.children().map(|child_node: NodeRef::ChildId| tree.child_style(child_node));
     let style = tree.style().clone();
     let child_styles_iter = get_child_styles_iter();
 
@@ -89,7 +89,7 @@ pub fn compute<Tree: LayoutNode>(
 
     // 2. Grid Item Placement
     // Match items (children) to a definite grid position (row start/end and column start/end position)
-    let mut items: Vec<GridItem<Tree>> = Vec::with_capacity(tree.child_count());
+    let mut items: Vec<GridItem<NodeRef>> = Vec::with_capacity(tree.child_count());
     let mut cell_occupancy_matrix = CellOccupancyMatrix::with_track_counts(est_col_counts, est_row_counts);
     let grid_auto_flow = style.grid_auto_flow;
     let in_flow_children_iter = || {

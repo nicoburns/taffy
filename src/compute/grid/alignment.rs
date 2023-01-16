@@ -70,9 +70,9 @@ pub(super) fn align_tracks(
 }
 
 /// Align and size a grid item into it's final position
-pub(super) fn align_and_position_item<Tree: LayoutNode>(
-    tree: &mut Tree,
-    node: Tree::ChildId,
+pub(super) fn align_and_position_item<NodeRef: LayoutNode>(
+    tree: &mut NodeRef,
+    node: NodeRef::ChildId,
     order: u32,
     grid_area: Rect<f32>,
     container_alignment_styles: InBothAbsAxis<Option<AlignItems>>,

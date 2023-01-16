@@ -12,13 +12,13 @@ use crate::tree::LayoutNode;
 /// Place items into the grid, generating new rows/column into the implicit grid as required
 ///
 /// [Specification](https://www.w3.org/TR/css-grid-2/#auto-placement-algo)
-pub(super) fn place_grid_items<'a, ChildIter, Tree: LayoutNode>(
+pub(super) fn place_grid_items<'a, ChildIter, NodeRef: LayoutNode>(
     cell_occupancy_matrix: &mut CellOccupancyMatrix,
-    items: &mut Vec<GridItem<Tree>>,
+    items: &mut Vec<GridItem<NodeRef>>,
     children_iter: impl Fn() -> ChildIter,
     grid_auto_flow: GridAutoFlow,
 ) where
-    ChildIter: Iterator<Item = (usize, Tree::ChildId, &'a Style)>,
+    ChildIter: Iterator<Item = (usize, NodeRef::ChildId, &'a Style)>,
 {
     let primary_axis = grid_auto_flow.primary_axis();
     let secondary_axis = primary_axis.other_axis();
@@ -26,7 +26,7 @@ pub(super) fn place_grid_items<'a, ChildIter, Tree: LayoutNode>(
     let map_child_style_to_origin_zero_placement = {
         let explicit_col_count = cell_occupancy_matrix.track_counts(AbsoluteAxis::Horizontal).explicit;
         let explicit_row_count = cell_occupancy_matrix.track_counts(AbsoluteAxis::Vertical).explicit;
-        move |(index, node, style): (usize, Tree::ChildId, &'a Style)| -> (_, _, _, &'a Style) {
+        move |(index, node, style): (usize, NodeRef::ChildId, &'a Style)| -> (_, _, _, &'a Style) {
             let origin_zero_placement = InBothAbsAxis {
                 horizontal: style.grid_column.map(|placement| placement.into_origin_zero_placement(explicit_col_count)),
                 vertical: style.grid_row.map(|placement| placement.into_origin_zero_placement(explicit_row_count)),
@@ -286,10 +286,10 @@ fn place_indefinitely_positioned_item(
 /// Record the grid item in both CellOccupancyMatric and the GridItems list
 /// once a definite placement has been determined
 #[allow(clippy::too_many_arguments)]
-fn record_grid_placement<Tree: LayoutNode>(
+fn record_grid_placement<NodeRef: LayoutNode>(
     cell_occupancy_matrix: &mut CellOccupancyMatrix,
-    items: &mut Vec<GridItem<Tree>>,
-    node: Tree::ChildId,
+    items: &mut Vec<GridItem<NodeRef>>,
+    node: NodeRef::ChildId,
     index: usize,
     style: &Style,
     primary_axis: AbsoluteAxis,

@@ -32,10 +32,10 @@ impl ItemBatcher {
 
     /// This is basically a manual version of Iterator::next which passes `items`
     /// in as a parameter on each iteration to work around borrow checker rules
-    fn next<'items, Tree: LayoutNode>(
+    fn next<'items, NodeRef: LayoutNode>(
         &mut self,
-        items: &'items mut [GridItem<Tree>],
-    ) -> Option<(&'items mut [GridItem<Tree>], bool)> {
+        items: &'items mut [GridItem<NodeRef>],
+    ) -> Option<(&'items mut [GridItem<NodeRef>], bool)> {
         if self.current_is_flex || self.index_offset >= items.len() {
             return None;
         }
@@ -49,7 +49,7 @@ impl ItemBatcher {
         } else {
             items
                 .iter()
-                .position(|item: &GridItem<Tree>| {
+                .position(|item: &GridItem<NodeRef>| {
                     item.crosses_flexible_track(self.axis) || item.span(self.axis) > self.current_span
                 })
                 .unwrap_or(items.len())
@@ -66,10 +66,10 @@ impl ItemBatcher {
 /// To make track sizing efficient we want to order tracks
 /// Here a placement is either a Line<i16> representing a row-start/row-end or a column-start/column-end
 #[inline(always)]
-pub(super) fn cmp_by_cross_flex_then_span_then_start<Tree: LayoutNode>(
+pub(super) fn cmp_by_cross_flex_then_span_then_start<NodeRef: LayoutNode>(
     axis: AbstractAxis,
-) -> impl FnMut(&GridItem<Tree>, &GridItem<Tree>) -> Ordering {
-    move |item_a: &GridItem<Tree>, item_b: &GridItem<Tree>| -> Ordering {
+) -> impl FnMut(&GridItem<NodeRef>, &GridItem<NodeRef>) -> Ordering {
+    move |item_a: &GridItem<NodeRef>, item_b: &GridItem<NodeRef>| -> Ordering {
         match (item_a.crosses_flexible_track(axis), item_b.crosses_flexible_track(axis)) {
             (false, true) => Ordering::Less,
             (true, false) => Ordering::Greater,
@@ -141,8 +141,8 @@ pub(super) fn compute_alignment_gutter_adjustment(
 }
 
 /// Convert origin-zero coordinates track placement in grid track vector indexes
-pub(super) fn resolve_item_track_indexes<Tree: LayoutNode>(
-    items: &mut [GridItem<Tree>],
+pub(super) fn resolve_item_track_indexes<NodeRef: LayoutNode>(
+    items: &mut [GridItem<NodeRef>],
     column_counts: TrackCounts,
     row_counts: TrackCounts,
 ) {
@@ -153,8 +153,8 @@ pub(super) fn resolve_item_track_indexes<Tree: LayoutNode>(
 }
 
 /// Determine (in each axis) whether the item crosses any flexible tracks
-pub(super) fn determine_if_item_crosses_flexible_tracks<Tree: LayoutNode>(
-    items: &mut Vec<GridItem<Tree>>,
+pub(super) fn determine_if_item_crosses_flexible_tracks<NodeRef: LayoutNode>(
+    items: &mut Vec<GridItem<NodeRef>>,
     columns: &[GridTrack],
     rows: &[GridTrack],
 ) {
@@ -169,8 +169,8 @@ pub(super) fn determine_if_item_crosses_flexible_tracks<Tree: LayoutNode>(
 /// Track sizing algorithm
 /// Note: Gutters are treated as empty fixed-size tracks for the purpose of the track sizing algorithm.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn track_sizing_algorithm<Tree: LayoutNode>(
-    tree: &mut Tree,
+pub(super) fn track_sizing_algorithm<NodeRef: LayoutNode>(
+    tree: &mut NodeRef,
     axis: AbstractAxis,
     available_space: Size<AvailableSpace>,
     available_grid_space: Size<AvailableSpace>,
@@ -178,7 +178,7 @@ pub(super) fn track_sizing_algorithm<Tree: LayoutNode>(
     container_style: &Style,
     axis_tracks: &mut [GridTrack],
     other_axis_tracks: &mut [GridTrack],
-    items: &mut [GridItem<Tree>],
+    items: &mut [GridItem<NodeRef>],
     get_track_size_estimate: impl Fn(&GridTrack, AvailableSpace) -> Option<f32>,
 ) {
     // 11.4 Initialise Track sizes
@@ -332,12 +332,12 @@ fn initialize_track_sizes(axis_tracks: &mut [GridTrack], axis_inner_node_size: O
 
 /// 11.5 Resolve Intrinsic Track Sizes
 #[allow(clippy::too_many_arguments)]
-fn resolve_intrinsic_track_sizes<Tree: LayoutNode>(
-    tree: &mut Tree,
+fn resolve_intrinsic_track_sizes<NodeRef: LayoutNode>(
+    tree: &mut NodeRef,
     axis: AbstractAxis,
     axis_tracks: &mut [GridTrack],
     other_axis_tracks: &mut [GridTrack],
-    items: &mut [GridItem<Tree>],
+    items: &mut [GridItem<NodeRef>],
     available_grid_space: Size<AvailableSpace>,
     inner_node_size: Size<Option<f32>>,
     get_track_size_estimate: impl Fn(&GridTrack, AvailableSpace) -> Option<f32>,
@@ -363,7 +363,7 @@ fn resolve_intrinsic_track_sizes<Tree: LayoutNode>(
     // to the min-content contribution—but can differ in some cases, see §6.6 Automatic Minimum Size of Grid Items.
     // Also, minimum contribution <= min-content contribution <= max-content contribution.
     // TODO: be smarter about only computing these when they are required
-    let mut compute_item_sizes = |item: &mut GridItem<Tree>, axis_tracks: &[GridTrack]| {
+    let mut compute_item_sizes = |item: &mut GridItem<NodeRef>, axis_tracks: &[GridTrack]| {
         let known_dimensions = item.known_dimensions_cached(
             axis,
             other_axis_tracks,
@@ -780,11 +780,11 @@ fn maximise_tracks(axis: AbstractAxis, axis_tracks: &mut [GridTrack], available_
 /// 11.7. Expand Flexible Tracks
 /// This step sizes flexible tracks using the largest value it can assign to an fr without exceeding the available space.
 #[allow(clippy::too_many_arguments)]
-fn expand_flexible_tracks<Tree: LayoutNode>(
-    tree: &mut Tree,
+fn expand_flexible_tracks<NodeRef: LayoutNode>(
+    tree: &mut NodeRef,
     axis: AbstractAxis,
     axis_tracks: &mut [GridTrack],
-    items: &mut [GridItem<Tree>],
+    items: &mut [GridItem<NodeRef>],
     axis_min_size: Option<f32>,
     axis_max_size: Option<f32>,
     available_grid_space: Size<AvailableSpace>,

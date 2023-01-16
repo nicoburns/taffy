@@ -8,13 +8,13 @@ use crate::compute::LayoutAlgorithm;
 use crate::geometry::{Point, Rect, Size};
 use crate::layout::{Layout, RunMode, SizeAndBaselines, SizingMode};
 use crate::math::MaybeMath;
-use crate::prelude::{TaffyMaxContent, TaffyMinContent};
 use crate::resolve::{MaybeResolve, ResolveOrZero};
 use crate::style::{
     AlignContent, AlignItems, AlignSelf, AvailableSpace, Dimension, Display, FlexWrap, JustifyContent,
     LengthPercentageAuto, Position,
 };
 use crate::style::{FlexDirection, Style};
+use crate::style_helpers::{TaffyMaxContent, TaffyMinContent};
 use crate::sys::f32_max;
 use crate::sys::Vec;
 use crate::tree::LayoutTree;

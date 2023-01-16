@@ -4,9 +4,9 @@ use super::types::{CellOccupancyMatrix, CellOccupancyState, GridItem};
 use super::OriginZeroLine;
 use crate::axis::{AbsoluteAxis, InBothAbsAxis};
 use crate::geometry::Line;
-use crate::prelude::LayoutTree;
 use crate::style::{GridAutoFlow, OriginZeroGridPlacement, Style};
 use crate::sys::Vec;
+use crate::tree::LayoutTree;
 
 /// 8.5. Grid Item Placement Algorithm
 /// Place items into the grid, generating new rows/column into the implicit grid as required

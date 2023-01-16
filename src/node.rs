@@ -10,11 +10,11 @@ use crate::compute::{self, recursively_perform_hidden_layout};
 use crate::error::{TaffyError, TaffyResult};
 use crate::geometry::Size;
 use crate::layout::{Cache, Layout};
-use crate::prelude::LayoutTree;
 use crate::style::{AvailableSpace, Style};
 #[cfg(any(feature = "std", feature = "alloc"))]
 use crate::sys::Box;
 use crate::sys::{new_vec_with_capacity, ChildrenVec, Vec};
+use crate::tree::LayoutTree;
 use crate::{data::NodeData, error};
 
 /// A function type that can be used in a [`MeasureFunc`]

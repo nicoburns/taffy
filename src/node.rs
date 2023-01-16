@@ -14,7 +14,7 @@ use crate::style::{AvailableSpace, Style};
 #[cfg(any(feature = "std", feature = "alloc"))]
 use crate::sys::Box;
 use crate::sys::{new_vec_with_capacity, ChildrenVec, Vec};
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 use crate::{data::NodeData, error};
 
 /// A function type that can be used in a [`MeasureFunc`]
@@ -95,7 +95,7 @@ impl<'tree> TaffyNodeRef<'tree> {
     }
 }
 
-impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
+impl<'tree> LayoutNode for TaffyNodeRef<'tree> {
     type ChildId = Node;
     type ChildIter<'a> = core::iter::Copied<core::slice::Iter<'a, DefaultKey>> where Self: 'a;
 

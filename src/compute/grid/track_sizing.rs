@@ -7,7 +7,7 @@ use crate::math::MaybeMath;
 use crate::resolve::{MaybeResolve, ResolveOrZero};
 use crate::style::{AlignContent, AvailableSpace, MaxTrackSizingFunction, MinTrackSizingFunction, Style};
 use crate::sys::{f32_max, f32_min};
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 use core::cmp::Ordering;
 
 /// Takes an axis, and a list of grid items sorted firstly by whether they cross a flex track
@@ -32,7 +32,7 @@ impl ItemBatcher {
 
     /// This is basically a manual version of Iterator::next which passes `items`
     /// in as a parameter on each iteration to work around borrow checker rules
-    fn next<'items, Tree: LayoutTree>(
+    fn next<'items, Tree: LayoutNode>(
         &mut self,
         items: &'items mut [GridItem<Tree>],
     ) -> Option<(&'items mut [GridItem<Tree>], bool)> {
@@ -66,7 +66,7 @@ impl ItemBatcher {
 /// To make track sizing efficient we want to order tracks
 /// Here a placement is either a Line<i16> representing a row-start/row-end or a column-start/column-end
 #[inline(always)]
-pub(super) fn cmp_by_cross_flex_then_span_then_start<Tree: LayoutTree>(
+pub(super) fn cmp_by_cross_flex_then_span_then_start<Tree: LayoutNode>(
     axis: AbstractAxis,
 ) -> impl FnMut(&GridItem<Tree>, &GridItem<Tree>) -> Ordering {
     move |item_a: &GridItem<Tree>, item_b: &GridItem<Tree>| -> Ordering {
@@ -141,7 +141,7 @@ pub(super) fn compute_alignment_gutter_adjustment(
 }
 
 /// Convert origin-zero coordinates track placement in grid track vector indexes
-pub(super) fn resolve_item_track_indexes<Tree: LayoutTree>(
+pub(super) fn resolve_item_track_indexes<Tree: LayoutNode>(
     items: &mut [GridItem<Tree>],
     column_counts: TrackCounts,
     row_counts: TrackCounts,
@@ -153,7 +153,7 @@ pub(super) fn resolve_item_track_indexes<Tree: LayoutTree>(
 }
 
 /// Determine (in each axis) whether the item crosses any flexible tracks
-pub(super) fn determine_if_item_crosses_flexible_tracks<Tree: LayoutTree>(
+pub(super) fn determine_if_item_crosses_flexible_tracks<Tree: LayoutNode>(
     items: &mut Vec<GridItem<Tree>>,
     columns: &[GridTrack],
     rows: &[GridTrack],
@@ -169,7 +169,7 @@ pub(super) fn determine_if_item_crosses_flexible_tracks<Tree: LayoutTree>(
 /// Track sizing algorithm
 /// Note: Gutters are treated as empty fixed-size tracks for the purpose of the track sizing algorithm.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
+pub(super) fn track_sizing_algorithm<Tree: LayoutNode>(
     tree: &mut Tree,
     axis: AbstractAxis,
     available_space: Size<AvailableSpace>,
@@ -332,7 +332,7 @@ fn initialize_track_sizes(axis_tracks: &mut [GridTrack], axis_inner_node_size: O
 
 /// 11.5 Resolve Intrinsic Track Sizes
 #[allow(clippy::too_many_arguments)]
-fn resolve_intrinsic_track_sizes<Tree: LayoutTree>(
+fn resolve_intrinsic_track_sizes<Tree: LayoutNode>(
     tree: &mut Tree,
     axis: AbstractAxis,
     axis_tracks: &mut [GridTrack],
@@ -780,7 +780,7 @@ fn maximise_tracks(axis: AbstractAxis, axis_tracks: &mut [GridTrack], available_
 /// 11.7. Expand Flexible Tracks
 /// This step sizes flexible tracks using the largest value it can assign to an fr without exceeding the available space.
 #[allow(clippy::too_many_arguments)]
-fn expand_flexible_tracks<Tree: LayoutTree>(
+fn expand_flexible_tracks<Tree: LayoutNode>(
     tree: &mut Tree,
     axis: AbstractAxis,
     axis_tracks: &mut [GridTrack],

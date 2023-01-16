@@ -6,13 +6,13 @@ use crate::axis::{AbsoluteAxis, InBothAbsAxis};
 use crate::geometry::Line;
 use crate::style::{GridAutoFlow, OriginZeroGridPlacement, Style};
 use crate::sys::Vec;
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 
 /// 8.5. Grid Item Placement Algorithm
 /// Place items into the grid, generating new rows/column into the implicit grid as required
 ///
 /// [Specification](https://www.w3.org/TR/css-grid-2/#auto-placement-algo)
-pub(super) fn place_grid_items<'a, ChildIter, Tree: LayoutTree>(
+pub(super) fn place_grid_items<'a, ChildIter, Tree: LayoutNode>(
     cell_occupancy_matrix: &mut CellOccupancyMatrix,
     items: &mut Vec<GridItem<Tree>>,
     children_iter: impl Fn() -> ChildIter,
@@ -286,7 +286,7 @@ fn place_indefinitely_positioned_item(
 /// Record the grid item in both CellOccupancyMatric and the GridItems list
 /// once a definite placement has been determined
 #[allow(clippy::too_many_arguments)]
-fn record_grid_placement<Tree: LayoutTree>(
+fn record_grid_placement<Tree: LayoutNode>(
     cell_occupancy_matrix: &mut CellOccupancyMatrix,
     items: &mut Vec<GridItem<Tree>>,
     node: Tree::ChildId,

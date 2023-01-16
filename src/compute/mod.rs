@@ -13,7 +13,7 @@ use crate::geometry::{Point, Size};
 use crate::layout::{Cache, Layout, RunMode, SizeAndBaselines, SizingMode};
 use crate::node::{Node, Taffy};
 use crate::style::{AvailableSpace, Display};
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 
 use self::flexbox::FlexboxAlgorithm;
 use self::grid::CssGridAlgorithm;
@@ -49,7 +49,7 @@ pub trait LayoutAlgorithm {
 
     /// Compute the size of the node given the specified constraints
     fn measure_size(
-        tree: &mut impl LayoutTree,
+        tree: &mut impl LayoutNode,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -58,7 +58,7 @@ pub trait LayoutAlgorithm {
 
     /// Perform a full layout on the node given the specified constraints
     fn perform_layout(
-        tree: &mut impl LayoutTree,
+        tree: &mut impl LayoutNode,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -132,7 +132,7 @@ fn compute_node_layout(
     /// Inlined function generic over the LayoutAlgorithm to reduce code duplication
     #[inline(always)]
     fn perform_computations<Algorithm: LayoutAlgorithm>(
-        tree: &mut impl LayoutTree,
+        tree: &mut impl LayoutNode,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,

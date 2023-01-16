@@ -8,7 +8,7 @@ use crate::math::MaybeMath;
 use crate::resolve::MaybeResolve;
 use crate::style::{AlignContent, AlignItems, AlignSelf, AvailableSpace, Position};
 use crate::sys::{f32_max, f32_min};
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 
 /// Align the grid tracks within the grid according to the align-content (rows) or
 /// justify-content (columns) property. This only does anything if the size of the
@@ -70,7 +70,7 @@ pub(super) fn align_tracks(
 }
 
 /// Align and size a grid item into it's final position
-pub(super) fn align_and_position_item<Tree: LayoutTree>(
+pub(super) fn align_and_position_item<Tree: LayoutNode>(
     tree: &mut Tree,
     node: Tree::ChildId,
     order: u32,

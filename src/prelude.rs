@@ -6,7 +6,7 @@ use crate::layout::{SizeAndBaselines, SizingMode};
 /// Apply the flexbox algorithm and recursively layout the specified node
 #[inline(always)]
 pub fn layout_flexbox(
-    tree: &mut impl LayoutTree,
+    tree: &mut impl LayoutNode,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
@@ -33,7 +33,7 @@ pub use crate::{
         auto, fit_content, flex, max_content, min_content, minmax, percent, points, zero, FromFlex, FromPercent,
         FromPoints, TaffyAuto, TaffyFitContent, TaffyMaxContent, TaffyMinContent, TaffyZero,
     },
-    tree::LayoutTree,
+    tree::LayoutNode,
 };
 
 #[cfg(feature = "grid")]

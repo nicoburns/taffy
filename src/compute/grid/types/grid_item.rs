@@ -7,12 +7,12 @@ use crate::layout::SizingMode;
 use crate::resolve::MaybeResolve;
 use crate::style::{AvailableSpace, LengthPercentageAuto, MaxTrackSizingFunction, MinTrackSizingFunction, Style};
 use crate::style_helpers::*;
-use crate::tree::LayoutTree;
+use crate::tree::LayoutNode;
 use core::ops::Range;
 
 /// Represents a single grid item
 #[derive(Debug)]
-pub(in super::super) struct GridItem<Tree: LayoutTree> {
+pub(in super::super) struct GridItem<Tree: LayoutNode> {
     /// The id of the Node that this item represents
     pub node: Tree::ChildId,
 
@@ -55,7 +55,7 @@ pub(in super::super) struct GridItem<Tree: LayoutTree> {
     pub max_content_contribution_cache: Option<Size<f32>>,
 }
 
-impl<Tree: LayoutTree> GridItem<Tree> {
+impl<Tree: LayoutNode> GridItem<Tree> {
     /// Create a new item given a concrete placement in both axes
     pub fn new_with_placement_style_and_order(
         node: Tree::ChildId,

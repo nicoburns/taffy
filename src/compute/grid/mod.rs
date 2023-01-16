@@ -8,7 +8,7 @@ use crate::resolve::{MaybeResolve, ResolveOrZero};
 use crate::style::{AlignContent, AlignItems, AlignSelf, AvailableSpace, Display, Position};
 use crate::style_helpers::*;
 use crate::sys::{GridTrackVec, Vec};
-use crate::tree::LayoutTree;
+use crate::tree::{ChildIdBounds, LayoutTree};
 use alignment::{align_and_position_item, align_tracks};
 use explicit_grid::{compute_explicit_grid_size_in_axis, initialize_grid_tracks};
 use implicit_grid::compute_grid_size_estimate;
@@ -39,8 +39,8 @@ impl LayoutAlgorithm for CssGridAlgorithm {
     const NAME: &'static str = "CSS GRID";
 
     #[inline(always)]
-    fn perform_layout(
-        tree: &mut impl LayoutTree,
+    fn perform_layout<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+        tree: Tree,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -50,8 +50,8 @@ impl LayoutAlgorithm for CssGridAlgorithm {
     }
 
     #[inline(always)]
-    fn measure_size(
-        tree: &mut impl LayoutTree,
+    fn measure_size<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+        tree: Tree,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -67,14 +67,14 @@ impl LayoutAlgorithm for CssGridAlgorithm {
 ///   - Placing items (which also resolves the implicit grid)
 ///   - Track (row/column) sizing
 ///   - Alignment & Final item placement
-pub fn compute<Tree: LayoutTree>(
-    tree: &mut Tree,
+pub fn compute<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+    mut tree: Tree,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,
     run_mode: RunMode,
 ) -> SizeAndBaselines {
-    let get_child_styles_iter = || tree.children().map(|child_node: Tree::ChildId| tree.child_style(child_node));
+    let get_child_styles_iter = || tree.children().map(|child_node: ChildId| tree.child_style(child_node));
     let style = tree.style().clone();
     let child_styles_iter = get_child_styles_iter();
 
@@ -91,7 +91,7 @@ pub fn compute<Tree: LayoutTree>(
 
     // 2. Grid Item Placement
     // Match items (children) to a definite grid position (row start/end and column start/end position)
-    let mut items: Vec<GridItem<Tree>> = Vec::with_capacity(tree.child_count());
+    let mut items: Vec<GridItem<ChildId>> = Vec::with_capacity(tree.child_count());
     let mut cell_occupancy_matrix = CellOccupancyMatrix::with_track_counts(est_col_counts, est_row_counts);
     let in_flow_children_iter = || {
         tree.children()
@@ -192,7 +192,7 @@ pub fn compute<Tree: LayoutTree>(
 
     // Run track sizing algorithm for Inline axis
     track_sizing_algorithm(
-        tree,
+        tree.reborrow(),
         AbstractAxis::Inline,
         min_size.get(AbstractAxis::Inline),
         max_size.get(AbstractAxis::Inline),
@@ -212,7 +212,7 @@ pub fn compute<Tree: LayoutTree>(
 
     // Run track sizing algorithm for Block axis
     track_sizing_algorithm(
-        tree,
+        tree.reborrow(),
         AbstractAxis::Block,
         min_size.get(AbstractAxis::Block),
         max_size.get(AbstractAxis::Block),
@@ -290,7 +290,7 @@ pub fn compute<Tree: LayoutTree>(
                     |track: &GridTrack, _| Some(track.base_size),
                 );
                 let new_min_content_contribution =
-                    item.min_content_contribution(AbstractAxis::Inline, tree, available_space, inner_node_size);
+                    item.min_content_contribution(AbstractAxis::Inline, tree.reborrow(), available_space, inner_node_size);
 
                 let has_changed = Some(new_min_content_contribution) != item.min_content_contribution_cache.width;
 
@@ -316,7 +316,7 @@ pub fn compute<Tree: LayoutTree>(
     if rerun_column_sizing {
         // Re-run track sizing algorithm for Inline axis
         track_sizing_algorithm(
-            tree,
+            tree.reborrow(),
             AbstractAxis::Inline,
             min_size.get(AbstractAxis::Inline),
             max_size.get(AbstractAxis::Inline),
@@ -352,7 +352,7 @@ pub fn compute<Tree: LayoutTree>(
                         |track: &GridTrack, _| Some(track.base_size),
                     );
                     let new_min_content_contribution =
-                        item.min_content_contribution(AbstractAxis::Block, tree, available_space, inner_node_size);
+                        item.min_content_contribution(AbstractAxis::Block, tree.reborrow(), available_space, inner_node_size);
 
                     let has_changed = Some(new_min_content_contribution) != item.min_content_contribution_cache.height;
 
@@ -378,7 +378,7 @@ pub fn compute<Tree: LayoutTree>(
         if rerun_row_sizing {
             // Re-run track sizing algorithm for Block axis
             track_sizing_algorithm(
-                tree,
+                tree.reborrow(),
                 AbstractAxis::Block,
                 min_size.get(AbstractAxis::Block),
                 max_size.get(AbstractAxis::Block),
@@ -429,7 +429,7 @@ pub fn compute<Tree: LayoutTree>(
             right: columns[item.column_indexes.end as usize].offset,
         };
         align_and_position_item(
-            tree,
+            tree.reborrow(),
             item.node,
             index as u32,
             grid_area,
@@ -486,7 +486,7 @@ pub fn compute<Tree: LayoutTree>(
                     .unwrap_or(container_border_box.width - border.right),
             };
             // TODO: Baseline alignment support for absolutely positioned items (should check if is actuallty specified)
-            align_and_position_item(tree, child, order, grid_area, container_alignment_styles, 0.0);
+            align_and_position_item(tree.reborrow(), child, order, grid_area, container_alignment_styles, 0.0);
             order += 1;
         }
     });

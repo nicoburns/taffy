@@ -2,11 +2,12 @@
 
 use crate::compute::LayoutAlgorithm;
 use crate::layout::{SizeAndBaselines, SizingMode};
+use crate::tree::ChildIdBounds;
 
 /// Apply the flexbox algorithm and recursively layout the specified node
 #[inline(always)]
-pub fn layout_flexbox(
-    tree: &mut impl LayoutTree,
+pub fn layout_flexbox<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+    tree: Tree,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
     available_space: Size<AvailableSpace>,

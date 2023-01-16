@@ -11,8 +11,9 @@ use crate::style::{
 };
 use crate::style_helpers::TaffyMinContent;
 use crate::sys::{f32_max, f32_min};
-use crate::tree::LayoutTree;
+use crate::tree::{ChildIdBounds, LayoutTree};
 use core::cmp::Ordering;
+use core::marker::PhantomData;
 
 /// Takes an axis, and a list of grid items sorted firstly by whether they cross a flex track
 /// in the specified axis (items that don't cross a flex track first) and then by the number
@@ -37,10 +38,10 @@ impl ItemBatcher {
 
     /// This is basically a manual version of Iterator::next which passes `items`
     /// in as a parameter on each iteration to work around borrow checker rules
-    fn next<'items, Tree: LayoutTree>(
+    fn next<'items, ChildId: ChildIdBounds>(
         &mut self,
-        items: &'items mut [GridItem<Tree>],
-    ) -> Option<(&'items mut [GridItem<Tree>], bool)> {
+        items: &'items mut [GridItem<ChildId>],
+    ) -> Option<(&'items mut [GridItem<ChildId>], bool)> {
         if self.current_is_flex || self.index_offset >= items.len() {
             return None;
         }
@@ -54,7 +55,7 @@ impl ItemBatcher {
         } else {
             items
                 .iter()
-                .position(|item: &GridItem<Tree>| {
+                .position(|item: &GridItem<ChildId>| {
                     item.crosses_flexible_track(self.axis) || item.span(self.axis) > self.current_span
                 })
                 .unwrap_or(items.len())
@@ -70,13 +71,15 @@ impl ItemBatcher {
 
 /// This struct captures a bunch of variables which are used to compute the intrinsic sizes of children so that those variables
 /// don't have to be passed around all over the place below. It then has methods that implement the intrinsic sizing computations
-struct IntrisicSizeMeasurer<'tree, 'oat, Tree, EstimateFunction>
+struct IntrisicSizeMeasurer<'oat, ChildId, Tree, EstimateFunction>
 where
-    Tree: LayoutTree,
+    ChildId: ChildIdBounds,
+    Tree: LayoutTree<ChildId>,
     EstimateFunction: Fn(&GridTrack, Option<f32>) -> Option<f32>,
 {
+    child_id: PhantomData<ChildId>,
     /// The layout tree
-    tree: &'tree mut Tree,
+    tree: Tree,
     /// The tracks in the opposite axis to the one we are currently sizing
     other_axis_tracks: &'oat [GridTrack],
     /// A function that computes an estimate of an other-axis track's size which is passed to
@@ -88,9 +91,10 @@ where
     inner_node_size: Size<Option<f32>>,
 }
 
-impl<'tree, 'oat, Tree, EstimateFunction> IntrisicSizeMeasurer<'tree, 'oat, Tree, EstimateFunction>
+impl<'oat, ChildId, Tree, EstimateFunction> IntrisicSizeMeasurer<'oat, ChildId, Tree, EstimateFunction>
 where
-    Tree: LayoutTree,
+    ChildId: ChildIdBounds,
+    Tree: LayoutTree<ChildId>,
     EstimateFunction: Fn(&GridTrack, Option<f32>) -> Option<f32>,
 {
     /// Compute the available_space to be passed to the child sizing functions
@@ -98,7 +102,7 @@ where
     /// axis to the one currently being sized.
     /// https://www.w3.org/TR/css-grid-1/#algo-overview
     #[inline(always)]
-    fn available_space(&self, item: &mut GridItem<Tree>) -> Size<Option<f32>> {
+    fn available_space(&self, item: &mut GridItem<ChildId>) -> Size<Option<f32>> {
         item.available_space_cached(
             self.axis,
             self.other_axis_tracks,
@@ -110,27 +114,27 @@ where
     /// Compute the item's resolved margins for size contributions. Horizontal percentage margins always resolve
     /// to zero if the container size is indefinite as otherwise this would introduce a cyclic dependency.
     #[inline(always)]
-    fn margins_axis_sums_with_baseline_shims(&self, item: &mut GridItem<Tree>) -> Size<f32> {
+    fn margins_axis_sums_with_baseline_shims(&self, item: &mut GridItem<ChildId>) -> Size<f32> {
         item.margins_axis_sums_with_baseline_shims(self.inner_node_size.width)
     }
 
     /// Retrieve the item's min content contribution from the cache or compute it using the provided parameters
     #[inline(always)]
-    fn min_content_contribution(&mut self, item: &mut GridItem<Tree>) -> f32 {
+    fn min_content_contribution(&mut self, item: &mut GridItem<ChildId>) -> f32 {
         let available_space = self.available_space(item);
         let margin_axis_sums = self.margins_axis_sums_with_baseline_shims(item);
         let contribution =
-            item.min_content_contribution_cached(self.axis, self.tree, available_space, self.inner_node_size);
+            item.min_content_contribution_cached(self.axis, self.tree.reborrow(), available_space, self.inner_node_size);
         contribution + margin_axis_sums.get(self.axis)
     }
 
     /// Retrieve the item's max content contribution from the cache or compute it using the provided parameters
     #[inline(always)]
-    fn max_content_contribution(&mut self, item: &mut GridItem<Tree>) -> f32 {
+    fn max_content_contribution(&mut self, item: &mut GridItem<ChildId>) -> f32 {
         let available_space = self.available_space(item);
         let margin_axis_sums = self.margins_axis_sums_with_baseline_shims(item);
         let contribution =
-            item.max_content_contribution_cached(self.axis, self.tree, available_space, self.inner_node_size);
+            item.max_content_contribution_cached(self.axis, self.tree.reborrow(), available_space, self.inner_node_size);
         contribution + margin_axis_sums.get(self.axis)
     }
 
@@ -141,11 +145,11 @@ where
     ///   - Else the item’s minimum contribution is its min-content contribution.
     /// Because the minimum contribution often depends on the size of the item’s content, it is considered a type of intrinsic size contribution.
     #[inline(always)]
-    fn minimum_contribution(&mut self, item: &mut GridItem<Tree>, axis_tracks: &[GridTrack]) -> f32 {
+    fn minimum_contribution(&mut self, item: &mut GridItem<ChildId>, axis_tracks: &[GridTrack]) -> f32 {
         let available_space = self.available_space(item);
         let margin_axis_sums = self.margins_axis_sums_with_baseline_shims(item);
         let contribution =
-            item.minimum_contribution_cached(self.tree, self.axis, axis_tracks, available_space, self.inner_node_size);
+            item.minimum_contribution_cached(self.tree.reborrow(), self.axis, axis_tracks, available_space, self.inner_node_size);
         contribution + margin_axis_sums.get(self.axis)
     }
 }
@@ -153,10 +157,10 @@ where
 /// To make track sizing efficient we want to order tracks
 /// Here a placement is either a Line<i16> representing a row-start/row-end or a column-start/column-end
 #[inline(always)]
-pub(super) fn cmp_by_cross_flex_then_span_then_start<Tree: LayoutTree>(
+pub(super) fn cmp_by_cross_flex_then_span_then_start<ChildId: ChildIdBounds>(
     axis: AbstractAxis,
-) -> impl FnMut(&GridItem<Tree>, &GridItem<Tree>) -> Ordering {
-    move |item_a: &GridItem<Tree>, item_b: &GridItem<Tree>| -> Ordering {
+) -> impl FnMut(&GridItem<ChildId>, &GridItem<ChildId>) -> Ordering {
+    move |item_a: &GridItem<ChildId>, item_b: &GridItem<ChildId>| -> Ordering {
         match (item_a.crosses_flexible_track(axis), item_b.crosses_flexible_track(axis)) {
             (false, true) => Ordering::Less,
             (true, false) => Ordering::Greater,
@@ -235,8 +239,8 @@ pub(super) fn compute_alignment_gutter_adjustment(
 }
 
 /// Convert origin-zero coordinates track placement in grid track vector indexes
-pub(super) fn resolve_item_track_indexes<Tree: LayoutTree>(
-    items: &mut [GridItem<Tree>],
+pub(super) fn resolve_item_track_indexes<ChildId: ChildIdBounds>(
+    items: &mut [GridItem<ChildId>],
     column_counts: TrackCounts,
     row_counts: TrackCounts,
 ) {
@@ -247,8 +251,8 @@ pub(super) fn resolve_item_track_indexes<Tree: LayoutTree>(
 }
 
 /// Determine (in each axis) whether the item crosses any flexible tracks
-pub(super) fn determine_if_item_crosses_flexible_or_intrinsic_tracks<Tree: LayoutTree>(
-    items: &mut Vec<GridItem<Tree>>,
+pub(super) fn determine_if_item_crosses_flexible_or_intrinsic_tracks<ChildId: ChildIdBounds>(
+    items: &mut Vec<GridItem<ChildId>>,
     columns: &[GridTrack],
     rows: &[GridTrack],
 ) {
@@ -268,8 +272,8 @@ pub(super) fn determine_if_item_crosses_flexible_or_intrinsic_tracks<Tree: Layou
 /// Note: Gutters are treated as empty fixed-size tracks for the purpose of the track sizing algorithm.
 #[allow(clippy::too_many_arguments)]
 #[inline(always)]
-pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
-    tree: &mut Tree,
+pub(super) fn track_sizing_algorithm<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+    mut tree: Tree,
     axis: AbstractAxis,
     axis_min_size: Option<f32>,
     axis_max_size: Option<f32>,
@@ -278,7 +282,7 @@ pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
     inner_node_size: Size<Option<f32>>,
     axis_tracks: &mut [GridTrack],
     other_axis_tracks: &mut [GridTrack],
-    items: &mut [GridItem<Tree>],
+    items: &mut [GridItem<ChildId>],
     get_track_size_estimate: impl Fn(&GridTrack, Option<f32>) -> Option<f32>,
     has_baseline_aligned_item: bool,
 ) {
@@ -288,7 +292,7 @@ pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
 
     // 11.5.1 Shim item baselines
     if has_baseline_aligned_item {
-        resolve_item_baselines(tree, axis, items, inner_node_size);
+        resolve_item_baselines(tree.reborrow(), axis, items, inner_node_size);
     }
 
     // If all tracks have base_size = growth_limit, then skip the rest of this function.
@@ -317,13 +321,13 @@ pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
 
     // 11.5 Resolve Intrinsic Track Sizes
     resolve_intrinsic_track_sizes(
-        tree,
+        tree.reborrow(),
         axis,
         axis_tracks,
         other_axis_tracks,
         items,
-        available_grid_space.get(axis),
         inner_node_size,
+        available_grid_space.get(axis),
         get_track_size_estimate,
     );
 
@@ -334,7 +338,7 @@ pub(super) fn track_sizing_algorithm<Tree: LayoutTree>(
     // 11.7. Expand Flexible Tracks
     // This step sizes flexible tracks using the largest value it can assign to an fr without exceeding the available space.
     expand_flexible_tracks(
-        tree,
+        tree.reborrow(),
         axis,
         axis_tracks,
         items,
@@ -429,10 +433,10 @@ fn initialize_track_sizes(axis_tracks: &mut [GridTrack], axis_inner_node_size: O
 }
 
 /// 11.5.1 Shim baseline-aligned items so their intrinsic size contributions reflect their baseline alignment.
-fn resolve_item_baselines<Tree: LayoutTree>(
-    tree: &mut Tree,
+fn resolve_item_baselines<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+    mut tree: Tree,
     axis: AbstractAxis,
-    items: &mut [GridItem<Tree>],
+    items: &mut [GridItem<ChildId>],
     inner_node_size: Size<Option<f32>>,
 ) {
     // Sort items by track in the other axis (row) start position so that we can iterate items in groups which
@@ -501,14 +505,14 @@ fn resolve_item_baselines<Tree: LayoutTree>(
 
 /// 11.5 Resolve Intrinsic Track Sizes
 #[allow(clippy::too_many_arguments)]
-fn resolve_intrinsic_track_sizes<Tree: LayoutTree>(
-    tree: &mut Tree,
+fn resolve_intrinsic_track_sizes<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+    tree: Tree,
     axis: AbstractAxis,
     axis_tracks: &mut [GridTrack],
     other_axis_tracks: &mut [GridTrack],
-    items: &mut [GridItem<Tree>],
-    axis_available_grid_space: AvailableSpace,
+    items: &mut [GridItem<ChildId>],
     inner_node_size: Size<Option<f32>>,
+    axis_available_grid_space: AvailableSpace,
     get_track_size_estimate: impl Fn(&GridTrack, Option<f32>) -> Option<f32>,
 ) {
     // Step 1. Shim baseline-aligned items so their intrinsic size contributions reflect their baseline alignment.
@@ -536,7 +540,7 @@ fn resolve_intrinsic_track_sizes<Tree: LayoutTree>(
     let axis_inner_node_size = inner_node_size.get(axis);
     let flex_factor_sum = axis_tracks.iter().map(|track| track.flex_factor()).sum::<f32>();
     let mut item_sizer =
-        IntrisicSizeMeasurer { tree, other_axis_tracks, axis, inner_node_size, get_track_size_estimate };
+        IntrisicSizeMeasurer { child_id: PhantomData, tree, other_axis_tracks, axis, inner_node_size, get_track_size_estimate };
 
     let mut batched_item_iterator = ItemBatcher::new(axis);
     while let Some((batch, is_flex)) = batched_item_iterator.next(items) {
@@ -1079,11 +1083,11 @@ fn maximise_tracks(
 /// This step sizes flexible tracks using the largest value it can assign to an fr without exceeding the available space.
 #[allow(clippy::too_many_arguments)]
 #[inline(always)]
-fn expand_flexible_tracks<Tree: LayoutTree>(
-    tree: &mut Tree,
+fn expand_flexible_tracks<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+    mut tree: Tree,
     axis: AbstractAxis,
     axis_tracks: &mut [GridTrack],
-    items: &mut [GridItem<Tree>],
+    items: &mut [GridItem<ChildId>],
     axis_min_size: Option<f32>,
     axis_max_size: Option<f32>,
     available_grid_space: Size<AvailableSpace>,
@@ -1135,7 +1139,7 @@ fn expand_flexible_tracks<Tree: LayoutTree>(
                         let tracks = &axis_tracks[item.track_range_excluding_lines(axis)];
                         // TODO: plumb estimate of other axis size (known_dimensions) in here rather than just passing Size::NONE?
                         let max_content_contribution =
-                            item.max_content_contribution_cached(axis, tree, Size::NONE, inner_node_size);
+                            item.max_content_contribution_cached(axis, tree.reborrow(), Size::NONE, inner_node_size);
                         find_size_of_fr(tracks, max_content_contribution)
                     })
                     .max_by(|a, b| a.total_cmp(b))

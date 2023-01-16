@@ -98,9 +98,8 @@ impl<'tree> TaffyNodeRef<'tree> {
     }
 }
 
-impl<'tree> LayoutTree for TaffyNodeRef<'tree> {
+impl<'tree> LayoutTree<Node> for TaffyNodeRef<'tree> {
     type Reborrow<'subtree> = TaffyNodeRef<'subtree> where Self: 'subtree;
-    type ChildId = Node;
     type ChildIter<'a> = core::iter::Copied<core::slice::Iter<'a, DefaultKey>> where Self: 'a;
 
     #[inline(always)]

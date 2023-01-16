@@ -5,18 +5,18 @@ use crate::compute::grid::OriginZeroLine;
 use crate::geometry::{Line, Rect, Size};
 use crate::layout::SizingMode;
 use crate::math::MaybeMath;
-use crate::prelude::LayoutTree;
 use crate::resolve::{MaybeResolve, ResolveOrZero};
 use crate::style::{
     AlignItems, AlignSelf, AvailableSpace, LengthPercentageAuto, MaxTrackSizingFunction, MinTrackSizingFunction, Style,
 };
+use crate::tree::{ChildIdBounds, LayoutTree};
 use core::ops::Range;
 
 /// Represents a single grid item
 #[derive(Debug)]
-pub(in super::super) struct GridItem<Tree: LayoutTree> {
+pub(in super::super) struct GridItem<ChildId: ChildIdBounds> {
     /// The id of the Node that this item represents
-    pub node: Tree::ChildId,
+    pub node: ChildId,
 
     /// The order of the item in the children array
     ///
@@ -70,10 +70,10 @@ pub(in super::super) struct GridItem<Tree: LayoutTree> {
     pub max_content_contribution_cache: Size<Option<f32>>,
 }
 
-impl<Tree: LayoutTree> GridItem<Tree> {
+impl<ChildId: ChildIdBounds> GridItem<ChildId> {
     /// Create a new item given a concrete placement in both axes
     pub fn new_with_placement_style_and_order(
-        node: Tree::ChildId,
+        node: ChildId,
         col_span: Line<OriginZeroLine>,
         row_span: Line<OriginZeroLine>,
         style: &Style,
@@ -203,9 +203,9 @@ impl<Tree: LayoutTree> GridItem<Tree> {
     /// Compute the known_dimensions to be passed to the child sizing functions
     /// The key thing that is being done here is applying stretch alignment, which is necessary to
     /// allow percentage sizes further down the tree to resolve properly in some cases
-    fn known_dimensions(
+    fn known_dimensions<Tree: LayoutTree<ChildId>>(
         &self,
-        tree: &mut Tree,
+        tree: Tree,
         inner_node_size: Size<Option<f32>>,
         grid_area_size: Size<Option<f32>>,
     ) -> Size<Option<f32>> {
@@ -318,14 +318,14 @@ impl<Tree: LayoutTree> GridItem<Tree> {
     }
 
     /// Compute the item's min content contribution from the provided parameters
-    pub fn min_content_contribution(
+    pub fn min_content_contribution<Tree: LayoutTree<ChildId>>(
         &self,
         axis: AbstractAxis,
-        tree: &mut Tree,
+        mut tree: Tree,
         available_space: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
-        let known_dimensions = self.known_dimensions(tree, inner_node_size, available_space);
+        let known_dimensions = self.known_dimensions(tree.reborrow(), inner_node_size, available_space);
         tree.measure_child_size(
             self.node,
             known_dimensions,
@@ -341,10 +341,10 @@ impl<Tree: LayoutTree> GridItem<Tree> {
 
     /// Retrieve the item's min content contribution from the cache or compute it using the provided parameters
     #[inline(always)]
-    pub fn min_content_contribution_cached(
+    pub fn min_content_contribution_cached<Tree: LayoutTree<ChildId>>(
         &mut self,
         axis: AbstractAxis,
-        tree: &mut Tree,
+        tree: Tree,
         available_space: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
@@ -356,14 +356,14 @@ impl<Tree: LayoutTree> GridItem<Tree> {
     }
 
     /// Compute the item's max content contribution from the provided parameters
-    pub fn max_content_contribution(
+    pub fn max_content_contribution<Tree: LayoutTree<ChildId>>(
         &self,
         axis: AbstractAxis,
-        tree: &mut Tree,
+        mut tree: Tree,
         available_space: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
-        let known_dimensions = self.known_dimensions(tree, inner_node_size, available_space);
+        let known_dimensions = self.known_dimensions(tree.reborrow(), inner_node_size, available_space);
         tree.measure_child_size(
             self.node,
             known_dimensions,
@@ -379,10 +379,10 @@ impl<Tree: LayoutTree> GridItem<Tree> {
 
     /// Retrieve the item's max content contribution from the cache or compute it using the provided parameters
     #[inline(always)]
-    pub fn max_content_contribution_cached(
+    pub fn max_content_contribution_cached<Tree: LayoutTree<ChildId>>(
         &mut self,
         axis: AbstractAxis,
-        tree: &mut Tree,
+        tree: Tree,
         available_space: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
@@ -400,9 +400,9 @@ impl<Tree: LayoutTree> GridItem<Tree> {
     ///   - Else the item’s minimum contribution is its min-content contribution.
     /// Because the minimum contribution often depends on the size of the item’s content, it is considered a type of intrinsic size contribution.
     /// See: https://www.w3.org/TR/css-grid-1/#min-size-auto
-    pub fn minimum_contribution(
+    pub fn minimum_contribution<Tree: LayoutTree<ChildId>>(
         &mut self,
-        tree: &mut Tree,
+        tree: Tree,
         axis: AbstractAxis,
         axis_tracks: &[GridTrack],
         known_dimensions: Size<Option<f32>>,
@@ -459,9 +459,9 @@ impl<Tree: LayoutTree> GridItem<Tree> {
 
     /// Retrieve the item's minimum contribution from the cache or compute it using the provided parameters
     #[inline(always)]
-    pub fn minimum_contribution_cached(
+    pub fn minimum_contribution_cached<Tree: LayoutTree<ChildId>>(
         &mut self,
-        tree: &mut Tree,
+        tree: Tree,
         axis: AbstractAxis,
         axis_tracks: &[GridTrack],
         known_dimensions: Size<Option<f32>>,

@@ -13,7 +13,7 @@ use crate::geometry::{Point, Size};
 use crate::layout::{Cache, Layout, RunMode, SizeAndBaselines, SizingMode};
 use crate::node::{Node, Taffy};
 use crate::style::{AvailableSpace, Display};
-use crate::tree::LayoutTree;
+use crate::tree::{ChildIdBounds, LayoutTree};
 
 use self::flexbox::FlexboxAlgorithm;
 use self::grid::CssGridAlgorithm;
@@ -48,8 +48,8 @@ pub trait LayoutAlgorithm {
     const NAME: &'static str;
 
     /// Compute the size of the node given the specified constraints
-    fn measure_size(
-        tree: &mut impl LayoutTree,
+    fn measure_size<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+        tree: Tree,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -57,8 +57,8 @@ pub trait LayoutAlgorithm {
     ) -> Size<f32>;
 
     /// Perform a full layout on the node given the specified constraints
-    fn perform_layout(
-        tree: &mut impl LayoutTree,
+    fn perform_layout<ChildId: ChildIdBounds, Tree: LayoutTree<ChildId>>(
+        tree: Tree,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -130,7 +130,8 @@ fn compute_node_layout(
     /// Inlined function generic over the LayoutAlgorithm to reduce code duplication
     #[inline(always)]
     fn perform_computations<Algorithm: LayoutAlgorithm>(
-        tree: &mut impl LayoutTree,
+        tree: &mut Taffy,
+        node: Node,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -141,11 +142,21 @@ fn compute_node_layout(
         NODE_LOGGER.log(Algorithm::NAME);
 
         match run_mode {
-            RunMode::PeformLayout => {
-                Algorithm::perform_layout(tree, known_dimensions, parent_size, available_space, sizing_mode)
-            }
+            RunMode::PeformLayout => Algorithm::perform_layout(
+                tree.node_ref_mut(node).unwrap(),
+                known_dimensions,
+                parent_size,
+                available_space,
+                sizing_mode,
+            ),
             RunMode::ComputeSize => {
-                let size = Algorithm::measure_size(tree, known_dimensions, parent_size, available_space, sizing_mode);
+                let size = Algorithm::measure_size(
+                    tree.node_ref_mut(node).unwrap(),
+                    known_dimensions,
+                    parent_size,
+                    available_space,
+                    sizing_mode,
+                );
                 SizeAndBaselines { size, first_baselines: Point::NONE }
             }
         }
@@ -167,7 +178,8 @@ fn compute_node_layout(
     } else {
         match tree.nodes[node].style.display {
             Display::Flex => perform_computations::<FlexboxAlgorithm>(
-                &mut tree.node_ref_mut(node).unwrap(),
+                tree,
+                node,
                 known_dimensions,
                 parent_size,
                 available_space,
@@ -176,7 +188,8 @@ fn compute_node_layout(
             ),
             #[cfg(feature = "grid")]
             Display::Grid => perform_computations::<CssGridAlgorithm>(
-                &mut tree.node_ref_mut(node).unwrap(),
+                tree,
+                node,
                 known_dimensions,
                 parent_size,
                 available_space,

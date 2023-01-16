@@ -6,23 +6,23 @@ use crate::{
 };
 use core::fmt::Debug;
 
+/// Trait alias for Copy + PartialEq + Debug
+pub trait ChildIdBounds: Copy + PartialEq + Debug {}
+impl<T: Copy + PartialEq + Debug> ChildIdBounds for T {}
+
 /// Any item that implements the LayoutTree can be layed out using Taffy's algorithms.
 ///
 /// Generally, Taffy expects your Node tree to be indexable by stable indices. A "stable" index means that the Node's ID
 /// remains the same between re-layouts.
-pub trait LayoutTree {
+pub trait LayoutTree<ChildId: ChildIdBounds> {
     /// Type for the reborrow method. Normally this will be the same type you are implementing this trait for,
     /// but with a shorter lifegsttime
-    type Reborrow<'a>: LayoutTree
+    type Reborrow<'a>: LayoutTree<ChildId>
     where
         Self: 'a;
 
-    /// Type of an id that represents a child of the current node
-    /// This can be a usize if you are storing children in a vector
-    type ChildId: Copy + PartialEq + Debug;
-
     /// Type representing an iterator of the children of a node
-    type ChildIter<'a>: Iterator<Item = Self::ChildId>
+    type ChildIter<'a>: Iterator<Item = ChildId>
     where
         Self: 'a;
 
@@ -51,18 +51,18 @@ pub trait LayoutTree {
     fn child_count(&self) -> usize;
 
     /// Get a specific child of a node, where the index represents the nth child
-    fn child(&self, index: usize) -> Self::ChildId;
+    fn child(&self, index: usize) -> ChildId;
 
     /// Get the [`Style`] for this child.
-    fn child_style(&self, child_node_id: Self::ChildId) -> &Style;
+    fn child_style(&self, child_node_id: ChildId) -> &Style;
 
     /// Modify the child's output layout
-    fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut Layout;
+    fn child_layout_mut(&mut self, child_node_id: ChildId) -> &mut Layout;
 
     /// Compute the size of the node given the specified constraints
     fn measure_child_size(
         &mut self,
-        child_node_id: Self::ChildId,
+        child_node_id: ChildId,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -72,7 +72,7 @@ pub trait LayoutTree {
     /// Perform a full layout on the node given the specified constraints
     fn perform_child_layout(
         &mut self,
-        child_node_id: Self::ChildId,
+        child_node_id: ChildId,
         known_dimensions: Size<Option<f32>>,
         parent_size: Size<Option<f32>>,
         available_space: Size<AvailableSpace>,
@@ -80,5 +80,5 @@ pub trait LayoutTree {
     ) -> SizeAndBaselines;
 
     /// Perform a hidden layout (mark the node as invisible)
-    fn perform_child_hidden_layout(&mut self, child_node_id: Self::ChildId, order: u32);
+    fn perform_child_hidden_layout(&mut self, child_node_id: ChildId, order: u32);
 }

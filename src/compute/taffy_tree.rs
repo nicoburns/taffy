@@ -17,6 +17,9 @@ use crate::compute::FlexboxAlgorithm;
 #[cfg(feature = "grid")]
 use crate::compute::CssGridAlgorithm;
 
+#[cfg(feature = "stack_layout")]
+use crate::compute::StackAlgorithm;
+
 #[cfg(any(feature = "debug", feature = "profile"))]
 use crate::util::debug::NODE_LOGGER;
 
@@ -226,6 +229,17 @@ where
         ),
         #[cfg(feature = "grid")]
         (Display::Grid, true) => perform_computations::<CssGridAlgorithm>(
+            taffy_view,
+            node,
+            known_dimensions,
+            parent_size,
+            available_space,
+            run_mode,
+            sizing_mode,
+            vertical_margins_are_collapsible,
+        ),
+        #[cfg(feature = "stack_layout")]
+        (Display::Stack, true) => perform_computations::<StackAlgorithm>(
             taffy_view,
             node,
             known_dimensions,

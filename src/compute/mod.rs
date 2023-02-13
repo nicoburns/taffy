@@ -14,6 +14,9 @@ pub(crate) mod flexbox;
 #[cfg(feature = "grid")]
 pub(crate) mod grid;
 
+#[cfg(feature = "stack_layout")]
+pub(crate) mod stack;
+
 use crate::geometry::{Line, Size};
 use crate::style::AvailableSpace;
 use crate::tree::{Layout, LayoutTree, NodeId, SizeBaselinesAndMargins, SizingMode};
@@ -26,6 +29,9 @@ pub use self::flexbox::FlexboxAlgorithm;
 
 #[cfg(feature = "grid")]
 pub use self::grid::CssGridAlgorithm;
+
+#[cfg(feature = "stack_layout")]
+pub use self::stack::StackAlgorithm;
 
 #[cfg(feature = "taffy_tree")]
 pub(crate) mod taffy_tree;

@@ -228,16 +228,16 @@ pub struct Style {
     #[cfg(any(feature = "flexbox", feature = "grid"))]
     pub justify_content: Option<JustifyContent>,
     /// How large should the gaps between items in a grid or flex container be?
-    #[cfg(any(feature = "flexbox", feature = "grid"))]
+    #[cfg(any(feature = "flexbox", feature = "grid", feature = "stack_layout"))]
     #[cfg_attr(feature = "serde", serde(default = "style_helpers::zero"))]
     pub gap: Size<LengthPercentage>,
 
     // Flexbox properies
     /// Which direction does the main axis flow in?
-    #[cfg(feature = "flexbox")]
+    #[cfg(any(feature = "flexbox", feature = "stack_layout"))]
     pub flex_direction: FlexDirection,
     /// Should elements wrap, or stay in a single line?
-    #[cfg(feature = "flexbox")]
+    #[cfg(any(feature = "flexbox", feature = "stack_layout"))]
     pub flex_wrap: FlexWrap,
     /// Sets the initial main axis size of the item
     #[cfg(feature = "flexbox")]
@@ -294,7 +294,7 @@ impl Style {
         min_size: Size::auto(),
         max_size: Size::auto(),
         aspect_ratio: None,
-        #[cfg(any(feature = "flexbox", feature = "grid"))]
+        #[cfg(any(feature = "flexbox", feature = "grid", feature = "stack_layout"))]
         gap: Size::zero(),
         // Aligment
         #[cfg(any(feature = "flexbox", feature = "grid"))]
@@ -310,9 +310,9 @@ impl Style {
         #[cfg(any(feature = "flexbox", feature = "grid"))]
         justify_content: None,
         // Flexbox
-        #[cfg(feature = "flexbox")]
+        #[cfg(any(feature = "flexbox", feature = "stack_layout"))]
         flex_direction: FlexDirection::Row,
-        #[cfg(feature = "flexbox")]
+        #[cfg(any(feature = "flexbox", feature = "stack_layout"))]
         flex_wrap: FlexWrap::NoWrap,
         #[cfg(feature = "flexbox")]
         flex_grow: 0.0,
@@ -359,9 +359,9 @@ mod tests {
             overflow: Default::default(),
             scrollbar_width: 0.0,
             position: Default::default(),
-            #[cfg(feature = "flexbox")]
+            #[cfg(any(feature = "flexbox", feature = "stack_layout"))]
             flex_direction: Default::default(),
-            #[cfg(feature = "flexbox")]
+            #[cfg(any(feature = "flexbox", feature = "stack_layout"))]
             flex_wrap: Default::default(),
             #[cfg(any(feature = "flexbox", feature = "grid"))]
             align_items: Default::default(),
@@ -379,6 +379,7 @@ mod tests {
             margin: Rect::zero(),
             padding: Rect::zero(),
             border: Rect::zero(),
+            #[cfg(any(feature = "flexbox", feature = "grid", feature = "stack_layout"))]
             gap: Size::zero(),
             #[cfg(feature = "flexbox")]
             flex_grow: 0.0,
@@ -390,6 +391,7 @@ mod tests {
             min_size: Size::auto(),
             max_size: Size::auto(),
             aspect_ratio: Default::default(),
+
             #[cfg(feature = "grid")]
             grid_template_rows: Default::default(),
             #[cfg(feature = "grid")]

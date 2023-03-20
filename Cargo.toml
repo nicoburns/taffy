@@ -32,7 +32,7 @@ debug = []
 
 [dev-dependencies]
 criterion = "0.4"
-rstest = "0.16.0"
+rstest = "0.17.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 

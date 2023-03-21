@@ -2,7 +2,7 @@
 
 use crate::prelude as core;
 
-use super::{ReturnCode};
+use super::ReturnCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -95,10 +95,4 @@ impl TryFrom<StyleValue> for core::LengthPercentageAuto {
             StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
         }
     }
-}
-
-
-#[repr(transparent)]
-pub struct Style {
-    pub(crate) inner: core::Style,
 }

@@ -1,6 +1,6 @@
 //! Return types for C FFI
 
-use super::{StyleValueUnit, StyleValue};
+use super::{StyleValue, StyleValueUnit};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]

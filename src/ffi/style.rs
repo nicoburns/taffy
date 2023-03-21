@@ -1,9 +1,17 @@
 //! Public API for C FFI
 
 use crate::geometry::Rect;
+use crate::prelude as core;
 use std::ffi::c_void;
 
-use super::{StyleValueUnit, StyleValue, StyleValueResult, ReturnCode, Style};
+use super::{ReturnCode, StyleValue, StyleValueResult, StyleValueUnit};
+
+/// A wrapper around [`core::Style`] which allows the individual style properties to be accessed
+/// via FFI-friendly getter and setter functions
+#[repr(transparent)]
+pub struct Style {
+    pub(crate) inner: core::Style,
+}
 
 /// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {

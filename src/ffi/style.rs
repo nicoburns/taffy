@@ -9,7 +9,7 @@ use super::{GridPlacement, ReturnCode, StyleValue, StyleValueResult, StyleValueU
 /// A wrapper around [`core::Style`] which allows the individual style properties to be accessed
 /// via FFI-friendly getter and setter functions
 #[repr(transparent)]
-pub struct Style {
+pub struct TaffyStyle {
     pub(crate) inner: core::Style,
 }
 
@@ -28,7 +28,7 @@ macro_rules! assert_style_pointer_is_non_null {
 macro_rules! get_style {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let style_box = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+        let style_box = unsafe { Box::from_raw($raw_style_ptr as *mut TaffyStyle) };
         let $style_ident = &style_box.inner;
 
         let return_value = $block;
@@ -45,7 +45,7 @@ macro_rules! get_style {
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let mut style_box = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+        let mut style_box = unsafe { Box::from_raw($raw_style_ptr as *mut TaffyStyle) };
         let $style_ident = &mut style_box.inner;
 
         $block;
@@ -78,19 +78,19 @@ macro_rules! try_from_raw {
 
 /// Function to get the margin_top value
 #[no_mangle]
-pub unsafe extern "C" fn Taffy_get_margin_top(raw_style: *const c_void) -> StyleValueResult {
+pub unsafe extern "C" fn TaffyStyle_get_margin_top(raw_style: *const c_void) -> StyleValueResult {
     get_style!(raw_style, style, style.margin.top)
 }
 
 /// Function to set the margin_top value
 #[no_mangle]
-pub unsafe extern "C" fn Taffy_set_margin_top(raw_style: *mut c_void, value: StyleValue) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyle_set_margin_top(raw_style: *mut c_void, value: StyleValue) -> ReturnCode {
     with_style_mut!(raw_style, style, style.margin.top = try_from_value!(value))
 }
 
 /// Function to set all the value of margin
 #[no_mangle]
-pub unsafe extern "C" fn Taffy_set_margin_trbl(
+pub unsafe extern "C" fn TaffyStyle_set_margin_trbl(
     raw_style: *mut c_void,
     top: StyleValue,
     right: StyleValue,
@@ -111,19 +111,19 @@ pub unsafe extern "C" fn Taffy_set_margin_trbl(
 
 /// Function to get the margin_top value
 #[no_mangle]
-pub unsafe extern "C" fn Taffy_get_padding_top(raw_style: *const c_void) -> StyleValueResult {
+pub unsafe extern "C" fn TaffyStyle_get_padding_top(raw_style: *const c_void) -> StyleValueResult {
     get_style!(raw_style, style, style.padding.top)
 }
 
 /// Function to set the padding_top value
 #[no_mangle]
-pub unsafe extern "C" fn Taffy_set_padding_top(raw_style: *mut c_void, value: f32, unit: StyleValueUnit) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyle_set_padding_top(raw_style: *mut c_void, value: f32, unit: StyleValueUnit) -> ReturnCode {
     with_style_mut!(raw_style, style, style.padding.top = try_from_raw!(unit, value))
 }
 
 /// Function to set all the value of padding
 #[no_mangle]
-pub unsafe extern "C" fn Taffy_set_padding_trbl(
+pub unsafe extern "C" fn TaffyStyle_set_padding_trbl(
     raw_style: *mut c_void,
     top_value: f32,
     top_value_unit: StyleValueUnit,
@@ -147,11 +147,13 @@ pub unsafe extern "C" fn Taffy_set_padding_trbl(
 /* Grid APIs */
 
 /// Get grid item's column placement
-pub fn style_get_grid_column(raw_style: *mut c_void) -> GridPlacementResult {
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_get_grid_column(raw_style: *mut c_void) -> GridPlacementResult {
     get_style!(raw_style, style, style.grid_column)
 }
 
 /// Set grid item's column placement
-pub fn style_set_grid_column(raw_style: *mut c_void, placement: GridPlacement) -> ReturnCode {
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_set_grid_column(raw_style: *mut c_void, placement: GridPlacement) -> ReturnCode {
     with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }

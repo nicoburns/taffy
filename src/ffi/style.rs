@@ -4,7 +4,7 @@ use crate::geometry::Rect;
 use crate::prelude as core;
 use std::ffi::c_void;
 
-use super::{ReturnCode, StyleValue, StyleValueResult, StyleValueUnit};
+use super::{GridPlacement, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, GridPlacementResult, TaffyFFIResult};
 
 /// A wrapper around [`core::Style`] which allows the individual style properties to be accessed
 /// via FFI-friendly getter and setter functions
@@ -17,7 +17,7 @@ pub struct Style {
 macro_rules! assert_style_pointer_is_non_null {
     ($raw_style_ptr:expr) => {{
         if ($raw_style_ptr as *const c_void) == std::ptr::null() {
-            return ReturnCode::NullStylePointer.into();
+            return TaffyFFIResult::from_return_code(ReturnCode::NullStylePointer);
         }
     }};
 }
@@ -34,7 +34,8 @@ macro_rules! get_style {
         let return_value = $block;
 
         Box::leak(style_box);
-        StyleValueResult { return_code: ReturnCode::Ok, value: return_value.into() }
+
+        TaffyFFIResult::from_value(return_value.into())
     }};
 }
 
@@ -141,4 +142,16 @@ pub unsafe extern "C" fn Taffy_set_padding_trbl(
             left: try_from_raw!(left_value_unit, left_value),
         };
     })
+}
+
+/* Grid APIs */
+
+/// Get grid item's column placement
+pub fn style_get_grid_column(raw_style: *mut c_void) -> GridPlacementResult {
+    get_style!(raw_style, style, style.grid_column)
+}
+
+/// Set grid item's column placement
+pub fn style_set_grid_column(raw_style: *mut c_void, placement: GridPlacement) -> ReturnCode {
+    with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }

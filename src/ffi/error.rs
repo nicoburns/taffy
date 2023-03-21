@@ -1,6 +1,12 @@
 //! Return types for C FFI
 
-use super::{StyleValue, StyleValueUnit};
+use super::{StyleValue, StyleValueUnit, GridPlacement};
+
+pub (crate) trait TaffyFFIResult {
+    type Value;
+    fn from_value(value: Self::Value) -> Self;
+    fn from_return_code(return_code: ReturnCode) -> Self;
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -35,14 +41,45 @@ pub enum ReturnCode {
     UnexpectedNegative,
 }
 
+impl TaffyFFIResult for ReturnCode {
+    type Value = ReturnCode;
+    fn from_value(value: Self::Value) -> Self {
+       value
+    }
+    fn from_return_code(return_code: ReturnCode) -> Self {
+        return_code
+    }
+}
+
 #[repr(C)]
 pub struct StyleValueResult {
     pub return_code: ReturnCode,
     pub value: StyleValue,
 }
 
-impl From<ReturnCode> for StyleValueResult {
-    fn from(return_code: ReturnCode) -> Self {
+impl TaffyFFIResult for StyleValueResult {
+    type Value = StyleValue;
+    fn from_value(value: Self::Value) -> Self {
+        Self { return_code: ReturnCode::Ok, value }
+    }
+    fn from_return_code(return_code: ReturnCode) -> Self {
         Self { return_code, value: StyleValue { unit: StyleValueUnit::None, value: 0.0 } }
+    }
+}
+
+
+#[repr(C)]
+pub struct GridPlacementResult {
+    pub return_code: ReturnCode,
+    pub value: GridPlacement,
+}
+
+impl TaffyFFIResult for GridPlacementResult {
+    type Value = GridPlacement;
+    fn from_value(value: Self::Value) -> Self {
+        Self { return_code: ReturnCode::Ok, value }
+    }
+    fn from_return_code(return_code: ReturnCode) -> Self {
+        Self { return_code, value: GridPlacement { start: 0, end: 0, span: 0 } }
     }
 }

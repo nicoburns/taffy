@@ -96,3 +96,25 @@ impl TryFrom<StyleValue> for core::LengthPercentageAuto {
         }
     }
 }
+
+/// For all fields, zero represents not set
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
+pub struct GridPlacement {
+    pub start: i16,
+    pub end: i16,
+    pub span: u16,
+}
+
+impl From<GridPlacement> for core::Line<core::GridPlacement> {
+    fn from(placement: GridPlacement) -> Self {
+        Self::from_raw_parts(placement.start, placement.span, placement.end)
+    }
+}
+
+impl From<core::Line<core::GridPlacement>> for GridPlacement {
+    fn from(placement: core::Line<core::GridPlacement>) -> Self {
+        let (start, span, end) = placement.into_raw_parts();
+        Self { start, span, end }
+    }
+}

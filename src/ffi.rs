@@ -6,7 +6,7 @@ use std::ffi::c_void;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum ErrorCode {
+pub enum ReturnCode {
     /// Operation suceeded
     Ok,
     /// A None unit was specified but is not valid in this context
@@ -73,40 +73,65 @@ impl StyleValue {
     }
 }
 
+impl From<core::LengthPercentage> for StyleValue {
+    fn from(value: core::LengthPercentage) -> Self {
+        match value {
+            core::LengthPercentage::Points(value) => Self { unit: StyleValueUnit::Points, value },
+            core::LengthPercentage::Percent(value) => Self { unit: StyleValueUnit::Percent, value },
+        }
+    }
+}
+
 impl TryFrom<StyleValue> for core::LengthPercentage {
-    type Error = ErrorCode;
+    type Error = ReturnCode;
 
     fn try_from(value: StyleValue) -> Result<Self, Self::Error> {
         match value.unit {
             StyleValueUnit::Length => Ok(core::LengthPercentage::Length(value.value)),
             StyleValueUnit::Percent => Ok(core::LengthPercentage::Percent(value.value)),
-            StyleValueUnit::None => Err(ErrorCode::InvalidNone),
-            StyleValueUnit::Auto => Err(ErrorCode::InvalidAuto),
-            StyleValueUnit::MinContent => Err(ErrorCode::InvalidMinContent),
-            StyleValueUnit::MaxContent => Err(ErrorCode::InvalidMaxContent),
-            StyleValueUnit::FitContentPx => Err(ErrorCode::InvalidFitContentPx),
-            StyleValueUnit::FitContentPercent => Err(ErrorCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ErrorCode::InvalidFr),   
+            StyleValueUnit::None => Err(ReturnCode::InvalidNone),
+            StyleValueUnit::Auto => Err(ReturnCode::InvalidAuto),
+            StyleValueUnit::MinContent => Err(ReturnCode::InvalidMinContent),
+            StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
+            StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
+            StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
+            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),   
+        }
+    }
+}
+
+impl From<core::LengthPercentageAuto> for StyleValue {
+    fn from(value: core::LengthPercentageAuto) -> Self {
+        match value {
+            core::LengthPercentageAuto::Points(value) => Self { unit: StyleValueUnit::Points, value },
+            core::LengthPercentageAuto::Percent(value) => Self { unit: StyleValueUnit::Percent, value },
+            core::LengthPercentageAuto::Auto => Self { unit: StyleValueUnit::Auto, value: 0.0 },
         }
     }
 }
 
 impl TryFrom<StyleValue> for core::LengthPercentageAuto {
-    type Error = ErrorCode;
+    type Error = ReturnCode;
 
     fn try_from(value: StyleValue) -> Result<Self, Self::Error> {
         match value.unit {
             StyleValueUnit::Auto => Ok(core::LengthPercentageAuto::Auto),
             StyleValueUnit::Length => Ok(core::LengthPercentageAuto::Length(value.value)),
             StyleValueUnit::Percent => Ok(core::LengthPercentageAuto::Percent(value.value)),
-            StyleValueUnit::None => Err(ErrorCode::InvalidNone),
-            StyleValueUnit::MinContent => Err(ErrorCode::InvalidMinContent),
-            StyleValueUnit::MaxContent => Err(ErrorCode::InvalidMaxContent),
-            StyleValueUnit::FitContentPx => Err(ErrorCode::InvalidFitContentPx),
-            StyleValueUnit::FitContentPercent => Err(ErrorCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ErrorCode::InvalidFr),   
+            StyleValueUnit::None => Err(ReturnCode::InvalidNone),
+            StyleValueUnit::MinContent => Err(ReturnCode::InvalidMinContent),
+            StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
+            StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
+            StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
+            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),   
         }
     }
+}
+
+#[repr(C)]
+pub struct StyleValueResult {
+    pub return_code: ReturnCode,
+    pub value: StyleValue,
 }
 
 #[repr(transparent)]
@@ -123,6 +148,21 @@ pub fn assert_pointer_address(pointer: *const c_void, pointer_type: &str) {
     );
 }
 
+macro_rules! get_style {
+    ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
+        assert_pointer_address($raw_style_ptr, "style");
+        let $rust_style_ptr = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+
+        let return_value = $block;
+
+        Box::leak($rust_style_ptr);
+        StyleValueResult {
+            return_code: ReturnCode::Ok,
+            value: return_value.into()
+        }
+    }};
+}
+
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
         assert_pointer_address($raw_style_ptr, "style");
@@ -131,10 +171,12 @@ macro_rules! with_style_mut {
         $block;
 
         Box::leak($rust_style_ptr);
-        ErrorCode::Ok
+        ReturnCode::Ok
     }};
 }
 
+/// Attempt to convert a [`StyleValue`] into a type that implements `TryFrom<StyleValue>`
+/// In the case of a conversion error, return a [`ReturnCode`].
 macro_rules! try_from_value {
     ($value:expr) => {
         match $value.try_into() {
@@ -144,10 +186,31 @@ macro_rules! try_from_value {
     };
 }
 
+/// Attempt to convert a [`StyleValueUnit`] and a `f32` into a type that implements `TryFrom<StyleValue>`
+/// In the case of a conversion error, return a [`ReturnCode`].
 macro_rules! try_from_raw {
     ($unit:expr, $value:expr) => {
         try_from_value!(StyleValue::from_raw($unit, $value))
     };
+}
+
+/* API variant with single parameter that combines "value" and "unit" into a `StyleValue` struct */
+
+/// Function to get the margin_top value
+#[no_mangle]
+pub extern "C" fn Taffy_get_margin_top(
+    raw_style: *const c_void,
+) -> StyleValueResult {
+    get_style!(raw_style, style, style.inner.margin.top)
+}
+
+/// Function to set the margin_top value
+#[no_mangle]
+pub extern "C" fn Taffy_set_margin_top(
+    raw_style: *mut c_void,
+    value: StyleValue,
+) -> ReturnCode {
+    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
 }
 
 
@@ -159,7 +222,7 @@ pub extern "C" fn Taffy_set_margin_trbl(
     right: StyleValue,
     bottom: StyleValue,
     left: StyleValue,
-) -> ErrorCode {
+) -> ReturnCode {
     with_style_mut!(raw_style, style, {
         style.inner.margin = Rect {
             top: try_from_value!(top),
@@ -170,13 +233,24 @@ pub extern "C" fn Taffy_set_margin_trbl(
     })
 }
 
-/// Function to set all the value of margin
+/* API variant with seperate "value" and "unit" parameters */
+
+/// Function to get the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_set_margin_top(
+pub extern "C" fn Taffy_get_padding_top(
+    raw_style: *const c_void,
+) -> StyleValueResult {
+    get_style!(raw_style, style, style.inner.padding.top)
+}
+
+/// Function to set the padding_top value
+#[no_mangle]
+pub extern "C" fn Taffy_set_padding_top(
     raw_style: *mut c_void,
-    value: StyleValue,
-) -> ErrorCode {
-    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
+    value: f32,
+    unit: StyleValueUnit,
+) -> ReturnCode {
+    with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value))
 }
 
 /// Function to set all the value of padding
@@ -191,7 +265,7 @@ pub extern "C" fn Taffy_set_padding_trbl(
     left_value_unit: StyleValueUnit,
     bottom_value: f32,
     bottom_value_unit: StyleValueUnit,
-) -> ErrorCode {
+) -> ReturnCode {
     with_style_mut!(raw_style, style, {
         style.inner.padding = Rect {
             top: try_from_raw!(top_value_unit, top_value),
@@ -202,12 +276,4 @@ pub extern "C" fn Taffy_set_padding_trbl(
     })
 }
 
-/// Function to set all the value of margin
-#[no_mangle]
-pub extern "C" fn Taffy_set_padding_top(
-    raw_style: *mut c_void,
-    value: f32,
-    unit: StyleValueUnit,
-) -> ErrorCode {
-    with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value))
-}
+

@@ -59,7 +59,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(unsafe_code)]
-#![forbid(unsafe_code)]
+// #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
@@ -77,6 +77,7 @@ extern crate alloc;
 extern crate serde;
 
 pub mod compute;
+pub mod ffi;
 pub mod geometry;
 pub mod prelude;
 pub mod style;

@@ -1,6 +1,7 @@
 //! Types for C FFI
 
 use crate::prelude as core;
+use crate::geometry::{Rect};
 use std::ffi::c_void;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,10 +61,9 @@ pub enum StyleValueUnit {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
 pub struct StyleValue {
-    pub unit: StyleValueUnit,
-    /// The value. If the unit is variant that doesn't require a value (e.g. Auto) then the value
-    /// is ignored.
+    /// The value. If the unit is variant that doesn't require a value (e.g. Auto) then the value is ignored.
     pub value: f32,
+    pub unit: StyleValueUnit,
 }
 
 impl StyleValue {
@@ -124,14 +124,15 @@ pub fn assert_pointer_address(pointer: *const c_void, pointer_type: &str) {
 }
 
 macro_rules! with_style_mut {
-    ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {
+    ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
         assert_pointer_address($raw_style_ptr, "style");
         let mut $rust_style_ptr = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
 
         $block;
 
         Box::leak($rust_style_ptr);
-    };
+        ErrorCode::Ok
+    }};
 }
 
 macro_rules! try_from_value {
@@ -162,19 +163,14 @@ pub extern "C" fn Taffy_set_padding_trbl(
     bottom_value: f32,
     bottom_value_unit: StyleValueUnit,
 ) -> ErrorCode {
-    let top = try_from_raw!(top_value_unit, top_value);
-    let right = try_from_raw!(right_value_unit, right_value);
-    let bottom = try_from_raw!(bottom_value_unit, bottom_value);
-    let left = try_from_raw!(left_value_unit, left_value);
-
     with_style_mut!(raw_style, style, {
-        style.inner.padding.top = top;
-        style.inner.padding.right = right;
-        style.inner.padding.bottom = bottom;
-        style.inner.padding.left = left;
-    });
-
-    ErrorCode::Ok
+        style.inner.padding = Rect {
+            top: try_from_raw!(top_value_unit, top_value),
+            right: try_from_raw!(right_value_unit, right_value),
+            bottom: try_from_raw!(bottom_value_unit, bottom_value),
+            left: try_from_raw!(left_value_unit, left_value),
+        };
+    })
 }
 
 /// Function to set all the value of margin
@@ -184,8 +180,7 @@ pub extern "C" fn Taffy_set_padding_top(
     value: f32,
     unit: StyleValueUnit,
 ) -> ErrorCode {
-    with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value));
-    ErrorCode::Ok
+    with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value))
 }
 
 /// Function to set all the value of margin
@@ -197,19 +192,14 @@ pub extern "C" fn Taffy_set_margin_trbl(
     bottom: StyleValue,
     left: StyleValue,
 ) -> ErrorCode {
-    let top = try_from_value!(top);
-    let right = try_from_value!(right);
-    let bottom = try_from_value!(bottom);
-    let left = try_from_value!(left);
-
     with_style_mut!(raw_style, style, {
-        style.inner.margin.top = top;
-        style.inner.margin.right = right;
-        style.inner.margin.bottom = bottom;
-        style.inner.margin.left = left;
-    });
-
-    ErrorCode::Ok
+        style.inner.margin = Rect {
+            top: try_from_value!(top),
+            right: try_from_value!(right),
+            bottom: try_from_value!(bottom),
+            left: try_from_value!(left),
+        };
+    })
 }
 
 /// Function to set all the value of margin
@@ -218,6 +208,5 @@ pub extern "C" fn Taffy_set_margin_top(
     raw_style: *mut c_void,
     value: StyleValue,
 ) -> ErrorCode {
-    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value));
-    ErrorCode::Ok
+    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
 }

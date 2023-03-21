@@ -150,6 +150,35 @@ macro_rules! try_from_raw {
     };
 }
 
+
+/// Function to set all the value of margin
+#[no_mangle]
+pub extern "C" fn Taffy_set_margin_trbl(
+    raw_style: *mut c_void,
+    top: StyleValue,
+    right: StyleValue,
+    bottom: StyleValue,
+    left: StyleValue,
+) -> ErrorCode {
+    with_style_mut!(raw_style, style, {
+        style.inner.margin = Rect {
+            top: try_from_value!(top),
+            right: try_from_value!(right),
+            bottom: try_from_value!(bottom),
+            left: try_from_value!(left),
+        };
+    })
+}
+
+/// Function to set all the value of margin
+#[no_mangle]
+pub extern "C" fn Taffy_set_margin_top(
+    raw_style: *mut c_void,
+    value: StyleValue,
+) -> ErrorCode {
+    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
+}
+
 /// Function to set all the value of padding
 #[no_mangle]
 pub extern "C" fn Taffy_set_padding_trbl(
@@ -181,32 +210,4 @@ pub extern "C" fn Taffy_set_padding_top(
     unit: StyleValueUnit,
 ) -> ErrorCode {
     with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value))
-}
-
-/// Function to set all the value of margin
-#[no_mangle]
-pub extern "C" fn Taffy_set_margin_trbl(
-    raw_style: *mut c_void,
-    top: StyleValue,
-    right: StyleValue,
-    bottom: StyleValue,
-    left: StyleValue,
-) -> ErrorCode {
-    with_style_mut!(raw_style, style, {
-        style.inner.margin = Rect {
-            top: try_from_value!(top),
-            right: try_from_value!(right),
-            bottom: try_from_value!(bottom),
-            left: try_from_value!(left),
-        };
-    })
-}
-
-/// Function to set all the value of margin
-#[no_mangle]
-pub extern "C" fn Taffy_set_margin_top(
-    raw_style: *mut c_void,
-    value: StyleValue,
-) -> ErrorCode {
-    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
 }

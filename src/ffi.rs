@@ -1,7 +1,7 @@
 //! Types for C FFI
 
+use crate::geometry::Rect;
 use crate::prelude as core;
-use crate::geometry::{Rect};
 use std::ffi::c_void;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,7 +97,7 @@ impl TryFrom<StyleValue> for core::LengthPercentage {
             StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
             StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
             StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),   
+            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
         }
     }
 }
@@ -125,7 +125,7 @@ impl TryFrom<StyleValue> for core::LengthPercentageAuto {
             StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
             StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
             StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),   
+            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
         }
     }
 }
@@ -138,7 +138,7 @@ pub struct StyleValueResult {
 
 impl From<ReturnCode> for StyleValueResult {
     fn from(return_code: ReturnCode) -> Self {
-        Self { return_code, value: StyleValue { unit: StyleValueUnit::None, value: 0.0 }}
+        Self { return_code, value: StyleValue { unit: StyleValueUnit::None, value: 0.0 } }
     }
 }
 
@@ -148,11 +148,7 @@ pub struct Style {
 }
 
 pub fn assert_pointer_address(pointer: *const c_void) {
-    assert_ne!(
-        pointer,
-        std::ptr::null(),
-        "Invalid style pointer address"
-    );
+    assert_ne!(pointer, std::ptr::null(), "Invalid style pointer address");
 }
 
 macro_rules! assert_style_pointer_is_non_null {
@@ -171,10 +167,7 @@ macro_rules! get_style {
         let return_value = $block;
 
         Box::leak($rust_style_ptr);
-        StyleValueResult {
-            return_code: ReturnCode::Ok,
-            value: return_value.into()
-        }
+        StyleValueResult { return_code: ReturnCode::Ok, value: return_value.into() }
     }};
 }
 
@@ -213,21 +206,15 @@ macro_rules! try_from_raw {
 
 /// Function to get the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_get_margin_top(
-    raw_style: *const c_void,
-) -> StyleValueResult {
+pub extern "C" fn Taffy_get_margin_top(raw_style: *const c_void) -> StyleValueResult {
     get_style!(raw_style, style, style.inner.margin.top)
 }
 
 /// Function to set the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_set_margin_top(
-    raw_style: *mut c_void,
-    value: StyleValue,
-) -> ReturnCode {
+pub extern "C" fn Taffy_set_margin_top(raw_style: *mut c_void, value: StyleValue) -> ReturnCode {
     with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
 }
-
 
 /// Function to set all the value of margin
 #[no_mangle]
@@ -252,19 +239,13 @@ pub extern "C" fn Taffy_set_margin_trbl(
 
 /// Function to get the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_get_padding_top(
-    raw_style: *const c_void,
-) -> StyleValueResult {
+pub extern "C" fn Taffy_get_padding_top(raw_style: *const c_void) -> StyleValueResult {
     get_style!(raw_style, style, style.inner.padding.top)
 }
 
 /// Function to set the padding_top value
 #[no_mangle]
-pub extern "C" fn Taffy_set_padding_top(
-    raw_style: *mut c_void,
-    value: f32,
-    unit: StyleValueUnit,
-) -> ReturnCode {
+pub extern "C" fn Taffy_set_padding_top(raw_style: *mut c_void, value: f32, unit: StyleValueUnit) -> ReturnCode {
     with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value))
 }
 
@@ -290,5 +271,3 @@ pub extern "C" fn Taffy_set_padding_trbl(
         };
     })
 }
-
-

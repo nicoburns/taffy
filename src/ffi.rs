@@ -151,6 +151,8 @@ pub fn assert_pointer_address(pointer: *const c_void) {
     assert_ne!(pointer, std::ptr::null(), "Invalid style pointer address");
 }
 
+
+/// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {
     ($raw_style_ptr:expr) => {{
         if ($raw_style_ptr as *const c_void) == std::ptr::null() {
@@ -159,26 +161,34 @@ macro_rules! assert_style_pointer_is_non_null {
     }};
 }
 
+/// Assert that the passed raw style pointer is non-null
+/// Then give the passed expression access to the value of the inner [`core::Style`] struct pointed to by the raw style pointer
+/// Return whatever the expression evaluates to wrapped in a [`StyleValueResult`] if the expression does not interally return.
 macro_rules! get_style {
-    ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
+    ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let $rust_style_ptr = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+        let style_box = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+        let $style_ident = &style_box.inner;
 
         let return_value = $block;
 
-        Box::leak($rust_style_ptr);
+        Box::leak(style_box);
         StyleValueResult { return_code: ReturnCode::Ok, value: return_value.into() }
     }};
 }
 
+/// Assert that the passed raw style pointer is non-null
+/// Then give the passed expression mutable access to the value of the inner [`core::Style`] struct pointed to by the raw style pointer
+/// Return [`ReturnCode::Ok`] if the expression does not internally return.
 macro_rules! with_style_mut {
-    ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
+    ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let mut $rust_style_ptr = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+        let mut style_box = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
+        let $style_ident = &mut style_box.inner;
 
         $block;
 
-        Box::leak($rust_style_ptr);
+        Box::leak(style_box);
         ReturnCode::Ok
     }};
 }
@@ -207,13 +217,13 @@ macro_rules! try_from_raw {
 /// Function to get the margin_top value
 #[no_mangle]
 pub extern "C" fn Taffy_get_margin_top(raw_style: *const c_void) -> StyleValueResult {
-    get_style!(raw_style, style, style.inner.margin.top)
+    get_style!(raw_style, style, style.margin.top)
 }
 
 /// Function to set the margin_top value
 #[no_mangle]
 pub extern "C" fn Taffy_set_margin_top(raw_style: *mut c_void, value: StyleValue) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.inner.margin.top = try_from_value!(value))
+    with_style_mut!(raw_style, style, style.margin.top = try_from_value!(value))
 }
 
 /// Function to set all the value of margin
@@ -226,7 +236,7 @@ pub extern "C" fn Taffy_set_margin_trbl(
     left: StyleValue,
 ) -> ReturnCode {
     with_style_mut!(raw_style, style, {
-        style.inner.margin = Rect {
+        style.margin = Rect {
             top: try_from_value!(top),
             right: try_from_value!(right),
             bottom: try_from_value!(bottom),
@@ -240,13 +250,13 @@ pub extern "C" fn Taffy_set_margin_trbl(
 /// Function to get the margin_top value
 #[no_mangle]
 pub extern "C" fn Taffy_get_padding_top(raw_style: *const c_void) -> StyleValueResult {
-    get_style!(raw_style, style, style.inner.padding.top)
+    get_style!(raw_style, style, style.padding.top)
 }
 
 /// Function to set the padding_top value
 #[no_mangle]
 pub extern "C" fn Taffy_set_padding_top(raw_style: *mut c_void, value: f32, unit: StyleValueUnit) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.inner.padding.top = try_from_raw!(unit, value))
+    with_style_mut!(raw_style, style, style.padding.top = try_from_raw!(unit, value))
 }
 
 /// Function to set all the value of padding
@@ -263,7 +273,7 @@ pub extern "C" fn Taffy_set_padding_trbl(
     bottom_value_unit: StyleValueUnit,
 ) -> ReturnCode {
     with_style_mut!(raw_style, style, {
-        style.inner.padding = Rect {
+        style.padding = Rect {
             top: try_from_raw!(top_value_unit, top_value),
             right: try_from_raw!(right_value_unit, right_value),
             bottom: try_from_raw!(bottom_value_unit, bottom_value),

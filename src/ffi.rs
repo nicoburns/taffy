@@ -9,6 +9,8 @@ use std::ffi::c_void;
 pub enum ReturnCode {
     /// Operation suceeded
     Ok,
+    /// The style pointer passed was null
+    NullStylePointer,
     /// A None unit was specified but is not valid in this context
     InvalidNone,
     /// A Length unit was specified but is not valid in this context
@@ -134,23 +136,36 @@ pub struct StyleValueResult {
     pub value: StyleValue,
 }
 
+impl From<ReturnCode> for StyleValueResult {
+    fn from(return_code: ReturnCode) -> Self {
+        Self { return_code, value: StyleValue { unit: StyleValueUnit::None, value: 0.0 }}
+    }
+}
+
 #[repr(transparent)]
 pub struct Style {
     inner: core::Style,
 }
 
-pub fn assert_pointer_address(pointer: *const c_void, pointer_type: &str) {
+pub fn assert_pointer_address(pointer: *const c_void) {
     assert_ne!(
         pointer,
         std::ptr::null(),
-        "Invalid {:} pointer address",
-        pointer_type
+        "Invalid style pointer address"
     );
+}
+
+macro_rules! assert_style_pointer_is_non_null {
+    ($raw_style_ptr:expr) => {{
+        if ($raw_style_ptr as *const c_void) == std::ptr::null() {
+            return ReturnCode::NullStylePointer.into();
+        }
+    }};
 }
 
 macro_rules! get_style {
     ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
-        assert_pointer_address($raw_style_ptr, "style");
+        assert_style_pointer_is_non_null!($raw_style_ptr);
         let $rust_style_ptr = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
 
         let return_value = $block;
@@ -165,7 +180,7 @@ macro_rules! get_style {
 
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $rust_style_ptr:ident, $block:expr) => {{
-        assert_pointer_address($raw_style_ptr, "style");
+        assert_style_pointer_is_non_null!($raw_style_ptr);
         let mut $rust_style_ptr = unsafe { Box::from_raw($raw_style_ptr as *mut Style) };
 
         $block;

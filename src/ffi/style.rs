@@ -77,19 +77,19 @@ macro_rules! try_from_raw {
 
 /// Function to get the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_get_margin_top(raw_style: *const c_void) -> StyleValueResult {
+pub unsafe extern "C" fn Taffy_get_margin_top(raw_style: *const c_void) -> StyleValueResult {
     get_style!(raw_style, style, style.margin.top)
 }
 
 /// Function to set the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_set_margin_top(raw_style: *mut c_void, value: StyleValue) -> ReturnCode {
+pub unsafe extern "C" fn Taffy_set_margin_top(raw_style: *mut c_void, value: StyleValue) -> ReturnCode {
     with_style_mut!(raw_style, style, style.margin.top = try_from_value!(value))
 }
 
 /// Function to set all the value of margin
 #[no_mangle]
-pub extern "C" fn Taffy_set_margin_trbl(
+pub unsafe extern "C" fn Taffy_set_margin_trbl(
     raw_style: *mut c_void,
     top: StyleValue,
     right: StyleValue,
@@ -110,19 +110,19 @@ pub extern "C" fn Taffy_set_margin_trbl(
 
 /// Function to get the margin_top value
 #[no_mangle]
-pub extern "C" fn Taffy_get_padding_top(raw_style: *const c_void) -> StyleValueResult {
+pub unsafe extern "C" fn Taffy_get_padding_top(raw_style: *const c_void) -> StyleValueResult {
     get_style!(raw_style, style, style.padding.top)
 }
 
 /// Function to set the padding_top value
 #[no_mangle]
-pub extern "C" fn Taffy_set_padding_top(raw_style: *mut c_void, value: f32, unit: StyleValueUnit) -> ReturnCode {
+pub unsafe extern "C" fn Taffy_set_padding_top(raw_style: *mut c_void, value: f32, unit: StyleValueUnit) -> ReturnCode {
     with_style_mut!(raw_style, style, style.padding.top = try_from_raw!(unit, value))
 }
 
 /// Function to set all the value of padding
 #[no_mangle]
-pub extern "C" fn Taffy_set_padding_trbl(
+pub unsafe extern "C" fn Taffy_set_padding_trbl(
     raw_style: *mut c_void,
     top_value: f32,
     top_value_unit: StyleValueUnit,

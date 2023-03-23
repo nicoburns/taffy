@@ -486,7 +486,7 @@ fn parse_max_track_sizing_function(raw_value: &ComponentValue) -> Option<MaxTrac
         ComponentValue::Dimension(ast::Dimension::Length(length)) if ident_as_str(&length.unit) == "px" => {
             Some(points(length.value.value as f32))
         }
-        ComponentValue::Dimension(ast::Dimension::Flex(flex_fraction)) => Some(flex(flex_fraction.value.value as f32)),
+        ComponentValue::Dimension(ast::Dimension::Flex(flex_fraction)) => Some(fr(flex_fraction.value.value as f32)),
         ComponentValue::Integer(integer) if integer.value == 0 => Some(points(integer.value as f32)),
         ComponentValue::Ident(ident) => match ident_as_str(ident) {
             "auto" => auto(),
@@ -524,11 +524,11 @@ fn parse_grid_placement(raw_values: &[ComponentValue]) -> Option<GridPlacement> 
 
     if span {
         match number {
-            Some(num) if num > 0 => Some(GridPlacement::Span(num as u16)),
+            Some(num) if num > 0 => Some(taffy::style_helpers::span(num as u16)),
             _ => None,
         }
     } else {
-        number.map(|num| GridPlacement::Track(num))
+        number.map(|num| line(num))
     }
 }
 

@@ -91,35 +91,35 @@ fn parse_style(style_text: &str) -> Style {
             }
             "position" => {
                 let ComponentValue::Ident(ident) = &decl.value[0] else { continue; };
-                style.position_type = match ident_as_str(ident) {
-                    "absolute" => PositionType::Absolute,
-                    "relative" | _ => PositionType::Relative,
+                style.position = match ident_as_str(ident) {
+                    "absolute" => Position::Absolute,
+                    "relative" | _ => Position::Relative,
                 };
             }
 
             // Position
             "left" => {
                 let Some(left) = parse_length_percentage_auto(&decl.value[0]) else { continue; };
-                style.position.left = left;
+                style.inset.left = left;
             }
             "right" => {
                 let Some(right) = parse_length_percentage_auto(&decl.value[0]) else { continue; };
-                style.position.right = right;
+                style.inset.right = right;
             }
             "top" => {
                 let Some(top) = parse_length_percentage_auto(&decl.value[0]) else { continue; };
-                style.position.top = top;
+                style.inset.top = top;
             }
             "bottom" => {
                 let Some(bottom) = parse_length_percentage_auto(&decl.value[0]) else { continue; };
-                style.position.bottom = bottom;
+                style.inset.bottom = bottom;
             }
             "inset" => {
                 let Some([top, right, bottom, left]) = four_value_shorthand(&decl.value, parse_length_percentage_auto) else { continue; };
-                style.position.top = top;
-                style.position.right = right;
-                style.position.bottom = bottom;
-                style.position.left = left;
+                style.inset.top = top;
+                style.inset.right = right;
+                style.inset.bottom = bottom;
+                style.inset.left = left;
             }
 
             // Sizes

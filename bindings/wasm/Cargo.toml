@@ -22,6 +22,7 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 wasm-bindgen-test = "0.3.33"
 
 [profile.release]
+# lto = true
 opt-level = "s"
 
 [workspace]

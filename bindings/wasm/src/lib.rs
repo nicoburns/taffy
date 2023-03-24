@@ -2,12 +2,12 @@
 
 mod utils;
 
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
-use js_sys::Array;
 use js_sys::Function;
 use js_sys::Reflect;
+use js_sys::{Array, ArrayBuffer, Float32Array, Uint8Array};
 use taffy::prelude::*;
 use taffy::tree::LayoutTree;
 use wasm_bindgen::prelude::*;
@@ -124,13 +124,55 @@ impl Layout {
 #[derive(Clone)]
 pub struct Allocator {
     taffy: Rc<RefCell<taffy::Taffy>>,
+    messages: Vec<u8>,
+    values: Vec<f32>,
 }
 
 #[wasm_bindgen]
 impl Allocator {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self { taffy: Rc::new(RefCell::new(taffy::Taffy::new())) }
+        Self { taffy: Rc::new(RefCell::new(taffy::Taffy::new())), messages: Vec::new(), values: Vec::new() }
+    }
+
+    pub fn set_messages(&mut self, new_messages: &Uint8Array) {
+        let required_len = new_messages.length() as usize;
+
+        // SAFETY
+        // Sufficient space for the new message has just been reserved above
+        // We use a raw pointer rather than a slice here because the newly reserved capacity may be
+        // uninitialized so we can't create a reference/slice to it until it is initialized.
+        unsafe {
+            // Reserve enough space for messages
+            self.messages.reserve(required_len);
+
+            // Copy messages into buffer (initializes memory if it wasn't already initialized)
+            new_messages.raw_copy_to_ptr(self.messages.as_mut_ptr());
+
+            // Increase length of vec match newly copied in messages
+            // Any old data beyond this point is ignored. This is safe because u8 doesn't impl Drop.
+            self.messages.set_len(required_len);
+        }
+    }
+
+    pub fn set_values(&mut self, new_values: &Float32Array) {
+        let required_len = new_values.length() as usize;
+
+        // SAFETY
+        // Sufficient space for the new message has just been reserved above
+        // We use a raw pointer rather than a slice here because the newly reserved capacity may be
+        // uninitialized so we can't create a reference/slice to it until it is initialized.
+        unsafe {
+            // Reserve enough space for messages
+            self.values.reserve(required_len);
+
+            // Copy messages into buffer (initializes memory if it wasn't already initialized)
+            new_values.raw_copy_to_ptr(self.values.as_mut_ptr());
+
+            // Increase length of vec match newly copied in messages
+            // Any old data beyond this point is ignored. This is safe because u8 doesn't impl Drop.
+            self.values.set_len(required_len);
+        }
     }
 }
 
@@ -282,10 +324,169 @@ macro_rules! with_style_mut {
     }};
 }
 
+#[wasm_bindgen]
+#[repr(u8)]
+pub enum StylePropertyKey {
+    // Display/Position
+    Display,
+    Position,
+
+    // Inset
+    InsetTop,
+    InsetBottom,
+    InsetLeft,
+    InsetRight,
+    InsetAll,
+
+    // Size
+    Width,
+    Height,
+    MinWidth,
+    MinHeight,
+    MaxWidth,
+    MaxHeight,
+    AspectRatio,
+
+    // Alignment
+    AlignItems,
+    AlignSelf,
+    AlignContent,
+    JustifyItems,
+    JustifySelf,
+    JustifyContent,
+
+    // Spacing
+    MarginTop,
+    MarginBottom,
+    MarginLeft,
+    MarginRight,
+    MarginAll,
+
+    PaddingTop,
+    PaddingBottom,
+    PaddingLeft,
+    PaddingRight,
+    PaddingAll,
+
+    BorderWidthTop,
+    BorderWidthBottom,
+    BorderWidthLeft,
+    BorderWidthRight,
+    BorderWidthAll,
+
+    RowGap,
+    ColumnGap,
+
+    // Flexbox
+    FlexDirection,
+    FlexWrap,
+    FlexGrow,
+    FlexShrink,
+    FlexBasis,
+
+    // CSS Grid
+    GridAutoFlow,
+    GridTemplateRows,
+    GridTemplateColumns,
+    GridAutoRows,
+    GridAutoColumns,
+    GridRow,
+    GridColumn,
+}
+
+impl TryFrom<u8> for StylePropertyKey {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            // Display/Position
+            0 => Ok(StylePropertyKey::Display),
+            1 => Ok(StylePropertyKey::Position),
+
+            // Inset
+            2 => Ok(StylePropertyKey::InsetTop),
+            3 => Ok(StylePropertyKey::InsetBottom),
+            4 => Ok(StylePropertyKey::InsetLeft),
+            5 => Ok(StylePropertyKey::InsetRight),
+            6 => Ok(StylePropertyKey::InsetAll),
+
+            // Size
+            7 => Ok(StylePropertyKey::Width),
+            8 => Ok(StylePropertyKey::Height),
+            9 => Ok(StylePropertyKey::MinWidth),
+            10 => Ok(StylePropertyKey::MinHeight),
+            11 => Ok(StylePropertyKey::MaxWidth),
+            12 => Ok(StylePropertyKey::MaxHeight),
+            13 => Ok(StylePropertyKey::AspectRatio),
+
+            // Alignment
+            14 => Ok(StylePropertyKey::AlignItems),
+            15 => Ok(StylePropertyKey::AlignSelf),
+            16 => Ok(StylePropertyKey::AlignContent),
+            17 => Ok(StylePropertyKey::JustifyItems),
+            18 => Ok(StylePropertyKey::JustifySelf),
+            19 => Ok(StylePropertyKey::JustifyContent),
+
+            // Spacing
+            20 => Ok(StylePropertyKey::MarginTop),
+            21 => Ok(StylePropertyKey::MarginBottom),
+            22 => Ok(StylePropertyKey::MarginLeft),
+            23 => Ok(StylePropertyKey::MarginRight),
+            24 => Ok(StylePropertyKey::MarginAll),
+
+            25 => Ok(StylePropertyKey::PaddingTop),
+            26 => Ok(StylePropertyKey::PaddingBottom),
+            27 => Ok(StylePropertyKey::PaddingLeft),
+            28 => Ok(StylePropertyKey::PaddingRight),
+            29 => Ok(StylePropertyKey::PaddingAll),
+
+            30 => Ok(StylePropertyKey::BorderWidthTop),
+            31 => Ok(StylePropertyKey::BorderWidthBottom),
+            32 => Ok(StylePropertyKey::BorderWidthLeft),
+            33 => Ok(StylePropertyKey::BorderWidthRight),
+            34 => Ok(StylePropertyKey::BorderWidthAll),
+
+            35 => Ok(StylePropertyKey::RowGap),
+            36 => Ok(StylePropertyKey::ColumnGap),
+
+            //// Flexbox
+            37 => Ok(StylePropertyKey::FlexDirection),
+            38 => Ok(StylePropertyKey::FlexWrap),
+            39 => Ok(StylePropertyKey::FlexGrow),
+            40 => Ok(StylePropertyKey::FlexShrink),
+            41 => Ok(StylePropertyKey::FlexBasis),
+
+            //// CSS Grid
+            42 => Ok(StylePropertyKey::GridAutoFlow),
+            43 => Ok(StylePropertyKey::GridTemplateRows),
+            44 => Ok(StylePropertyKey::GridTemplateColumns),
+            45 => Ok(StylePropertyKey::GridAutoRows),
+            46 => Ok(StylePropertyKey::GridAutoColumns),
+            47 => Ok(StylePropertyKey::GridRow),
+            48 => Ok(StylePropertyKey::GridColumn),
+            _ => Err(()),
+        }
+    }
+}
+
 // Style getter/setter methods
 #[wasm_bindgen]
 #[clippy::allow(non_snake_case)]
 impl Node {
+    pub fn __internal__setPackedStyles(&mut self, msg: Uint8Array, values: Float32Array) -> Result<(), JsError> {
+        // Copy internal messages and values into buffers that can be accessed cheaply from rust
+        self.allocator.set_messages(&msg);
+        self.allocator.set_values(&values);
+
+        let mut taffy = self.allocator.taffy.borrow_mut();
+        let style = taffy.style_mut(self.node)?;
+
+        let mut applier = PackedStyleApplier::new(style, &self.allocator.messages, &self.allocator.values);
+        applier.apply();
+
+        Ok(())
+    }
+
     // Display / Position
     pub fn getDisplay(&mut self) -> Result<Display, JsError> {
         get_style!(self, style, style.display)
@@ -533,6 +734,85 @@ impl Node {
     // pub fn set_height_str(&mut self, height: &str) -> Result<(), JsError> {
     //     with_style_mut!(self, style, style.size.height = height.parse().unwrap())
     // }
+}
+
+struct PackedStyleApplier<'style, 'input> {
+    style: &'style mut Style,
+    messages: &'input [u8],
+    values: &'input [f32],
+    midx: usize,
+    vidx: usize,
+}
+
+impl<'style, 'input> PackedStyleApplier<'style, 'input> {
+    fn new<'s, 'i>(style: &'s mut Style, messages: &'i [u8], values: &'i [f32]) -> PackedStyleApplier<'s, 'i> {
+        PackedStyleApplier { style, messages, values, midx: 0, vidx: 0 }
+    }
+
+    #[inline(always)]
+    fn consume_message_byte(&mut self) -> u8 {
+        let byte = self.messages[self.midx];
+        self.midx += 1;
+        byte
+    }
+
+    #[inline(always)]
+    fn consume_style_property(&mut self) -> Option<StylePropertyKey> {
+        self.consume_message_byte().try_into().ok()
+    }
+
+    #[inline(always)]
+    fn consume_style_unit(&mut self) -> Option<StyleUnit> {
+        self.consume_message_byte().try_into().ok()
+    }
+
+    #[inline(always)]
+    fn consume_value(&mut self) -> f32 {
+        let val = self.values[self.vidx];
+        self.vidx += 1;
+        val
+    }
+
+    #[inline(always)]
+    fn consume_optional_value(&mut self) -> Option<f32> {
+        let val = self.consume_value();
+        if val.is_nan() {
+            None
+        } else {
+            Some(val)
+        }
+    }
+
+    fn apply(&mut self) {
+        loop {
+            if self.midx >= self.messages.len() {
+                break;
+            }
+
+            let Some(prop) = self.consume_style_property() else { continue; };
+
+            match prop {
+                StylePropertyKey::FlexGrow => {
+                    self.style.flex_grow = self.consume_value();
+                }
+                StylePropertyKey::Width => {
+                    let Some(unit) = self.consume_style_unit() else { continue; };
+                    let value = if unit.has_value() { self.consume_value() } else { 0.0 };
+                    let Ok(width) = unit.try_into_dimension(value) else { continue };
+                    self.style.size.width = width;
+                }
+                StylePropertyKey::Height => {
+                    let Some(unit) = self.consume_style_unit() else { continue; };
+                    let value = if unit.has_value() { self.consume_value() } else { 0.0 };
+                    let Ok(height) = unit.try_into_dimension(value) else { continue };
+                    self.style.size.height = height;
+                }
+                _ => {
+                    // Ignore other styles for now.
+                }
+            }
+        }
+    }
 }
 
 fn parse_style(style: &JsValue) -> taffy::style::Style {

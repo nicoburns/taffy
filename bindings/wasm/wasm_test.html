@@ -11,6 +11,7 @@
       window.BENCH_NODE_COUNT = 10000;
       window.WARMUP_ITERS = 1;
       window.TEST_ITERS = 1;
+
     </script>
 
     <!--  -->
@@ -30,21 +31,49 @@
       import init, * as Taffy from './pkg/taffy_layout.js';
       await init();
 
-      // Yoga WASM benchmark
-      async function benchmark_yoga(Yoga) {
-        const page = Yoga.Node.create();
+      // let buffer = new ArrayBuffer(500);
+      // let msg = new DataView(buffer);
 
-        for (let i = 0; i < BENCH_NODE_COUNT; i++) {
-          const node = Yoga.Node.create();
-          // for (let j = 0; j < 6; j++) {
-          //   node.setFlexGrow(1);
-          // }
-          for (let j = 0; j < 6; j++) {
-            node.setHeight("100%");
-          }
-          page.insertChild(node, i);
+      class Style {
+        constructor() {
+          this.messages = new Uint8Array(500);
+          this.values = new Float64Array(500);
+          this.midx = 0;
+          this.vidx = 0;
+        }
+
+        setFlexGrow(value) {
+          this.messages[this.midx++] = Taffy.StylePropertyKey.FlexGrow;
+          this.values[this.vidx++] = value;
+        }
+
+        setHeight(value, unit) {
+          this.messages[this.midx++] = Taffy.StylePropertyKey.Height;
+          this.messages[this.midx++] = unit;
+          this.values[this.vidx++] = value;
+        }
+
+        setWidth(value, unit) {
+          this.messages[this.midx++] = Taffy.StylePropertyKey.Width;
+          this.messages[this.midx++] = unit;
+          this.values[this.vidx++] = value;
+        }
+
+        apply(node) {
+          let msgSlice = this.messages.subarray(0, this.midx);
+          let valueSlice = this.values.subarray(0, this.vidx);
+          node.__internal__setPackedStyles(msgSlice, valueSlice);
+        }
+
+        clear(node) {
+          this.midx = 0;
+          this.vidx = 0;
         }
       }
+
+      let msg = new Uint8Array(120);
+      let values = new Float64Array(120);
+
 
       function parseDimensionValue(value) {
         switch (typeof value) {
@@ -65,6 +94,105 @@
         }
 
         return Taffy.StyleUnit.Px;
+      }
+
+      function parseDimensionUnit(msg, values, input) {
+        switch (typeof value) {
+          case "number":
+            return Taffy.StyleUnit.Px;
+          case "string":
+            return parseStringDimensionUnit(value)
+        }
+
+        return Taffy.StyleUnit.Px;
+      }
+
+      function setPackedStyles(node, style) {
+        let midx = 0;
+        let vidx = 0;
+
+
+        // for (let [key, value] of Object.entries(style)) {
+        //   switch (key) {
+        //     case "flexGrow": {
+        //       msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        //       values[vidx++] = parseFloat(value);
+        //       break;
+        //     }
+        //     case "width": {
+        //       msg[midx++] = Taffy.StylePropertyKey.Height;
+        //       msg[midx++] = parseDimensionValue(value);
+        //       values[vidx++] =  parseDimensionUnit(value);
+        //       break;
+        //     }
+        //     case "height": {
+        //       msg[midx++] = Taffy.StylePropertyKey.Height;
+        //       msg[midx++] = parseDimensionValue(value);
+        //       values[vidx++] =  parseDimensionUnit(value);
+        //       break;
+        //     }
+        //   }
+        // }
+
+        // msg[midx++] = Taffy.StylePropertyKey.Width;
+        // msg[midx++] = Taffy.StyleUnit.Px;
+        // values[vidx++] = 100;
+        // msg[midx++] = Taffy.StylePropertyKey.Height;
+        // msg[midx++] = Taffy.StyleUnit.Percent;
+        // values[vidx++] = 30;
+
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+        // values[vidx++] = 3;
+
+        for (let j = 0; j < 20; j++) {
+          msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
+          values[vidx++] = 3;
+        }
+
+        let msgSlice = msg.subarray(0, midx);
+        let valueSlice = values.subarray(0, vidx);
+
+        node.__internal__setPackedStyles(msgSlice, valueSlice);
+      }
+
+      // Yoga WASM benchmark
+      async function benchmark_yoga(Yoga) {
+        const page = Yoga.Node.create();
+
+        for (let i = 0; i < BENCH_NODE_COUNT; i++) {
+          const node = Yoga.Node.create();
+          // for (let j = 0; j < 6; j++) {
+          //   node.setFlexGrow(1);
+          // }
+          for (let j = 0; j < 6; j++) {
+            node.setHeight("100%");
+          }
+          page.insertChild(node, i);
+        }
       }
 
       function setHeightWrapper(node, heightStr) {
@@ -104,6 +232,16 @@
         // container.setStyle({flexDirection: FlexDirection.Row})
 
         const arr = [];
+
+        let style = new Style();
+
+          for (let j = 0; j < 8; j++) {
+            style.setFlexGrow(1);
+          }
+          style.setHeight(100, Taffy.StyleUnit.Percent);
+          style.setWidth(40, Taffy.StyleUnit.Px);
+
+
         for (let i = 0; i < BENCH_NODE_COUNT; i++) {
           const child = new Node(allocator, {});
           // for (let j = 0; j < 6; j++) {
@@ -135,10 +273,10 @@
         let start, time;
 
         // await wait(2000);
-        
-        log("Warming up...");
-        await Promise.all(Array(WARMUP_ITERS).fill(0).map(() => benchmark_yoga(Yoga)));
-        await Promise.all(Array(WARMUP_ITERS).fill(0).map(() => benchmark_taffy(Taffy)));
+
+        // console.log("Warming up...");
+        // await Promise.all(Array(WARMUP_ITERS).fill(0).map(() => benchmark_yoga(Yoga)));
+        // await Promise.all(Array(WARMUP_ITERS).fill(0).map(() => benchmark_taffy(Taffy)));
 
         log("Testing Yoga...")
         start = performance.now();

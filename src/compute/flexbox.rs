@@ -307,15 +307,27 @@ fn compute_preliminary(
     NODE_LOGGER.log("calculate_children_base_lines");
     calculate_children_base_lines(tree, known_dimensions, available_space, &mut flex_lines, &constants);
 
+    // Calculate the minimum cross size of the container
+    let cross_axis_padding_border = constants.padding_border.cross_axis_sum(constants.dir);
+    let cross_min_size = constants.min_size.cross(constants.dir);
+    let cross_max_size = constants.max_size.cross(constants.dir);
+    let container_min_inner_cross = known_dimensions
+        .cross(constants.dir)
+        .or(cross_min_size)
+        .maybe_clamp(cross_min_size, cross_max_size)
+        .maybe_sub(cross_axis_padding_border)
+        .maybe_max(0.0)
+        .unwrap_or(0.0);
+
     // 8. Calculate the cross size of each flex line.
     #[cfg(feature = "debug")]
     NODE_LOGGER.log("calculate_cross_size");
-    calculate_cross_size(&mut flex_lines, known_dimensions, &constants);
+    calculate_cross_size(&mut flex_lines, container_min_inner_cross, &constants);
 
     // 9. Handle 'align-content: stretch'.
     #[cfg(feature = "debug")]
     NODE_LOGGER.log("handle_align_content_stretch");
-    handle_align_content_stretch(&mut flex_lines, known_dimensions, &constants);
+    handle_align_content_stretch(&mut flex_lines, container_min_inner_cross, &constants);
 
     // 10. Collapse visibility:collapse items. If any flex items have visibility: collapse,
     //     note the cross size of the line they’re in as the item’s strut size, and restart
@@ -1340,27 +1352,19 @@ fn calculate_children_base_lines(
 ///         If the flex container is single-line, then clamp the line’s cross-size to be within the container’s computed min and max cross sizes.
 ///         **Note that if CSS 2.1’s definition of min/max-width/height applied more generally, this behavior would fall out automatically**.
 #[inline]
-fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>>, constants: &AlgoConstants) {
+fn calculate_cross_size(flex_lines: &mut [FlexLine], min_cross_size: f32, constants: &AlgoConstants) {
     // Note: AlignContent::SpaceEvenly and AlignContent::SpaceAround behave like AlignContent::Stretch when there is only
     // a single flex line in the container. See: https://www.w3.org/TR/css-flexbox-1/#align-content-property
     // Also: align_content is ignored entirely (and thus behaves like Stretch) when `flex_wrap` is set to `nowrap`.
     if flex_lines.len() == 1
-        && node_size.cross(constants.dir).is_some()
+        && min_cross_size > 0.0
         && (!constants.is_wrap
             || matches!(
                 constants.align_content,
                 AlignContent::Stretch | AlignContent::SpaceEvenly | AlignContent::SpaceAround
             ))
     {
-        let cross_axis_padding_border = constants.padding_border.cross_axis_sum(constants.dir);
-        let cross_min_size = constants.min_size.cross(constants.dir);
-        let cross_max_size = constants.max_size.cross(constants.dir);
-        flex_lines[0].cross_size = node_size
-            .cross(constants.dir)
-            .maybe_clamp(cross_min_size, cross_max_size)
-            .maybe_sub(cross_axis_padding_border)
-            .maybe_max(0.0)
-            .unwrap_or(0.0);
+        flex_lines[0].cross_size = min_cross_size;
     } else {
         for line in flex_lines.iter_mut() {
             //    1. Collect all the flex items whose inline-axis is parallel to the main-axis, whose
@@ -1402,19 +1406,12 @@ fn calculate_cross_size(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>
 ///     and the sum of the flex lines' cross sizes is less than the flex container’s inner cross size,
 ///     increase the cross size of each flex line by equal amounts such that the sum of their cross sizes exactly equals the flex container’s inner cross size.
 #[inline]
-fn handle_align_content_stretch(flex_lines: &mut [FlexLine], node_size: Size<Option<f32>>, constants: &AlgoConstants) {
+fn handle_align_content_stretch(
+    flex_lines: &mut [FlexLine],
+    container_min_inner_cross: f32,
+    constants: &AlgoConstants,
+) {
     if constants.align_content == AlignContent::Stretch {
-        let cross_axis_padding_border = constants.padding_border.cross_axis_sum(constants.dir);
-        let cross_min_size = constants.min_size.cross(constants.dir);
-        let cross_max_size = constants.max_size.cross(constants.dir);
-        let container_min_inner_cross = node_size
-            .cross(constants.dir)
-            .or(cross_min_size)
-            .maybe_clamp(cross_min_size, cross_max_size)
-            .maybe_sub(cross_axis_padding_border)
-            .maybe_max(0.0)
-            .unwrap_or(0.0);
-
         let total_cross_axis_gap = sum_axis_gaps(constants.gap.cross(constants.dir), flex_lines.len());
         let lines_total_cross: f32 = flex_lines.iter().map(|line| line.cross_size).sum::<f32>() + total_cross_axis_gap;
 

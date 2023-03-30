@@ -932,3 +932,5 @@ mod wrapped_column_max_height_flex;
 mod wrapped_row_within_align_items_center;
 mod wrapped_row_within_align_items_flex_end;
 mod wrapped_row_within_align_items_flex_start;
+mod yoga_issue_1067;
+mod yoga_issue_1067_2;

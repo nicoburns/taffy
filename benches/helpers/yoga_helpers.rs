@@ -1,9 +1,15 @@
 #![allow(dead_code)]
+
+use rand::{Rng, SeedableRng};
+use rand::distributions::uniform::SampleRange;
+use rand_chacha::ChaCha8Rng;
 use slotmap::{DefaultKey, SlotMap};
+
+use super::{BuildTree, GenStyle, STANDARD_RNG_SEED};
 
 pub mod yg {
     pub use ordered_float::OrderedFloat;
-    use slotmap::{DefaultKey, SlotMap};
+    pub use slotmap::{DefaultKey, SlotMap};
     pub use yoga::types::*;
     pub use yoga::Node;
 
@@ -12,29 +18,87 @@ pub mod yg {
 mod tf {
     pub use taffy::prelude::*;
 }
+use tf::Style as TaffyStyle;
 
-pub fn new_default_style_with_children(
-    tree: &mut SlotMap<DefaultKey, yg::Node>,
-    children: Vec<DefaultKey>,
-) -> DefaultKey {
+pub struct YogaTreeBuilder<R: Rng, G: GenStyle<TaffyStyle>> {
+    rng: R,
+    style_generator: G,
+    tree: yg::YogaTree,
+    root: yg::DefaultKey,
+}
+
+// Implement the BuildTree trait
+impl<R: Rng, G: GenStyle<TaffyStyle>> BuildTree for YogaTreeBuilder<R, G> {
+    type Tree = yg::YogaTree;
+    type Node = DefaultKey;
+
+    fn random_usize(&mut self, range: impl SampleRange<usize>) -> usize {
+        self.rng.gen_range(range)
+    }
+
+    fn create_leaf_node(&mut self) -> Self::Node {
+        let style = self.style_generator.create_leaf_style(&mut self.rng);
+        create_yg_node(&mut self.tree, &style, &[])
+    }
+
+    fn create_container_node(&mut self, children: &[Self::Node]) -> Self::Node {
+        let style = self.style_generator.create_container_style(&mut self.rng);
+        create_yg_node(&mut self.tree, &style, &children)
+    }
+
+    fn set_root_children(&mut self, children: &[Self::Node]) {
+        set_node_children(&mut self.tree, self.root, &children);
+    }
+
+    fn total_node_count(&mut self) -> usize {
+        self.tree.len()
+    }
+
+    fn into_tree_and_root(self) -> (Self::Tree, Self::Node) {
+        (self.tree, self.root)
+    }
+}
+
+impl<R: Rng, G: GenStyle<TaffyStyle>> YogaTreeBuilder<R, G> {
+    /// Create a YogaTreeBuilder with a standard rng from a style generator
+    fn new<NG: GenStyle<TaffyStyle>>(mut style_generator: NG) -> YogaTreeBuilder<ChaCha8Rng, NG> {
+        let mut rng = ChaCha8Rng::seed_from_u64(STANDARD_RNG_SEED);
+        let mut tree = SlotMap::new();
+        let root = create_yg_node(&mut tree, &style_generator.create_root_style(&mut rng), &[]);
+        YogaTreeBuilder { rng, style_generator, tree, root }
+    }
+
+    /// Create a YogaTreeBuilder with a standard rng from a style generator
+    fn with_seed<NG: GenStyle<TaffyStyle>>(seed: u64, mut style_generator: NG) -> YogaTreeBuilder<ChaCha8Rng, NG> {
+        let mut rng = ChaCha8Rng::seed_from_u64(seed);
+        let mut tree = SlotMap::new();
+        let root = create_yg_node(&mut tree, &style_generator.create_root_style(&mut rng), &[]);
+        YogaTreeBuilder { rng, style_generator, tree, root }
+    }
+
+    /// Create a YogaTreeBuilder from a random number generator and a style generator
+    fn with_rng<NR: Rng, NG: GenStyle<TaffyStyle>>(mut rng: NR, mut style_generator: NG) -> YogaTreeBuilder<NR, NG> {
+        let mut tree = SlotMap::new();
+        let root = create_yg_node(&mut tree, &style_generator.create_root_style(&mut rng), &[]);
+        YogaTreeBuilder { rng, style_generator, tree, root }
+    }
+}
+
+fn create_yg_node(tree: &mut yg::YogaTree, style: &tf::Style, children: &[yg::DefaultKey]) -> yg::DefaultKey {
     let mut node = yg::Node::new();
+    apply_taffy_style(&mut node, &style);
     for (i, child) in children.into_iter().enumerate() {
-        node.insert_child(&mut tree[child], i as u32);
+        node.insert_child(&mut tree[*child], i as u32);
     }
     tree.insert(node)
 }
 
-pub fn new_with_children(
-    tree: &mut SlotMap<DefaultKey, yg::Node>,
-    style: &tf::Style,
-    children: Vec<DefaultKey>,
-) -> DefaultKey {
-    let mut node = yg::Node::new();
-    apply_taffy_style(&mut node, style);
+fn set_node_children(tree: &mut yg::YogaTree, node_id: yg::DefaultKey, children: &[yg::DefaultKey]) {
+    let mut node = tree.remove(node_id).unwrap();
     for (i, child) in children.into_iter().enumerate() {
-        node.insert_child(&mut tree[child], i as u32);
+        node.insert_child(&mut tree[*child], i as u32);
     }
-    tree.insert(node)
+    tree[node_id] = node;
 }
 
 fn into_yg_units(dim: impl Into<tf::Dimension>) -> yg::StyleUnit {
@@ -92,7 +156,7 @@ fn content_into_justify(align: Option<tf::JustifyContent>) -> yg::Justify {
     }
 }
 
-pub fn apply_taffy_style(node: &mut yg::Node, style: &tf::Style) {
+fn apply_taffy_style(node: &mut yg::Node, style: &tf::Style) {
     // display
     node.set_display(match style.display {
         tf::Display::Flex => yg::Display::Flex,

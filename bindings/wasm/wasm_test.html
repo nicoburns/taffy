@@ -107,10 +107,16 @@
         return Taffy.StyleUnit.Px;
       }
 
-      function setPackedStyles(node, style) {
+      Taffy.Allocator.prototype.withBuffers = function (cb) {
+        this.msg = this.msg || this.getMessagesBuffer();
+        this.values = this.value || this.getValuesBuffer();
+
+        cb(this.msg, this.values)
+      }
+
+      function setPackedStyles(node, msg, values, style) {
         let midx = 0;
         let vidx = 0;
-
 
         // for (let [key, value] of Object.entries(style)) {
         //   switch (key) {
@@ -141,42 +147,12 @@
         // msg[midx++] = Taffy.StyleUnit.Percent;
         // values[vidx++] = 30;
 
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-        // msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
-        // values[vidx++] = 3;
-
-        for (let j = 0; j < 20; j++) {
+        for (let j = 0; j < 3; j++) {
           msg[midx++] = Taffy.StylePropertyKey.FlexGrow;
           values[vidx++] = 3;
         }
 
-        let msgSlice = msg.subarray(0, midx);
-        let valueSlice = values.subarray(0, vidx);
-
-        node.__internal__setPackedStyles(msgSlice, valueSlice);
+        node.__internal__setPackedStyles(midx, vidx);
       }
 
       // Yoga WASM benchmark
@@ -241,27 +217,33 @@
           style.setHeight(100, Taffy.StyleUnit.Percent);
           style.setWidth(40, Taffy.StyleUnit.Px);
 
+        allocator.withBuffers((msg, values) => {
+          for (let i = 0; i < BENCH_NODE_COUNT; i++) {
+            const child = new Node(allocator, {});
+            // style.apply(child);
+            // style.clear();
 
-        for (let i = 0; i < BENCH_NODE_COUNT; i++) {
-          const child = new Node(allocator, {});
-          // for (let j = 0; j < 6; j++) {
-          //   child.setFlexGrow(1);
-          // }
-          // for (let j = 0; j < 100; j++) {
-          //   child.setHeight(100, Taffy.StyleUnit.Percent);
-          // }
-          // for (let j = 0; j < 100; j++) {
-          //   child.setHeightStr("100%");
-          // }
-          // for (let j = 0; j < 100; j++) {
-          //   setHeightWrapper(child, "100%");
-          // }
-          for (let j = 0; j < 100; j++) {
-            setHeightWrapper2(child, 100, '%');
+            // setPackedStyles(child, msg, values, {
+            //   flexGrow: 3,
+            //   width: 300,
+            //   height: "30%",
+            // });
+
+            // child.setHeight("100%");
+            // child.setDisplay(Taffy.Display.Grid);
+            // child.setFlexGrow(3);
+
+
+            setPackedStyles(child, msg, values);
+            // for (let j = 0; j < 20; j++) {
+            //   child.setFlexGrow(1);
+            // }
+
+
+            container.addChild(child);
+            arr.push(child);
           }
-          container.addChild(child);
-          arr.push(child);
-        }
+        });
       }
 
       function wait(delay) {

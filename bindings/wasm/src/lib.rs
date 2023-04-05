@@ -124,55 +124,27 @@ impl Layout {
 #[derive(Clone)]
 pub struct Allocator {
     taffy: Rc<RefCell<taffy::Taffy>>,
-    messages: Vec<u8>,
-    values: Vec<f32>,
+    messages: Rc<[u8; 500]>,
+    values: Rc<[f32; 500]>,
 }
 
 #[wasm_bindgen]
 impl Allocator {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self { taffy: Rc::new(RefCell::new(taffy::Taffy::new())), messages: Vec::new(), values: Vec::new() }
-    }
-
-    pub fn set_messages(&mut self, new_messages: &Uint8Array) {
-        let required_len = new_messages.length() as usize;
-
-        // SAFETY
-        // Sufficient space for the new message has just been reserved above
-        // We use a raw pointer rather than a slice here because the newly reserved capacity may be
-        // uninitialized so we can't create a reference/slice to it until it is initialized.
-        unsafe {
-            // Reserve enough space for messages
-            self.messages.reserve(required_len);
-
-            // Copy messages into buffer (initializes memory if it wasn't already initialized)
-            new_messages.raw_copy_to_ptr(self.messages.as_mut_ptr());
-
-            // Increase length of vec match newly copied in messages
-            // Any old data beyond this point is ignored. This is safe because u8 doesn't impl Drop.
-            self.messages.set_len(required_len);
+        Self {
+            taffy: Rc::new(RefCell::new(taffy::Taffy::new())),
+            messages: Rc::new([0; 500]),
+            values: Rc::new([0.0; 500]),
         }
     }
 
-    pub fn set_values(&mut self, new_values: &Float32Array) {
-        let required_len = new_values.length() as usize;
+    pub fn getMessagesBuffer(&self) -> Uint8Array {
+        unsafe { Uint8Array::view(&*self.messages) }
+    }
 
-        // SAFETY
-        // Sufficient space for the new message has just been reserved above
-        // We use a raw pointer rather than a slice here because the newly reserved capacity may be
-        // uninitialized so we can't create a reference/slice to it until it is initialized.
-        unsafe {
-            // Reserve enough space for messages
-            self.values.reserve(required_len);
-
-            // Copy messages into buffer (initializes memory if it wasn't already initialized)
-            new_values.raw_copy_to_ptr(self.values.as_mut_ptr());
-
-            // Increase length of vec match newly copied in messages
-            // Any old data beyond this point is ignored. This is safe because u8 doesn't impl Drop.
-            self.values.set_len(required_len);
-        }
+    pub fn getValuesBuffer(&self) -> Float32Array {
+        unsafe { Float32Array::view(&*self.values) }
     }
 }
 
@@ -473,15 +445,18 @@ impl TryFrom<u8> for StylePropertyKey {
 #[wasm_bindgen]
 #[clippy::allow(non_snake_case)]
 impl Node {
-    pub fn __internal__setPackedStyles(&mut self, msg: Uint8Array, values: Float32Array) -> Result<(), JsError> {
+    pub fn __internal__setPackedStyles(&mut self, message_count: usize, value_count: usize) -> Result<(), JsError> {
+        assert!(message_count < 500);
+        assert!(value_count < 500);
+
         // Copy internal messages and values into buffers that can be accessed cheaply from rust
-        self.allocator.set_messages(&msg);
-        self.allocator.set_values(&values);
+        let messages = &self.allocator.messages[0..message_count];
+        let values = &self.allocator.values[0..value_count];
 
         let mut taffy = self.allocator.taffy.borrow_mut();
         let style = taffy.style_mut(self.node)?;
 
-        let mut applier = PackedStyleApplier::new(style, &self.allocator.messages, &self.allocator.values);
+        let mut applier = PackedStyleApplier::new(style, &messages, &values);
         applier.apply();
 
         Ok(())

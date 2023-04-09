@@ -32,9 +32,6 @@ pub mod style;
 pub mod style_helpers;
 pub mod tree;
 
-#[cfg(feature = "random")]
-pub mod randomizable;
-
 mod compute;
 mod data;
 mod resolve;

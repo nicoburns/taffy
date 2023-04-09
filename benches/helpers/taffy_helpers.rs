@@ -1,11 +1,12 @@
 
 use rand::distributions::uniform::SampleRange;
 use rand::{Rng, SeedableRng, RngCore};
+use rand_chacha::ChaCha8Rng;
 use taffy::Taffy as TaffyTree;
 use taffy::style::Style as TaffyStyle;
 use taffy::node::Node as TaffyNode;
 
-use super::{BuildTree, GenStyle, STANDARD_RNG_SEED};
+use super::{BuildTree, BuildTreeExt, GenStyle, STANDARD_RNG_SEED};
 
 pub struct TaffyTreeBuilder<R: Rng, G: GenStyle<TaffyStyle>> {
     rng: R,
@@ -53,6 +54,8 @@ impl<R: Rng, G: GenStyle<TaffyStyle>> BuildTree<R, G> for TaffyTreeBuilder<R, G>
 
 
 }
+
+impl<G: GenStyle<TaffyStyle>> BuildTreeExt<G> for TaffyTreeBuilder<ChaCha8Rng, G> {}
 
 // impl<G: GenStyle<TaffyStyle>> TaffyTreeBuilder<ChaCha8Rng, G> {
 //     /// Create a TaffyTreeBuilder with a standard rng from a style generator

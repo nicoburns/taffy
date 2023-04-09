@@ -5,7 +5,7 @@
 pub mod taffy_helpers;
 pub use taffy_helpers::TaffyTreeBuilder;
 
-#[cfg(feature = "yoga_benchmark")]
+// #[cfg(feature = "yoga_benchmark")]
 pub mod yoga_helpers;
 #[cfg(feature = "yoga_benchmark")]
 pub use yoga_helpers::YogaTreeBuilder;
@@ -13,10 +13,10 @@ pub use yoga_helpers::YogaTreeBuilder;
 use rand::distributions::uniform::SampleRange;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
-use taffy::style::Style as TaffyStyle;
 use taffy::randomizable::Randomizeable;
+use taffy::style::Style as TaffyStyle;
 
-pub const STANDARD_RNG_SEED : u64 = 12345;
+pub const STANDARD_RNG_SEED: u64 = 12345;
 
 pub trait GenStyle<Style: Default> {
     fn create_leaf_style(&mut self, rng: &mut impl Rng) -> Style;
@@ -107,5 +107,22 @@ pub trait BuildTree<R: Rng, G: GenStyle<TaffyStyle>> {
 
         self.set_root_children(&children);
         self.into_tree_and_root()
+    }
+}
+
+pub trait BuildTreeExt<G: GenStyle<TaffyStyle>>: BuildTree<ChaCha8Rng, G> {
+    fn with_seed(seed: u64, style_generator: G) -> Self
+    where
+        Self: Sized,
+    {
+        let rng = ChaCha8Rng::seed_from_u64(seed);
+        Self::with_rng(rng, style_generator)
+    }
+
+    fn new(style_generator: G) -> Self
+    where
+        Self: Sized,
+    {
+        Self::with_seed(STANDARD_RNG_SEED, style_generator)
     }
 }

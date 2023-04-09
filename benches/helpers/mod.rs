@@ -13,7 +13,6 @@ pub use yoga_helpers::YogaTreeBuilder;
 use rand::distributions::uniform::SampleRange;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
-use taffy::randomizable::Randomizeable;
 use taffy::style::Style as TaffyStyle;
 
 pub const STANDARD_RNG_SEED: u64 = 12345;
@@ -23,16 +22,6 @@ pub trait GenStyle<Style: Default> {
     fn create_container_style(&mut self, rng: &mut impl Rng) -> Style;
     fn create_root_style(&mut self, _rng: &mut impl Rng) -> Style {
         Default::default()
-    }
-}
-
-pub struct RandomStyleGenerator;
-impl GenStyle<TaffyStyle> for RandomStyleGenerator {
-    fn create_leaf_style(&mut self, rng: &mut impl Rng) -> TaffyStyle {
-        TaffyStyle::random(rng)
-    }
-    fn create_container_style(&mut self, rng: &mut impl Rng) -> TaffyStyle {
-        TaffyStyle::random(rng)
     }
 }
 

@@ -1,10 +1,12 @@
 //! This file includes benchmarks for very large, pseudo-randomly generated trees
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use rand::Rng;
 use taffy::prelude::*;
-use taffy::style::Style;
+use taffy::style::Dimension;
+use taffy::style::Style as TaffyStyle;
 
 mod helpers;
-use helpers::{BuildTreeExt, FixedStyleGenerator, RandomStyleGenerator, TaffyTreeBuilder};
+use helpers::{BuildTreeExt, FixedStyleGenerator, GenStyle, TaffyTreeBuilder};
 
 #[cfg(feature = "yoga_benchmark")]
 use helpers::yoga_helpers;
@@ -13,40 +15,61 @@ use slotmap::SlotMap;
 #[cfg(feature = "yoga_benchmark")]
 use yoga_helpers::{yg, YogaTreeBuilder};
 
+fn random_dimension(rng: &mut impl Rng) -> Dimension {
+    match rng.gen_range(0.0..=1.0) {
+        rand if rand < 0.2 => Dimension::Auto,
+        rand if rand < 0.8 => Dimension::Points(rng.gen_range(0.0..500.0)),
+        _ => Dimension::Percent(rng.gen_range(0.0..1.0)),
+    }
+}
+pub struct RandomStyleGenerator;
+impl GenStyle<TaffyStyle> for RandomStyleGenerator {
+    fn create_leaf_style(&mut self, rng: &mut impl Rng) -> TaffyStyle {
+        TaffyStyle { size: Size { width: random_dimension(rng), height: random_dimension(rng) }, ..Default::default() }
+    }
+    fn create_container_style(&mut self, rng: &mut impl Rng) -> TaffyStyle {
+        TaffyStyle { size: Size { width: random_dimension(rng), height: random_dimension(rng) }, ..Default::default() }
+    }
+}
+
 /// A deep tree that matches the shape and styling that yoga use on their benchmarks
-fn build_flat_hierarchy<TreeBuilder: BuildTreeExt<RandomStyleGenerator>>(
+fn build_flat_hierarchy<G: GenStyle<TaffyStyle>, TreeBuilder: BuildTreeExt<G>>(
     target_node_count: u32,
+    style_generator: impl FnOnce() -> G,
 ) -> (TreeBuilder::Tree, TreeBuilder::Node) {
-    let tree_builder = TreeBuilder::new(RandomStyleGenerator);
+    let tree_builder = TreeBuilder::new(style_generator());
     tree_builder.build_flat_hierarchy(target_node_count)
 }
 
 /// A deep tree that matches the shape and styling that yoga use on their benchmarks
-fn build_deep_hierarchy<TreeBuilder: BuildTreeExt<RandomStyleGenerator>>(
+fn build_deep_hierarchy<G: GenStyle<TaffyStyle>, TreeBuilder: BuildTreeExt<G>>(
     node_count: u32,
     branching_factor: u32,
+    style_generator: impl FnOnce() -> G,
 ) -> (TreeBuilder::Tree, TreeBuilder::Node) {
-    let tree_builder = TreeBuilder::new(RandomStyleGenerator);
+    let tree_builder = TreeBuilder::new(style_generator());
     tree_builder.build_deep_hierarchy(node_count, branching_factor)
 }
 
 /// A deep tree that matches the shape and styling that yoga use on their benchmarks
-fn build_huge_nested_hierarchy<TreeBuilder: BuildTreeExt<FixedStyleGenerator>>(
+fn build_huge_nested_hierarchy<G: GenStyle<TaffyStyle>, TreeBuilder: BuildTreeExt<G>>(
     node_count: u32,
     branching_factor: u32,
+    style_generator: impl FnOnce() -> G,
 ) -> (TreeBuilder::Tree, TreeBuilder::Node) {
-    let style = Style { size: points(10.0), flex_grow: 1.0, ..Default::default() };
-    let tree_builder = TreeBuilder::new(FixedStyleGenerator(style));
+    let tree_builder = TreeBuilder::new(style_generator());
     tree_builder.build_deep_hierarchy(node_count, branching_factor)
 }
 
 fn taffy_benchmarks(c: &mut Criterion) {
     let mut group = c.benchmark_group("yoga 'huge nested'");
+    let style = Style { size: points(10.0), flex_grow: 1.0, ..Default::default() };
+    let style_gen = || FixedStyleGenerator(style.clone());
     for node_count in [1_000u32, 10_000, 100_000].iter() {
         #[cfg(feature = "yoga_benchmark")]
         group.bench_with_input(BenchmarkId::new("Yoga", node_count), node_count, |b, &node_count| {
             b.iter_batched(
-                || build_huge_nested_hierarchy::<YogaTreeBuilder<_, _>>(node_count, 10),
+                || build_huge_nested_hierarchy::<_, YogaTreeBuilder<_, _>>(node_count, 10, style_gen),
                 |(mut tree, root)| {
                     tree[root].calculate_layout(f32::INFINITY, f32::INFINITY, yg::Direction::LTR);
                 },
@@ -55,7 +78,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         });
         group.bench_with_input(BenchmarkId::new("Taffy", node_count), node_count, |b, &node_count| {
             b.iter_batched(
-                || build_huge_nested_hierarchy::<TaffyTreeBuilder<_, _>>(node_count, 10),
+                || build_huge_nested_hierarchy::<_, TaffyTreeBuilder<_, _>>(node_count, 10, style_gen),
                 |(mut taffy, root)| taffy.compute_layout(root, Size::MAX_CONTENT).unwrap(),
                 criterion::BatchSize::SmallInput,
             )
@@ -72,7 +95,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         #[cfg(feature = "yoga_benchmark")]
         group.bench_with_input(benchmark_id, node_count, |b, &node_count| {
             b.iter_batched(
-                || build_flat_hierarchy::<YogaTreeBuilder<_, _>>(node_count),
+                || build_flat_hierarchy::<_, YogaTreeBuilder<_, _>>(node_count, || RandomStyleGenerator),
                 |(mut tree, root)| {
                     tree[root].calculate_layout(f32::INFINITY, f32::INFINITY, yg::Direction::LTR);
                 },
@@ -82,7 +105,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         let benchmark_id = BenchmarkId::new(format!("Taffy (2-level hierarchy)"), node_count);
         group.bench_with_input(benchmark_id, node_count, |b, &node_count| {
             b.iter_batched(
-                || build_flat_hierarchy::<TaffyTreeBuilder<_, _>>(node_count),
+                || build_flat_hierarchy::<_, TaffyTreeBuilder<_, _>>(node_count, || RandomStyleGenerator),
                 |(mut taffy, root)| taffy.compute_layout(root, Size::MAX_CONTENT).unwrap(),
                 criterion::BatchSize::SmallInput,
             )
@@ -98,7 +121,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         #[cfg(feature = "yoga_benchmark")]
         group.bench_with_input(BenchmarkId::new(format!("Yoga {label}"), node_count), node_count, |b, &node_count| {
             b.iter_batched(
-                || build_deep_hierarchy::<YogaTreeBuilder<_, _>>(node_count, 2),
+                || build_deep_hierarchy::<_, YogaTreeBuilder<_, _>>(node_count, 2, || RandomStyleGenerator),
                 |(mut tree, root)| {
                     tree[root].calculate_layout(f32::INFINITY, f32::INFINITY, yg::Direction::LTR);
                 },
@@ -107,7 +130,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         });
         group.bench_with_input(BenchmarkId::new(format!("Taffy {label}"), node_count), node_count, |b, &node_count| {
             b.iter_batched(
-                || build_deep_hierarchy::<TaffyTreeBuilder<_, _>>(node_count, 2),
+                || build_deep_hierarchy::<_, TaffyTreeBuilder<_, _>>(node_count, 2, || RandomStyleGenerator),
                 |(mut taffy, root)| taffy.compute_layout(root, Size::MAX_CONTENT).unwrap(),
                 criterion::BatchSize::SmallInput,
             )
@@ -121,7 +144,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         #[cfg(feature = "yoga_benchmark")]
         group.bench_with_input(BenchmarkId::new("Yoga", node_count), node_count, |b, &node_count| {
             b.iter_batched(
-                || build_deep_hierarchy::<YogaTreeBuilder<_, _>>(node_count, 2),
+                || build_deep_hierarchy::<_, YogaTreeBuilder<_, _>>(node_count, 2, || RandomStyleGenerator),
                 |(mut tree, root)| {
                     tree[root].calculate_layout(f32::INFINITY, f32::INFINITY, yg::Direction::LTR);
                 },
@@ -130,7 +153,7 @@ fn taffy_benchmarks(c: &mut Criterion) {
         });
         group.bench_with_input(BenchmarkId::new("Taffy", node_count), node_count, |b, &node_count| {
             b.iter_batched(
-                || build_deep_hierarchy::<TaffyTreeBuilder<_, _>>(node_count, 2),
+                || build_deep_hierarchy::<_, TaffyTreeBuilder<_, _>>(node_count, 2, || RandomStyleGenerator),
                 |(mut taffy, root)| taffy.compute_layout(root, Size::MAX_CONTENT).unwrap(),
                 criterion::BatchSize::SmallInput,
             )

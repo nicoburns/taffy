@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-use rand::{Rng, SeedableRng};
 use rand::distributions::uniform::SampleRange;
+use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 use slotmap::{DefaultKey, SlotMap};
 
-use super::{BuildTree, BuildTreeExt, GenStyle, STANDARD_RNG_SEED};
+use super::{BuildTree, BuildTreeExt, GenStyle};
 
 pub mod yg {
     pub use ordered_float::OrderedFloat;

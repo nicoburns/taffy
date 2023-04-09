@@ -5,7 +5,7 @@
 pub mod taffy_helpers;
 pub use taffy_helpers::TaffyTreeBuilder;
 
-// #[cfg(feature = "yoga_benchmark")]
+#[cfg(feature = "yoga_benchmark")]
 pub mod yoga_helpers;
 #[cfg(feature = "yoga_benchmark")]
 pub use yoga_helpers::YogaTreeBuilder;

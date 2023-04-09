@@ -1,12 +1,11 @@
-
 use rand::distributions::uniform::SampleRange;
-use rand::{Rng, SeedableRng, RngCore};
+use rand::Rng;
 use rand_chacha::ChaCha8Rng;
-use taffy::Taffy as TaffyTree;
-use taffy::style::Style as TaffyStyle;
 use taffy::node::Node as TaffyNode;
+use taffy::style::Style as TaffyStyle;
+use taffy::Taffy as TaffyTree;
 
-use super::{BuildTree, BuildTreeExt, GenStyle, STANDARD_RNG_SEED};
+use super::{BuildTree, BuildTreeExt, GenStyle};
 
 pub struct TaffyTreeBuilder<R: Rng, G: GenStyle<TaffyStyle>> {
     rng: R,
@@ -51,30 +50,6 @@ impl<R: Rng, G: GenStyle<TaffyStyle>> BuildTree<R, G> for TaffyTreeBuilder<R, G>
     fn into_tree_and_root(self) -> (Self::Tree, Self::Node) {
         (self.tree, self.root)
     }
-
-
 }
 
 impl<G: GenStyle<TaffyStyle>> BuildTreeExt<G> for TaffyTreeBuilder<ChaCha8Rng, G> {}
-
-// impl<G: GenStyle<TaffyStyle>> TaffyTreeBuilder<ChaCha8Rng, G> {
-//     /// Create a TaffyTreeBuilder with a standard rng from a style generator
-//     pub fn new(style_generator: G) -> TaffyTreeBuilder<ChaCha8Rng, G> {
-//         Self::with_seed(STANDARD_RNG_SEED, style_generator)
-//     }
-
-//     /// Create a TaffyTreeBuilder with a standard rng from a style generator
-//     pub fn with_seed(seed: u64, style_generator: G) -> TaffyTreeBuilder<ChaCha8Rng, G> {
-//         let rng = ChaCha8Rng::seed_from_u64(seed);
-//         Self::with_rng(rng, style_generator)
-//     }
-// }
-
-// impl<R: Rng, G: GenStyle<TaffyStyle>> TaffyTreeBuilder<R, G> {
-//     /// Create a TaffyTreeBuilder from a random number generator and a style generator
-//     pub fn with_rng(mut rng: R, mut style_generator: G) -> TaffyTreeBuilder<R, G> {
-//         let mut tree = TaffyTree::new();
-//         let root = tree.new_leaf(style_generator.create_root_style(&mut rng)).unwrap();
-//         TaffyTreeBuilder { rng, style_generator, tree, root }
-//     }
-// }

@@ -608,12 +608,13 @@ fn generate_node(ident: &str, node: &Value) -> TokenStream {
     if has_children {
         quote!(
             #children_body
-            let #ident = taffy.new_with_children(#style,#children).unwrap();
+            let #ident = taffy.new_leaf(#style);
+            taffy.set_children(#ident, #children).unwrap();
         )
     } else if measure_func.is_some() {
-        quote!(let #ident = taffy.new_leaf_with_measure(#style,#measure_func,).unwrap();)
+        quote!(let #ident = taffy.new_leaf_with_measure(#style,#measure_func,);)
     } else {
-        quote!(let #ident = taffy.new_leaf(#style).unwrap();)
+        quote!(let #ident = taffy.new_leaf(#style);)
     }
 }
 

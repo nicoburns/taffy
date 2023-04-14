@@ -3,33 +3,21 @@ fn overflow_main_axis_shrink_visible() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node0 = taffy
-        .new_leaf_with_measure(
-            taffy::style::Style { flex_shrink: 1f32, ..Default::default() },
-            taffy::tree::MeasureFunc::Raw(|known_dimensions, available_space| {
-                const TEXT: &str = "HHHHHHHHHH";
-                super::measure_standard_text(
-                    known_dimensions,
-                    available_space,
-                    TEXT,
-                    super::WritingMode::Horizontal,
-                    None,
-                )
-            }),
-        )
-        .unwrap();
-    let node = taffy
-        .new_with_children(
-            taffy::style::Style {
-                size: taffy::geometry::Size {
-                    width: taffy::style::Dimension::Points(50f32),
-                    height: taffy::style::Dimension::Points(50f32),
-                },
-                ..Default::default()
-            },
-            &[node0],
-        )
-        .unwrap();
+    let node0 = taffy.new_leaf_with_measure(
+        taffy::style::Style { flex_shrink: 1f32, ..Default::default() },
+        taffy::tree::MeasureFunc::Raw(|known_dimensions, available_space| {
+            const TEXT: &str = "HHHHHHHHHH";
+            super::measure_standard_text(known_dimensions, available_space, TEXT, super::WritingMode::Horizontal, None)
+        }),
+    );
+    let node = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(50f32),
+            height: taffy::style::Dimension::Points(50f32),
+        },
+        ..Default::default()
+    });
+    taffy.set_children(node, &[node0]).unwrap();
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

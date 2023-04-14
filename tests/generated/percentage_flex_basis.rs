@@ -3,32 +3,24 @@ fn percentage_flex_basis() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node0 = taffy
-        .new_leaf(taffy::style::Style {
-            flex_grow: 1f32,
-            flex_basis: taffy::style::Dimension::Percent(0.5f32),
-            ..Default::default()
-        })
-        .unwrap();
-    let node1 = taffy
-        .new_leaf(taffy::style::Style {
-            flex_grow: 1f32,
-            flex_basis: taffy::style::Dimension::Percent(0.25f32),
-            ..Default::default()
-        })
-        .unwrap();
-    let node = taffy
-        .new_with_children(
-            taffy::style::Style {
-                size: taffy::geometry::Size {
-                    width: taffy::style::Dimension::Points(200f32),
-                    height: taffy::style::Dimension::Points(200f32),
-                },
-                ..Default::default()
-            },
-            &[node0, node1],
-        )
-        .unwrap();
+    let node0 = taffy.new_leaf(taffy::style::Style {
+        flex_grow: 1f32,
+        flex_basis: taffy::style::Dimension::Percent(0.5f32),
+        ..Default::default()
+    });
+    let node1 = taffy.new_leaf(taffy::style::Style {
+        flex_grow: 1f32,
+        flex_basis: taffy::style::Dimension::Percent(0.25f32),
+        ..Default::default()
+    });
+    let node = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(200f32),
+            height: taffy::style::Dimension::Points(200f32),
+        },
+        ..Default::default()
+    });
+    taffy.set_children(node, &[node0, node1]).unwrap();
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

@@ -25,3 +25,8 @@ pub use crate::style::{
 pub use crate::style_helpers::{
     evenly_sized_tracks, flex, fr, line, minmax, repeat, span, TaffyGridLine, TaffyGridSpan,
 };
+
+/// Shorthand function for Default::default
+pub fn default<T: Default>() -> T {
+    Default::default()
+}

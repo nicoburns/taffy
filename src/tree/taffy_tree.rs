@@ -22,6 +22,36 @@ impl Default for TaffyConfig {
     }
 }
 
+pub struct TaffyChildBuilder<'tree> {
+    tree: &'tree mut Taffy,
+    node_id: NodeId,
+}
+
+impl<'tree> TaffyChildBuilder<'tree> {
+    /// Creates and adds a node to the tree as a child, and returns the [`NodeId`] of the new node
+    pub fn new_leaf(&mut self, layout: Style) -> NodeId {
+        let id = self.tree.new_leaf(layout);
+        self.tree.add_child(self.node_id, id).unwrap();
+        id
+    }
+
+    /// Creates and adds a new unattached leaf node to the tree, and returns the node of the new node
+    ///
+    /// Creates and adds a new leaf node with a supplied [`MeasureFunc`]
+    pub fn new_leaf_with_measure(&mut self, layout: Style, measure_func: MeasureFunc) -> NodeId {
+        let id = self.tree.new_leaf_with_measure(layout, measure_func);
+        id
+    }
+
+    /// Creates and adds a new node, which may have any number of `children`
+    pub fn new_with_children<const N: usize, Callback>(&mut self, layout: Style, cb: Callback) -> NodeId
+    where
+        Callback: FnOnce(&mut TaffyChildBuilder<'_>) -> [NodeId; N],
+    {
+        self.tree.new_with_children(layout, cb)
+    }
+}
+
 /// A tree of UI nodes suitable for UI layout
 pub struct Taffy {
     /// The [`NodeData`] for each node stored in this tree
@@ -148,42 +178,50 @@ impl Taffy {
     }
 
     /// Creates and adds a new unattached leaf node to the tree, and returns the node of the new node
-    pub fn new_leaf(&mut self, layout: Style) -> TaffyResult<NodeId> {
-        let id = self.nodes.insert(NodeData::new(layout));
+    pub fn new_leaf(&mut self, layout: Style) -> NodeId {
+        let key = self.nodes.insert(NodeData::new(layout));
         let _ = self.children.insert(new_vec_with_capacity(0));
         let _ = self.parents.insert(None);
-
-        Ok(id.into())
+        NodeId::from(key)
     }
 
     /// Creates and adds a new unattached leaf node to the tree, and returns the node of the new node
     ///
     /// Creates and adds a new leaf node with a supplied [`MeasureFunc`]
-    pub fn new_leaf_with_measure(&mut self, layout: Style, measure: MeasureFunc) -> TaffyResult<NodeId> {
+    pub fn new_leaf_with_measure(&mut self, layout: Style, measure: MeasureFunc) -> NodeId {
         let mut data = NodeData::new(layout);
         data.needs_measure = true;
 
-        let id = self.nodes.insert(data);
-        self.measure_funcs.insert(id, measure);
+        let key = self.nodes.insert(data);
+        self.measure_funcs.insert(key, measure);
 
         let _ = self.children.insert(new_vec_with_capacity(0));
         let _ = self.parents.insert(None);
 
-        Ok(id.into())
+        NodeId::from(key)
     }
 
-    /// Creates and adds a new node, which may have any number of `children`
-    pub fn new_with_children(&mut self, layout: Style, children: &[NodeId]) -> TaffyResult<NodeId> {
-        let id = NodeId::from(self.nodes.insert(NodeData::new(layout)));
+    // /// Creates and adds a new node, which may have any number of `children`
 
-        for child in children {
-            self.parents[(*child).into()] = Some(id);
+    /// Creates and adds a new node, which may have any number of `children`
+    pub fn new_with_children<const N: usize, Callback>(&mut self, layout: Style, cb: Callback) -> NodeId
+    where
+        Callback: FnOnce(&mut TaffyChildBuilder<'_>) -> [NodeId; N]
+    {
+        // Use inner function to reduce cost of const generic function
+        pub fn inner(tree: &mut Taffy, parent_id: NodeId, children: &[NodeId]) -> NodeId {
+            for child in children {
+                tree.parents[(*child).into()] = Some(parent_id);
+            }
+
+            let _ = tree.children.insert(children.to_vec());
+            let _ = tree.parents.insert(None);
+            parent_id
         }
 
-        let _ = self.children.insert(children.iter().copied().collect::<_>());
-        let _ = self.parents.insert(None);
-
-        Ok(id)
+        let id = NodeId::from(self.nodes.insert(NodeData::new(layout)));
+        let children = cb(&mut TaffyChildBuilder { tree: self, node_id: id });
+        inner(self, id, &children)
     }
 
     /// Drops all nodes in the tree
@@ -417,10 +455,7 @@ mod tests {
     #[test]
     fn test_new_leaf() {
         let mut taffy = Taffy::new();
-
-        let res = taffy.new_leaf(Style::default());
-        assert!(res.is_ok());
-        let node = res.unwrap();
+        let node = taffy.new_leaf(Style::default());
 
         // node should be in the taffy tree and have no children
         assert!(taffy.child_count(node).unwrap() == 0);
@@ -429,10 +464,7 @@ mod tests {
     #[test]
     fn new_leaf_with_measure() {
         let mut taffy = Taffy::new();
-
-        let res = taffy.new_leaf_with_measure(Style::default(), MeasureFunc::Raw(|_, _| Size::ZERO));
-        assert!(res.is_ok());
-        let node = res.unwrap();
+        let node = taffy.new_leaf_with_measure(Style::default(), MeasureFunc::Raw(|_, _| Size::ZERO));
 
         // node should be in the taffy tree and have no children
         assert!(taffy.child_count(node).unwrap() == 0);
@@ -442,9 +474,12 @@ mod tests {
     #[test]
     fn test_new_with_children() {
         let mut taffy = Taffy::new();
-        let child0 = taffy.new_leaf(Style::default()).unwrap();
-        let child1 = taffy.new_leaf(Style::default()).unwrap();
-        let node = taffy.new_with_children(Style::default(), &[child0, child1]).unwrap();
+        let mut child0;
+        let mut child1;
+        let node = taffy.new_with_children(Style::default(), |node| {
+            child0 = node.new_leaf(Style::default());
+            child1 = node.new_leaf(Style::default());
+        });
 
         // node should have two children
         assert_eq!(taffy.child_count(node).unwrap(), 2);
@@ -456,8 +491,7 @@ mod tests {
     fn remove_node_should_remove() {
         let mut taffy = Taffy::new();
 
-        let node = taffy.new_leaf(Style::default()).unwrap();
-
+        let node = taffy.new_leaf(Style::default());
         let _ = taffy.remove(node).unwrap();
     }
 
@@ -466,9 +500,10 @@ mod tests {
         let mut taffy = Taffy::new();
 
         // Build a linear tree layout: <0> <- <1> <- <2>
-        let node2 = taffy.new_leaf(Style::default()).unwrap();
-        let node1 = taffy.new_with_children(Style::default(), &[node2]).unwrap();
-        let node0 = taffy.new_with_children(Style::default(), &[node1]).unwrap();
+        let node2 = taffy.new_leaf(Style::default());
+        let node0 = taffy.new_with_children(Style::default(), |node| {
+            let node1 = taffy.new_with_children(Style::default(), &[node2]);
+        });
 
         // Both node0 and node1 should have 1 child nodes
         assert_eq!(taffy.children(node0).unwrap().as_slice(), &[node1]);

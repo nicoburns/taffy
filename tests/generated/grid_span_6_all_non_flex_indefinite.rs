@@ -3,48 +3,36 @@ fn grid_span_6_all_non_flex_indefinite() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node0 = taffy
-        .new_leaf_with_measure(
-            taffy::style::Style {
-                grid_column: taffy::geometry::Line { start: line(1i16), end: taffy::style::GridPlacement::Span(6u16) },
-                ..Default::default()
-            },
-            taffy::tree::MeasureFunc::Raw(|known_dimensions, available_space| {
-                const TEXT: &str = "HHHHHHHH\u{200b}HHHHHHHH";
-                super::measure_standard_text(
-                    known_dimensions,
-                    available_space,
-                    TEXT,
-                    super::WritingMode::Horizontal,
-                    None,
-                )
-            }),
-        )
-        .unwrap();
-    let node1 = taffy.new_leaf(taffy::style::Style { ..Default::default() }).unwrap();
-    let node2 = taffy.new_leaf(taffy::style::Style { ..Default::default() }).unwrap();
-    let node3 = taffy.new_leaf(taffy::style::Style { ..Default::default() }).unwrap();
-    let node4 = taffy.new_leaf(taffy::style::Style { ..Default::default() }).unwrap();
-    let node5 = taffy.new_leaf(taffy::style::Style { ..Default::default() }).unwrap();
-    let node6 = taffy.new_leaf(taffy::style::Style { ..Default::default() }).unwrap();
-    let node = taffy
-        .new_with_children(
-            taffy::style::Style {
-                display: taffy::style::Display::Grid,
-                grid_template_rows: vec![points(40f32), points(40f32)],
-                grid_template_columns: vec![
-                    min_content(),
-                    max_content(),
-                    fit_content(points(20f32)),
-                    auto(),
-                    points(10f32),
-                    percent(0.2f32),
-                ],
-                ..Default::default()
-            },
-            &[node0, node1, node2, node3, node4, node5, node6],
-        )
-        .unwrap();
+    let node0 = taffy.new_leaf_with_measure(
+        taffy::style::Style {
+            grid_column: taffy::geometry::Line { start: line(1i16), end: taffy::style::GridPlacement::Span(6u16) },
+            ..Default::default()
+        },
+        taffy::tree::MeasureFunc::Raw(|known_dimensions, available_space| {
+            const TEXT: &str = "HHHHHHHH\u{200b}HHHHHHHH";
+            super::measure_standard_text(known_dimensions, available_space, TEXT, super::WritingMode::Horizontal, None)
+        }),
+    );
+    let node1 = taffy.new_leaf(taffy::style::Style { ..Default::default() });
+    let node2 = taffy.new_leaf(taffy::style::Style { ..Default::default() });
+    let node3 = taffy.new_leaf(taffy::style::Style { ..Default::default() });
+    let node4 = taffy.new_leaf(taffy::style::Style { ..Default::default() });
+    let node5 = taffy.new_leaf(taffy::style::Style { ..Default::default() });
+    let node6 = taffy.new_leaf(taffy::style::Style { ..Default::default() });
+    let node = taffy.new_leaf(taffy::style::Style {
+        display: taffy::style::Display::Grid,
+        grid_template_rows: vec![points(40f32), points(40f32)],
+        grid_template_columns: vec![
+            min_content(),
+            max_content(),
+            fit_content(points(20f32)),
+            auto(),
+            points(10f32),
+            percent(0.2f32),
+        ],
+        ..Default::default()
+    });
+    taffy.set_children(node, &[node0, node1, node2, node3, node4, node5, node6]).unwrap();
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

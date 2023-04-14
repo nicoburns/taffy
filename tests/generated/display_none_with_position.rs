@@ -3,32 +3,26 @@ fn display_none_with_position() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node0 = taffy.new_leaf(taffy::style::Style { flex_grow: 1f32, ..Default::default() }).unwrap();
-    let node1 = taffy
-        .new_leaf(taffy::style::Style {
-            display: taffy::style::Display::None,
-            flex_grow: 1f32,
-            inset: taffy::geometry::Rect {
-                left: auto(),
-                right: auto(),
-                top: taffy::style::LengthPercentageAuto::Points(10f32),
-                bottom: auto(),
-            },
-            ..Default::default()
-        })
-        .unwrap();
-    let node = taffy
-        .new_with_children(
-            taffy::style::Style {
-                size: taffy::geometry::Size {
-                    width: taffy::style::Dimension::Points(100f32),
-                    height: taffy::style::Dimension::Points(100f32),
-                },
-                ..Default::default()
-            },
-            &[node0, node1],
-        )
-        .unwrap();
+    let node0 = taffy.new_leaf(taffy::style::Style { flex_grow: 1f32, ..Default::default() });
+    let node1 = taffy.new_leaf(taffy::style::Style {
+        display: taffy::style::Display::None,
+        flex_grow: 1f32,
+        inset: taffy::geometry::Rect {
+            left: auto(),
+            right: auto(),
+            top: taffy::style::LengthPercentageAuto::Points(10f32),
+            bottom: auto(),
+        },
+        ..Default::default()
+    });
+    let node = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(100f32),
+            height: taffy::style::Dimension::Points(100f32),
+        },
+        ..Default::default()
+    });
+    taffy.set_children(node, &[node0, node1]).unwrap();
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

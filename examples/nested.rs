@@ -1,55 +1,26 @@
 use taffy::prelude::*;
 
 fn main() -> Result<(), taffy::TaffyError> {
-    let mut taffy = Taffy::new();
+    let mut tree = Taffy::new();
 
-    // left
-    let child_t1 = taffy.new_leaf(Style {
-        size: Size { width: Dimension::Points(5.0), height: Dimension::Points(5.0) },
-        ..Default::default()
-    })?;
-
-    let div1 = taffy.new_with_children(
-        Style {
-            size: Size { width: Dimension::Percent(0.5), height: Dimension::Percent(1.0) },
-            // justify_content: JustifyContent::Center,
-            ..Default::default()
+    let root_id = tree.new_with_children(
+        Style { size: Size { width: percent(1.0), height: percent(1.0) }, ..default() },
+        |node| {
+            let left = node.new_with_children(
+                Style { size: Size { width: percent(0.5), height: percent(1.0) }, ..default() },
+                |node| [node.new_leaf(Style { size: Size { width: points(5.0), height: points(5.0) }, ..default() })],
+            );
+            let right = node.new_with_children(
+                Style { size: Size { width: percent(0.5), height: percent(1.0) }, ..default() },
+                |node| [node.new_leaf(Style { size: Size { width: points(5.0), height: points(5.0) }, ..default() })],
+            );
+            [left, right]
         },
-        &[child_t1],
-    )?;
+    );
 
-    // right
-    let child_t2 = taffy.new_leaf(Style {
-        size: Size { width: Dimension::Points(5.0), height: Dimension::Points(5.0) },
-        ..Default::default()
-    })?;
-
-    let div2 = taffy.new_with_children(
-        Style {
-            size: Size { width: Dimension::Percent(0.5), height: Dimension::Percent(1.0) },
-            // justify_content: JustifyContent::Center,
-            ..Default::default()
-        },
-        &[child_t2],
-    )?;
-
-    let container = taffy.new_with_children(
-        Style { size: Size { width: Dimension::Percent(1.0), height: Dimension::Percent(1.0) }, ..Default::default() },
-        &[div1, div2],
-    )?;
-
-    taffy.compute_layout(
-        container,
-        Size { height: AvailableSpace::Definite(100.0), width: AvailableSpace::Definite(100.0) },
-    )?;
-
-    println!("node: {:#?}", taffy.layout(container)?);
-
-    println!("div1: {:#?}", taffy.layout(div1)?);
-    println!("div2: {:#?}", taffy.layout(div2)?);
-
-    println!("child1: {:#?}", taffy.layout(child_t1)?);
-    println!("child2: {:#?}", taffy.layout(child_t2)?);
+    tree.compute_layout(root_id, Size { height: points(100.0), width: points(100.0) })?;
+    taffy::util::print_tree(&tree, root_id);
+    println!("node: {:#?}", tree.layout(root_id)?);
 
     Ok(())
 }

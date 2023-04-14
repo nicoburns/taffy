@@ -3,13 +3,11 @@ fn min_height_overrides_height_on_root() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node = taffy
-        .new_leaf(taffy::style::Style {
-            size: taffy::geometry::Size { width: auto(), height: taffy::style::Dimension::Points(50f32) },
-            min_size: taffy::geometry::Size { width: auto(), height: taffy::style::Dimension::Points(100f32) },
-            ..Default::default()
-        })
-        .unwrap();
+    let node = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size { width: auto(), height: taffy::style::Dimension::Points(50f32) },
+        min_size: taffy::geometry::Size { width: auto(), height: taffy::style::Dimension::Points(100f32) },
+        ..Default::default()
+    });
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

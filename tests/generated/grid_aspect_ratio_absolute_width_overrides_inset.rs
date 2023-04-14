@@ -3,33 +3,27 @@ fn grid_aspect_ratio_absolute_width_overrides_inset() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node0 = taffy
-        .new_leaf(taffy::style::Style {
-            position: taffy::style::Position::Absolute,
-            size: taffy::geometry::Size { width: taffy::style::Dimension::Percent(0.4f32), height: auto() },
-            aspect_ratio: Some(3f32),
-            inset: taffy::geometry::Rect {
-                left: taffy::style::LengthPercentageAuto::Percent(0.1f32),
-                right: taffy::style::LengthPercentageAuto::Percent(0.1f32),
-                top: taffy::style::LengthPercentageAuto::Percent(0.05f32),
-                bottom: auto(),
-            },
-            ..Default::default()
-        })
-        .unwrap();
-    let node = taffy
-        .new_with_children(
-            taffy::style::Style {
-                display: taffy::style::Display::Grid,
-                size: taffy::geometry::Size {
-                    width: taffy::style::Dimension::Points(400f32),
-                    height: taffy::style::Dimension::Points(300f32),
-                },
-                ..Default::default()
-            },
-            &[node0],
-        )
-        .unwrap();
+    let node0 = taffy.new_leaf(taffy::style::Style {
+        position: taffy::style::Position::Absolute,
+        size: taffy::geometry::Size { width: taffy::style::Dimension::Percent(0.4f32), height: auto() },
+        aspect_ratio: Some(3f32),
+        inset: taffy::geometry::Rect {
+            left: taffy::style::LengthPercentageAuto::Percent(0.1f32),
+            right: taffy::style::LengthPercentageAuto::Percent(0.1f32),
+            top: taffy::style::LengthPercentageAuto::Percent(0.05f32),
+            bottom: auto(),
+        },
+        ..Default::default()
+    });
+    let node = taffy.new_leaf(taffy::style::Style {
+        display: taffy::style::Display::Grid,
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(400f32),
+            height: taffy::style::Dimension::Points(300f32),
+        },
+        ..Default::default()
+    });
+    taffy.set_children(node, &[node0]).unwrap();
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

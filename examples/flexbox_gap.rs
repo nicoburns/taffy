@@ -4,21 +4,20 @@ use taffy::prelude::*;
 // Thus the container is 80px x 20px.
 
 fn main() -> Result<(), taffy::TaffyError> {
-    let mut taffy = Taffy::new();
-
-    let child_style = Style { size: Size { width: points(20.0), height: points(20.0) }, ..Default::default() };
-    let child0 = taffy.new_leaf(child_style.clone())?;
-    let child1 = taffy.new_leaf(child_style.clone())?;
-    let child2 = taffy.new_leaf(child_style.clone())?;
-
-    let root = taffy.new_with_children(
+    let mut tree = Taffy::new();
+    let root_id = tree.new_with_children(
         Style { gap: Size { width: points(10.0), height: zero() }, ..Default::default() },
-        &[child0, child1, child2],
-    )?;
+        |node| {
+            let child_style = Style { size: Size { width: points(20.0), height: points(20.0) }, ..default() };
+            node.new_leaf(child_style.clone());
+            node.new_leaf(child_style.clone());
+            node.new_leaf(child_style.clone());
+        },
+    );
 
     // Compute layout and print result
-    taffy.compute_layout(root, Size::MAX_CONTENT)?;
-    taffy::util::print_tree(&taffy, root);
+    tree.compute_layout(root_id, Size::MAX_CONTENT)?;
+    taffy::util::print_tree(&tree, root_id);
 
     Ok(())
 }

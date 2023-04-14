@@ -3,71 +3,55 @@ fn bevy_issue_8082_percent() {
     #[allow(unused_imports)]
     use taffy::{prelude::*, tree::Layout};
     let mut taffy = taffy::Taffy::new();
-    let node00 = taffy
-        .new_leaf(taffy::style::Style {
-            size: taffy::geometry::Size {
-                width: taffy::style::Dimension::Points(50f32),
-                height: taffy::style::Dimension::Points(50f32),
-            },
-            ..Default::default()
-        })
-        .unwrap();
-    let node01 = taffy
-        .new_leaf(taffy::style::Style {
-            size: taffy::geometry::Size {
-                width: taffy::style::Dimension::Points(50f32),
-                height: taffy::style::Dimension::Points(50f32),
-            },
-            ..Default::default()
-        })
-        .unwrap();
-    let node02 = taffy
-        .new_leaf(taffy::style::Style {
-            size: taffy::geometry::Size {
-                width: taffy::style::Dimension::Points(50f32),
-                height: taffy::style::Dimension::Points(50f32),
-            },
-            ..Default::default()
-        })
-        .unwrap();
-    let node03 = taffy
-        .new_leaf(taffy::style::Style {
-            size: taffy::geometry::Size {
-                width: taffy::style::Dimension::Points(50f32),
-                height: taffy::style::Dimension::Points(50f32),
-            },
-            ..Default::default()
-        })
-        .unwrap();
-    let node0 = taffy
-        .new_with_children(
-            taffy::style::Style {
-                flex_wrap: taffy::style::FlexWrap::Wrap,
-                align_items: Some(taffy::style::AlignItems::FlexStart),
-                align_content: Some(taffy::style::AlignContent::Center),
-                justify_content: Some(taffy::style::JustifyContent::Center),
-                size: taffy::geometry::Size { width: taffy::style::Dimension::Percent(0.5f32), height: auto() },
-                ..Default::default()
-            },
-            &[node00, node01, node02, node03],
-        )
-        .unwrap();
-    let node = taffy
-        .new_with_children(
-            taffy::style::Style {
-                flex_direction: taffy::style::FlexDirection::Column,
-                align_items: Some(taffy::style::AlignItems::Stretch),
-                align_content: Some(taffy::style::AlignContent::Center),
-                justify_content: Some(taffy::style::JustifyContent::FlexStart),
-                size: taffy::geometry::Size {
-                    width: taffy::style::Dimension::Points(200f32),
-                    height: taffy::style::Dimension::Points(400f32),
-                },
-                ..Default::default()
-            },
-            &[node0],
-        )
-        .unwrap();
+    let node00 = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(50f32),
+            height: taffy::style::Dimension::Points(50f32),
+        },
+        ..Default::default()
+    });
+    let node01 = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(50f32),
+            height: taffy::style::Dimension::Points(50f32),
+        },
+        ..Default::default()
+    });
+    let node02 = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(50f32),
+            height: taffy::style::Dimension::Points(50f32),
+        },
+        ..Default::default()
+    });
+    let node03 = taffy.new_leaf(taffy::style::Style {
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(50f32),
+            height: taffy::style::Dimension::Points(50f32),
+        },
+        ..Default::default()
+    });
+    let node0 = taffy.new_leaf(taffy::style::Style {
+        flex_wrap: taffy::style::FlexWrap::Wrap,
+        align_items: Some(taffy::style::AlignItems::FlexStart),
+        align_content: Some(taffy::style::AlignContent::Center),
+        justify_content: Some(taffy::style::JustifyContent::Center),
+        size: taffy::geometry::Size { width: taffy::style::Dimension::Percent(0.5f32), height: auto() },
+        ..Default::default()
+    });
+    taffy.set_children(node0, &[node00, node01, node02, node03]).unwrap();
+    let node = taffy.new_leaf(taffy::style::Style {
+        flex_direction: taffy::style::FlexDirection::Column,
+        align_items: Some(taffy::style::AlignItems::Stretch),
+        align_content: Some(taffy::style::AlignContent::Center),
+        justify_content: Some(taffy::style::JustifyContent::FlexStart),
+        size: taffy::geometry::Size {
+            width: taffy::style::Dimension::Points(200f32),
+            height: taffy::style::Dimension::Points(400f32),
+        },
+        ..Default::default()
+    });
+    taffy.set_children(node, &[node0]).unwrap();
     taffy.compute_layout(node, taffy::geometry::Size::MAX_CONTENT).unwrap();
     println!("\nComputed tree:");
     taffy::util::print_tree(&taffy, node);

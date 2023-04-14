@@ -3,7 +3,10 @@
 //! Layouts are composed of multiple nodes, which live in a tree-like data structure.
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 
-use super::{Layout, MeasureFunc, NodeData, NodeId, SizeAndBaselines, SizingMode, TaffyError, TaffyResult};
+use super::{
+    Layout, Measurable, MeasureFunc, NodeData, NodeId, SizeAndBaselines, SizingMode, SyncMeasureFunc, TaffyError,
+    TaffyResult,
+};
 use crate::compute::{measure_node_size, perform_node_layout};
 use crate::geometry::Size;
 use crate::prelude::LayoutTree;
@@ -22,13 +25,16 @@ impl Default for TaffyConfig {
     }
 }
 
+pub type Taffy = GenericTaffy<MeasureFunc>;
+pub type SyncTaffy = GenericTaffy<SyncMeasureFunc>;
+
 /// A tree of UI nodes suitable for UI layout
-pub struct Taffy {
+pub struct GenericTaffy<M: Measurable + 'static = SyncMeasureFunc> {
     /// The [`NodeData`] for each node stored in this tree
     pub(crate) nodes: SlotMap<DefaultKey, NodeData>,
 
     /// Functions/closures that compute the intrinsic size of leaf nodes
-    pub(crate) measure_funcs: SparseSecondaryMap<DefaultKey, MeasureFunc>,
+    pub(crate) measure_funcs: SparseSecondaryMap<DefaultKey, M>,
 
     /// The children of each node
     ///
@@ -44,9 +50,9 @@ pub struct Taffy {
     pub(crate) config: TaffyConfig,
 }
 
-impl Default for Taffy {
+impl<M: Measurable + 'static> Default for GenericTaffy<M> {
     fn default() -> Self {
-        Taffy::new()
+        GenericTaffy::new()
     }
 }
 
@@ -60,7 +66,7 @@ impl<'a> Iterator for TaffyChildIter<'a> {
     }
 }
 
-impl LayoutTree for Taffy {
+impl<M: Measurable + 'static> LayoutTree for GenericTaffy<M> {
     type ChildIter<'a> = TaffyChildIter<'a>;
 
     #[inline(always)]
@@ -114,7 +120,7 @@ impl LayoutTree for Taffy {
 }
 
 #[allow(clippy::iter_cloned_collect)] // due to no-std support, we need to use `iter_cloned` instead of `collect`
-impl Taffy {
+impl<M: Measurable + 'static> GenericTaffy<M> {
     /// Creates a new [`Taffy`]
     ///
     /// The default capacity of a [`Taffy`] is 16 nodes.
@@ -159,7 +165,7 @@ impl Taffy {
     /// Creates and adds a new unattached leaf node to the tree, and returns the node of the new node
     ///
     /// Creates and adds a new leaf node with a supplied [`MeasureFunc`]
-    pub fn new_leaf_with_measure(&mut self, layout: Style, measure: MeasureFunc) -> TaffyResult<NodeId> {
+    pub fn new_leaf_with_measure(&mut self, layout: Style, measure: M) -> TaffyResult<NodeId> {
         let mut data = NodeData::new(layout);
         data.needs_measure = true;
 
@@ -212,7 +218,7 @@ impl Taffy {
     }
 
     /// Sets the [`MeasureFunc`] of the associated node
-    pub fn set_measure(&mut self, node: NodeId, measure: Option<MeasureFunc>) -> TaffyResult<()> {
+    pub fn set_measure(&mut self, node: NodeId, measure: Option<M>) -> TaffyResult<()> {
         let key = node.into();
         if let Some(measure) = measure {
             self.nodes[key].needs_measure = true;
@@ -719,11 +725,5 @@ mod tests {
             Size { width: AvailableSpace::Definite(100.), height: AvailableSpace::Definite(100.) },
         );
         assert!(layout_result.is_ok());
-    }
-
-    #[test]
-    fn measure_func_is_send_and_sync() {
-        fn is_send_and_sync<T: Send + Sync>() {}
-        is_send_and_sync::<MeasureFunc>();
     }
 }

@@ -31,4 +31,4 @@ pub use crate::compute::flexbox::FlexboxAlgorithm;
 #[cfg(feature = "grid")]
 pub use crate::compute::grid::CssGridAlgorithm;
 pub use crate::compute::LayoutAlgorithm;
-pub use crate::tree::{LayoutTree, Taffy, TaffyError, TaffyResult};
+pub use crate::tree::{GenericTaffy, LayoutTree, Taffy, TaffyError, TaffyResult};

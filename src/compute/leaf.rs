@@ -2,19 +2,16 @@
 
 use crate::geometry::{Point, Size};
 use crate::style::AvailableSpace;
-use crate::tree::NodeId;
-use crate::tree::Taffy;
-use crate::tree::{SizeAndBaselines, SizingMode};
+use crate::tree::{GenericTaffy, Measurable, NodeId, SizeAndBaselines, SizingMode};
 use crate::util::sys::f32_max;
-use crate::util::MaybeMath;
-use crate::util::{MaybeResolve, ResolveOrZero};
+use crate::util::{MaybeMath, MaybeResolve, ResolveOrZero};
 
 #[cfg(feature = "debug")]
 use crate::util::debug::NODE_LOGGER;
 
 /// Perform full layout on a leaf node
-pub(crate) fn perform_layout(
-    tree: &mut Taffy,
+pub(crate) fn perform_layout<M: Measurable>(
+    tree: &mut GenericTaffy<M>,
     node: NodeId,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
@@ -25,8 +22,8 @@ pub(crate) fn perform_layout(
 }
 
 /// Measure a leaf node's size
-pub(crate) fn measure_size(
-    tree: &mut Taffy,
+pub(crate) fn measure_size<M: Measurable>(
+    tree: &mut GenericTaffy<M>,
     node: NodeId,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
@@ -37,8 +34,8 @@ pub(crate) fn measure_size(
 }
 
 /// Compute the size of a leaf node (node with no children)
-pub(crate) fn compute(
-    tree: &mut Taffy,
+pub(crate) fn compute<M: Measurable>(
+    tree: &mut GenericTaffy<M>,
     node: NodeId,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,

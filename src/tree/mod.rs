@@ -7,13 +7,13 @@ use crate::style::{AvailableSpace, Style};
 mod cache;
 pub use cache::{Cache, CacheEntry};
 mod measure_func;
-pub use measure_func::{Measurable, MeasureFunc};
+pub use measure_func::{Measurable, MeasureFunc, SyncMeasurable, SyncMeasureFunc};
 mod node;
 pub(self) use node::NodeData;
 pub use node::NodeId;
 mod taffy_tree;
 mod taffy_tree_error;
-pub use taffy_tree::{Taffy, TaffyChildIter};
+pub use taffy_tree::{GenericTaffy, SyncTaffy, Taffy, TaffyChildIter};
 pub use taffy_tree_error::{TaffyError, TaffyResult};
 mod layout;
 

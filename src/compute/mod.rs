@@ -11,7 +11,9 @@ pub(crate) mod grid;
 
 use crate::geometry::{Point, Size};
 use crate::style::{AvailableSpace, Display};
-use crate::tree::{Layout, LayoutTree, NodeId, RunMode, SizeAndBaselines, SizingMode, Taffy, TaffyError};
+use crate::tree::{
+    GenericTaffy, Layout, LayoutTree, Measurable, NodeId, RunMode, SizeAndBaselines, SizingMode, TaffyError,
+};
 use crate::util::sys::round;
 
 #[cfg(feature = "flexbox")]
@@ -24,8 +26,8 @@ pub use self::grid::CssGridAlgorithm;
 use crate::util::debug::NODE_LOGGER;
 
 /// Updates the stored layout of the provided `node` and its children
-pub(crate) fn compute_layout(
-    taffy: &mut Taffy,
+pub(crate) fn compute_layout<M: Measurable>(
+    taffy: &mut GenericTaffy<M>,
     root: NodeId,
     available_space: Size<AvailableSpace>,
 ) -> Result<(), TaffyError> {
@@ -77,8 +79,8 @@ pub trait LayoutAlgorithm {
 }
 
 /// Perform full layout on a node. Chooses which algorithm to use based on the `display` property.
-pub(crate) fn perform_node_layout(
-    tree: &mut Taffy,
+pub(crate) fn perform_node_layout<M: Measurable>(
+    tree: &mut GenericTaffy<M>,
     node: NodeId,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
@@ -89,8 +91,8 @@ pub(crate) fn perform_node_layout(
 }
 
 /// Measure a node's size. Chooses which algorithm to use based on the `display` property.
-pub(crate) fn measure_node_size(
-    tree: &mut Taffy,
+pub(crate) fn measure_node_size<M: Measurable>(
+    tree: &mut GenericTaffy<M>,
     node: NodeId,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,
@@ -102,8 +104,8 @@ pub(crate) fn measure_node_size(
 }
 
 /// Updates the stored layout of the provided `node` and its children
-fn compute_node_layout(
-    tree: &mut Taffy,
+fn compute_node_layout<M: Measurable>(
+    tree: &mut GenericTaffy<M>,
     node: NodeId,
     known_dimensions: Size<Option<f32>>,
     parent_size: Size<Option<f32>>,

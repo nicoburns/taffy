@@ -12,6 +12,7 @@ pub trait Measurable {
     /// Measure node
     fn measure(&self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>) -> Size<f32>;
 }
+/// Version of the Measurable trait that also requires Send + Sync
 pub trait SyncMeasurable: Send + Sync + Measurable {}
 impl<F: Fn(Size<Option<f32>>, Size<AvailableSpace>) -> Size<f32>> Measurable for F {
     fn measure(&self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>) -> Size<f32> {
@@ -64,9 +65,8 @@ impl Measurable for SyncMeasureFunc {
     }
 }
 
-
 #[test]
-fn ensure_sync_measure_func_is_send_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<SyncMeasureFunc>()
+fn sync_measure_func_is_send_and_sync() {
+    fn is_send_and_sync<T: Send + Sync>() {}
+    is_send_and_sync::<SyncMeasureFunc>();
 }

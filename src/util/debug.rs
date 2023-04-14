@@ -5,16 +5,15 @@ use slotmap::{DefaultKey, Key};
 use std::sync::Mutex;
 
 use crate::style;
-use crate::tree::NodeId;
-use crate::tree::Taffy;
+use crate::tree::{GenericTaffy, Measurable, NodeId};
 
 /// Prints a debug representation of the computed layout for a tree of nodes, starting with the passed root node.
-pub fn print_tree(tree: &Taffy, root: NodeId) {
+pub fn print_tree<M: Measurable>(tree: &GenericTaffy<M>, root: NodeId) {
     println!("TREE");
     print_node(tree, root, false, String::new());
 }
 
-fn print_node(tree: &Taffy, node: NodeId, has_sibling: bool, lines_string: String) {
+fn print_node<M: Measurable>(tree: &GenericTaffy<M>, node: NodeId, has_sibling: bool, lines_string: String) {
     let key = DefaultKey::from(node);
     let layout = &tree.nodes[key].layout;
     let style = &tree.nodes[key].style;

@@ -24,7 +24,7 @@ for file_name in $DISABLED_FIXTURES; do
 done
 
 # Delete measure fixtures as yoga's test generator doesn't support this yet
-(cd yoga_test_fixtures && rm measure*.html)
+# (cd yoga_test_fixtures && rm measure*.html)
 
 # Delete CSS Grid fixtures as yoga doesn't support CSS Grid yet
 (cd yoga_test_fixtures && rm grid*.html)
@@ -66,6 +66,18 @@ YGAbsolutePositionTests=(
   absolute_child_with_main_margin
   absolute_child_with_max_height
   absolute_child_with_max_height_larger_shrinkable_grandchild
+
+  # New from Taffy
+  absolute_layout_child_order
+  absolute_layout_no_size
+  absolute_margin_bottom_left
+  absolute_minmax_bottom_right_max
+  absolute_minmax_bottom_right_min_max
+  absolute_minmax_bottom_right_min_max_preferred
+  absolute_minmax_top_left_bottom_right_max
+  absolute_minmax_top_left_bottom_right_min_max
+  absolute_padding_border_overrides_max_size
+  absolute_padding_border_overrides_size
 )
 
 
@@ -250,6 +262,7 @@ YGFlexTests=(
   only_shrinkable_item_with_flex_basis_zero
 
   # New from Taffy
+  container_with_unsized_child
   flex_basis_and_main_dimen_set_when_flexing
   flex_basis_larger_than_content_column
   flex_basis_larger_than_content_row
@@ -274,6 +287,18 @@ YGFlexTests=(
   width_smaller_then_content_with_flex_grow_unconstraint_size
   width_smaller_then_content_with_flex_grow_very_large_size
   relative_position_should_not_nudge_siblings
+  size_defined_by_child
+  size_defined_by_child_with_border
+  size_defined_by_child_with_padding
+  size_defined_by_grand_child
+  simple_child
+  intrinsic_sizing_cross_size_column
+  intrinsic_sizing_main_size_column
+  intrinsic_sizing_main_size_column_nested
+  intrinsic_sizing_main_size_column_wrap
+  intrinsic_sizing_main_size_row
+  intrinsic_sizing_main_size_row_nested
+  intrinsic_sizing_main_size_row_wrap
 )
 
 YGFlexWrapTests=(
@@ -397,6 +422,25 @@ YGMarginTests=(
   margin_auto_left_stretching_child
 )
 
+YGMeasureTests=(
+  measure_child
+  measure_child_absolute
+  measure_child_constraint
+  measure_child_constraint_padding_parent
+  measure_child_with_flex_grow
+  measure_child_with_flex_shrink
+  measure_child_with_flex_shrink_hidden
+  measure_child_with_min_size_greater_than_available_space
+  measure_flex_basis_overrides_measure
+  measure_height_overrides_measure
+  measure_remeasure_child_after_growing
+  measure_remeasure_child_after_shrinking
+  measure_remeasure_child_after_stretching
+  measure_root
+  measure_stretch_overrides_measure
+  measure_width_overrides_measure
+)
+
 YGMinMaxDimensionTests=(
   max_width
   min_width_larger_than_width
@@ -440,6 +484,14 @@ YGMinMaxDimensionTests=(
   min_width_overrides_width_on_root
   max_height_overrides_height_on_root
   max_width_overrides_width_on_root
+  padding_border_overrides_max_size
+  padding_border_overrides_min_size
+  padding_border_overrides_size
+  padding_border_overrides_size_flex_basis_0
+  padding_border_overrides_size_flex_basis_0_growable
+  leaf_padding_border_overrides_max_size
+  leaf_padding_border_overrides_min_size
+  leaf_padding_border_overrides_size
 )
 
 YGPaddingTests=(
@@ -491,6 +543,16 @@ YGPercentageTests=(
   percentage_sizes_should_not_prevent_flex_shrinking
 )
 
+YGRegressionTests=(
+  bevy_issue_7976_3_level
+  bevy_issue_7976_4_level
+  bevy_issue_7976_reduced
+  bevy_issue_8017
+  bevy_issue_8017_reduced
+  bevy_issue_8082
+  bevy_issue_8082_percent
+)
+
 YGRoundingTests=(
   rounding_flex_basis_flex_grow_row_width_of_100
   rounding_flex_basis_flex_grow_row_prime_number_width
@@ -525,7 +587,7 @@ YGSizeOverflowTests=(
 )
 
 #Every known test
-ALL_YOGA_TESTS="${YGAlignContentTests[@]} ${YGBorderTests[@]} ${YGMarginTests[@]} ${YGPaddingTests[@]} ${YGMinMaxDimensionTests[@]} ${YGAlignItemsTests[@]} ${YGDimensionTests[@]} ${YGJustifyContentTests[@]} ${YGFlexDirectionTests[@]} ${YGAlignSelfTests[@]} ${YGAspectRatioTests[@]} ${YGRoundingTests[@]} ${YGPercentageTests[@]} ${YGGapTests[@]} ${YGDisplayTests[@]} ${YGFlexTests[@]} ${YGAndroidNewsFeedTests[@]} ${YGFlexWrapTests[@]} ${YGSizeOverflowTests[@]} ${YGAbsolutePositionTests[@]}"
+ALL_YOGA_TESTS="${YGAlignContentTests[@]} ${YGBorderTests[@]} ${YGMarginTests[@]} ${YGMeasureTests[@]} ${YGRegressionTests[@]} ${YGPaddingTests[@]} ${YGMinMaxDimensionTests[@]} ${YGAlignItemsTests[@]} ${YGDimensionTests[@]} ${YGJustifyContentTests[@]} ${YGFlexDirectionTests[@]} ${YGAlignSelfTests[@]} ${YGAspectRatioTests[@]} ${YGRoundingTests[@]} ${YGPercentageTests[@]} ${YGGapTests[@]} ${YGDisplayTests[@]} ${YGFlexTests[@]} ${YGAndroidNewsFeedTests[@]} ${YGFlexWrapTests[@]} ${YGSizeOverflowTests[@]} ${YGAbsolutePositionTests[@]}"
 ALL_YOGA_TESTS_WITH_SPACE=" $ALL_YOGA_TESTS "
 
 # for str in $EVERY_KNOWN_TEST; do

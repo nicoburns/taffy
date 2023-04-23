@@ -422,6 +422,7 @@ YGMarginTests=(
   margin_auto_left_stretching_child
 )
 
+# New from Taffy
 YGMeasureTests=(
   measure_child
   measure_child_absolute
@@ -543,6 +544,7 @@ YGPercentageTests=(
   percentage_sizes_should_not_prevent_flex_shrinking
 )
 
+# New from Taffy
 YGRegressionTests=(
   bevy_issue_7976_3_level
   bevy_issue_7976_4_level
@@ -599,10 +601,30 @@ ALL_YOGA_TESTS_WITH_SPACE=" $ALL_YOGA_TESTS "
 # done
 
 ALL_TAFFY_TESTS=`ls yoga_test_fixtures | sd '.html' ''`
-
 for test_name in $ALL_TAFFY_TESTS; do
   if [[ ! $ALL_YOGA_TESTS_WITH_SPACE =~ " ${test_name} " ]]; then
       # whatever you want to do when array doesn't contain value
       echo "$test_name" #.html"
   fi
+done
+
+TEST_CATEGORIES="YGAbsolutePositionTests YGAlignContentTests YGAlignItemsTests YGAlignSelfTests YGAndroidNewsFeedTests YGAspectRatioTests YGBorderTests YGDimensionTests YGDisplayTests YGFlexDirectionTests YGFlexTests YGFlexWrapTests YGGapTests YGJustifyContentTests YGMarginTests YGMeasureTests YGMinMaxDimensionTests YGPaddingTests YGPercentageTests YGRegressionTests YGRoundingTests YGSizeOverflowTests"
+
+mkdir -p yoga_test_fixtures_grouped
+rm yoga_test_fixtures_grouped/*.html
+for cat_name in $TEST_CATEGORIES; do
+  # Get list from list name
+  eval TEST_LIST=\${$cat_name[@]}
+
+  # Append .html to each fixture name
+  # TEST_LIST_WITH_EXT=()
+  for test in $TEST_LIST; do
+     cat "yoga_test_fixtures/$test.html" >> yoga_test_fixtures_grouped/$cat_name.html
+     echo "" >> yoga_test_fixtures_grouped/$cat_name.html
+     echo "" >> yoga_test_fixtures_grouped/$cat_name.html
+  done
+
+  # echo $cat_name;
+  # echo $test_list;
+  # cat $test_list | 
 done

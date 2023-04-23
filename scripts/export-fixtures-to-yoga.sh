@@ -608,13 +608,14 @@ for test_name in $ALL_TAFFY_TESTS; do
   fi
 done
 
-TEST_CATEGORIES="YGAbsolutePositionTests YGAlignContentTests YGAlignItemsTests YGAlignSelfTests YGAndroidNewsFeedTests YGAspectRatioTests YGBorderTests YGDimensionTests YGDisplayTests YGFlexDirectionTests YGFlexTests YGFlexWrapTests YGGapTests YGJustifyContentTests YGMarginTests YGMeasureTests YGMinMaxDimensionTests YGPaddingTests YGPercentageTests YGRegressionTests YGRoundingTests YGSizeOverflowTests"
+TEST_CATEGORIES="YGAbsolutePositionTest YGAlignContentTest YGAlignItemsTest YGAlignSelfTest YGAndroidNewsFeedTest YGAspectRatioTest YGBorderTest YGDimensionTest YGDisplayTest YGFlexDirectionTest YGFlexTest YGFlexWrapTest YGGapTest YGJustifyContentTest YGMarginTest YGMeasureTest YGMinMaxDimensionTest YGPaddingTest YGPercentageTest YGRegressionTest YGRoundingTest YGSizeOverflowTest"
 
 mkdir -p yoga_test_fixtures_grouped
 rm yoga_test_fixtures_grouped/*.html
 for cat_name in $TEST_CATEGORIES; do
   # Get list from list name
-  eval TEST_LIST=\${$cat_name[@]}
+  cat_name_with_s="${cat_name}s"
+  eval TEST_LIST=\${$cat_name_with_s[@]}
 
   # Append .html to each fixture name
   # TEST_LIST_WITH_EXT=()

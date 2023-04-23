@@ -621,7 +621,6 @@ for cat_name in $TEST_CATEGORIES; do
   for test in $TEST_LIST; do
      cat "yoga_test_fixtures/$test.html" >> yoga_test_fixtures_grouped/$cat_name.html
      echo "" >> yoga_test_fixtures_grouped/$cat_name.html
-     echo "" >> yoga_test_fixtures_grouped/$cat_name.html
   done
 
   # echo $cat_name;

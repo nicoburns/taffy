@@ -8,6 +8,7 @@ use crate::geometry::Size;
 use crate::prelude::LayoutTree;
 use crate::style::{AvailableSpace, Style};
 use crate::tree::{Layout, MeasureFunc, NodeData, NodeId, SizeAndBaselines, SizingMode};
+use crate::util::debug::{print_tree_with_custom_printer, SlotmapNodePrinter};
 use crate::util::sys::{new_vec_with_capacity, ChildrenVec, Vec};
 
 use super::{TaffyError, TaffyResult};
@@ -384,6 +385,11 @@ impl Taffy {
     /// Indicates whether the layout of this node (and its children) need to be recomputed
     pub fn dirty(&self, node: NodeId) -> TaffyResult<bool> {
         Ok(self.nodes[node.into()].cache.is_empty())
+    }
+
+    /// Print a debug representation of the tree starting at `root
+    pub fn print_tree(&self, root: NodeId) {
+        print_tree_with_custom_printer::<SlotmapNodePrinter>(self, root);
     }
 
     /// Updates the stored layout of the provided `node` and its children

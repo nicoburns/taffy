@@ -5,13 +5,42 @@ use crate::{style, LayoutTree};
 use core::fmt::{Debug, Display, Write};
 use std::sync::Mutex;
 
-/// Prints a debug representation of the computed layout for a tree of nodes, starting with the passed root node.
-pub fn print_tree(tree: &impl LayoutTree, root: NodeId) {
-    println!("TREE");
-    print_node(tree, root, false, String::new());
+pub(crate) struct SlotmapNodePrinter(u64);
+impl From<NodeId> for SlotmapNodePrinter {
+    fn from(value: NodeId) -> Self {
+        Self(value.into())
+    }
+}
+impl Debug for SlotmapNodePrinter {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let index = self.0 & 0xffff_ffff;
+        let _version = (self.0 >> 32) | 1; // Unused, but could be used in future
+        write!(f, "NodeId({})", index)
+    }
 }
 
-fn print_node(tree: &impl LayoutTree, node: NodeId, has_sibling: bool, lines_string: String) {
+/// Prints a debug representation of the computed layout for a tree of nodes, starting with the passed root node.
+pub fn print_tree(tree: &impl LayoutTree, root: NodeId) {
+    print_node_with_custom_printer::<NodeId>(tree, root, false, String::new());
+}
+
+/// Prints a debug representation of the computed layout for a tree of nodes, starting with the passed root node.
+pub fn print_tree_with_custom_printer<NodePrinter>(tree: &impl LayoutTree, root: NodeId)
+where
+    NodePrinter: From<NodeId> + Debug,
+{
+    println!("TREE");
+    print_node_with_custom_printer::<NodePrinter>(tree, root, false, String::new());
+}
+
+fn print_node_with_custom_printer<NodePrinter>(
+    tree: &impl LayoutTree,
+    node: NodeId,
+    has_sibling: bool,
+    lines_string: String,
+) where
+    NodePrinter: From<NodeId> + Debug,
+{
     let layout = &tree.layout(node);
     let style = &tree.style(node);
     let num_children = tree.child_count(node);
@@ -27,7 +56,7 @@ fn print_node(tree: &impl LayoutTree, node: NodeId, has_sibling: bool, lines_str
 
     let fork_string = if has_sibling { "├── " } else { "└── " };
     println!(
-        "{lines}{fork} {display} [x: {x:<4} y: {y:<4} width: {width:<4} height: {height:<4}] ({key:?})",
+        "{lines}{fork} {display} [x: {x:<4} y: {y:<4} width: {width:<4} height: {height:<4}] {key:?}",
         lines = lines_string,
         fork = fork_string,
         display = display,
@@ -35,7 +64,7 @@ fn print_node(tree: &impl LayoutTree, node: NodeId, has_sibling: bool, lines_str
         y = layout.location.y,
         width = layout.size.width,
         height = layout.size.height,
-        key = node,
+        key = NodePrinter::from(node),
     );
     let bar = if has_sibling { "│   " } else { "    " };
     let new_string = lines_string + bar;
@@ -43,7 +72,7 @@ fn print_node(tree: &impl LayoutTree, node: NodeId, has_sibling: bool, lines_str
     // Recurse into children
     for (index, child) in tree.children(node).enumerate() {
         let has_sibling = index < num_children - 1;
-        print_node(tree, child, has_sibling, new_string.clone());
+        print_node_with_custom_printer::<NodePrinter>(tree, child, has_sibling, new_string.clone());
     }
 }
 

@@ -31,7 +31,7 @@ random = ["dep:rand"]
 debug = []
 
 [dev-dependencies]
-criterion = "0.4"
+criterion = "0.5"
 rstest = "0.16.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"

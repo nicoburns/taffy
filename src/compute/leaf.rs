@@ -112,13 +112,12 @@ pub(crate) fn compute(
 
         // Measure node
         let measured_size = tree.measure_node(node, known_dimensions, available_space);
-
-        let measured_size = Size {
-            width: measured_size.width,
-            height: f32_max(measured_size.height, aspect_ratio.map(|ratio| measured_size.width / ratio).unwrap_or(0.0)),
+        let clamped_size =
+            node_size.unwrap_or(measured_size + padding_border.sum_axes()).maybe_clamp(node_min_size, node_max_size);
+        let size = Size {
+            width: clamped_size.width,
+            height: f32_max(clamped_size.height, aspect_ratio.map(|ratio| clamped_size.width / ratio).unwrap_or(0.0)),
         };
-
-        let size = node_size.unwrap_or(measured_size).maybe_clamp(node_min_size, node_max_size);
         let size = size.maybe_max(padding_border.sum_axes().map(Some));
         return SizeAndBaselines { size, first_baselines: Point::NONE };
     }

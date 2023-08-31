@@ -2,11 +2,10 @@
 
 use crate::compute::root::perform_root_node_layout;
 use crate::compute::{leaf, LayoutAlgorithm};
-use crate::geometry::{Line, Point, Size};
+use crate::geometry::{Line, Size};
 use crate::style::{AvailableSpace, Display};
 use crate::tree::{Layout, LayoutTree, NodeId, RunMode, SizeBaselinesAndMargins, SizingMode, Taffy, TaffyError};
 use crate::util::sys::round;
-use crate::util::ResolveOrZero;
 
 #[cfg(feature = "block_layout")]
 use crate::compute::BlockAlgorithm;
@@ -44,7 +43,7 @@ pub(crate) fn compute_layout(
     taffy.is_layouting = true;
 
     // Recursively compute node layout
-    perform_root_node_layout(taffy, root, Size::NONE, available_space);
+    perform_root_node_layout(taffy, root, available_space);
 
     // If rounding is enabled, recursively round the layout's of this node and all children
     if taffy.config.use_rounding {
@@ -252,7 +251,7 @@ fn compute_node_layout(
 
 /// Creates a layout for this node and its children, recursively.
 /// Each hidden node has zero size and is placed at the origin
-fn perform_taffy_tree_hidden_layout(tree: &mut Taffy, node: NodeId) {
+pub (crate) fn perform_taffy_tree_hidden_layout(tree: &mut Taffy, node: NodeId) {
     /// Recursive function to apply hidden layout to all descendents
     fn perform_hidden_layout_inner(tree: &mut Taffy, node: NodeId, order: u32) {
         let node_key = node.into();

@@ -1,10 +1,12 @@
 //! Computation specific for the default `Taffy` tree implementation
 
+use crate::compute::root::perform_root_node_layout;
 use crate::compute::{leaf, LayoutAlgorithm};
 use crate::geometry::{Line, Point, Size};
 use crate::style::{AvailableSpace, Display};
 use crate::tree::{Layout, LayoutTree, NodeId, RunMode, SizeBaselinesAndMargins, SizingMode, Taffy, TaffyError};
 use crate::util::sys::round;
+use crate::util::ResolveOrZero;
 
 #[cfg(feature = "block_layout")]
 use crate::compute::BlockAlgorithm;
@@ -42,18 +44,7 @@ pub(crate) fn compute_layout(
     taffy.is_layouting = true;
 
     // Recursively compute node layout
-    let size_and_baselines = perform_node_layout(
-        taffy,
-        root,
-        Size::NONE,
-        available_space.into_options(),
-        available_space,
-        SizingMode::InherentSize,
-        Line::FALSE,
-    );
-
-    let layout = Layout { order: 0, size: size_and_baselines.size, location: Point::ZERO };
-    *taffy.layout_mut(root) = layout;
+    perform_root_node_layout(taffy, root, Size::NONE, available_space);
 
     // If rounding is enabled, recursively round the layout's of this node and all children
     if taffy.config.use_rounding {

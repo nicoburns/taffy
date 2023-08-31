@@ -2,6 +2,7 @@
 
 pub(crate) mod common;
 pub(crate) mod leaf;
+pub(crate) mod root;
 
 pub use leaf::compute;
 

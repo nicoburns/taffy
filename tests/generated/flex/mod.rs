@@ -9,6 +9,8 @@ mod absolute_aspect_ratio_fill_width;
 mod absolute_aspect_ratio_fill_width_from_inset;
 mod absolute_aspect_ratio_height_overrides_inset;
 mod absolute_aspect_ratio_width_overrides_inset;
+mod absolute_auto_margin;
+mod absolute_auto_margin_no_inset;
 mod absolute_child_with_cross_margin;
 mod absolute_child_with_main_margin;
 mod absolute_child_with_max_height;

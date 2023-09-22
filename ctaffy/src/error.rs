@@ -15,7 +15,9 @@ pub enum ReturnCode {
     Ok,
     /// The style pointer passed was null
     NullStylePointer,
-    /// A None unit was specified but is not valid in this context
+    /// An enum value was specified that was outside the range of valid value for this enum
+    InvalidEnumValue,
+    /// A Points unit was specified but is not valid in this context
     InvalidNone,
     /// A Points unit was specified but is not valid in this context
     InvalidPoints,

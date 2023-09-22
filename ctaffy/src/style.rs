@@ -6,7 +6,8 @@ use super::{
     TaffyEdge, TaffyFFIResult,
 };
 use std::ffi::c_void;
-use taffy::geometry::Rect;
+use taffy::prelude as core;
+
 
 /// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {
@@ -23,7 +24,7 @@ macro_rules! assert_style_pointer_is_non_null {
 macro_rules! get_style {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let $style_ident = unsafe { &*($raw_style_ptr as *const TaffyStyle) };
+        let $style_ident = unsafe { &*($raw_style_ptr as *const core::Style) };
 
         let return_value = $block;
 
@@ -37,7 +38,7 @@ macro_rules! get_style {
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let $style_ident = unsafe { &mut *($raw_style_ptr as *mut TaffyStyle) };
+        let $style_ident = unsafe { &mut *($raw_style_ptr as *mut core::Style) };
 
         $block;
 
@@ -64,91 +65,177 @@ macro_rules! try_from_raw {
     };
 }
 
+// Simple enum properties
+
+macro_rules! enum_prop_getter {
+    ($func_name:ident; $($props:ident).+) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> FloatResult {
+            get_style!(raw_style, style, style.$($props).* as u32 as f32)
+        }
+    };
+}
+
+// Generate a function to set a style value such as margin.top or size.width
+macro_rules! enum_prop_setter {
+    ($func_name:ident; $($props:ident).+; $enum:ident) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: $enum) -> ReturnCode {
+            with_style_mut!(raw_style, style, style.$($props).* = value.into())
+        }
+    };
+}
+
+// Display
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(C)]
+pub enum TaffyDisplay {
+    Block,
+    Flex,
+    Grid,
+    None,
+}
+impl From<TaffyDisplay> for core::Display {
+    fn from(input: TaffyDisplay) -> core::Display {
+        match input {
+            TaffyDisplay::Block => core::Display::Block,
+            TaffyDisplay::Flex => core::Display::Flex,
+            TaffyDisplay::Grid => core::Display::Grid,
+            TaffyDisplay::None => core::Display::None,
+        }
+    }
+}
+enum_prop_getter!(TaffyStyle_GetDisplay; display);
+enum_prop_setter!(TaffyStyle_SetDisplay; display; TaffyDisplay);
+
+
+// Position
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(C)]
+pub enum TaffyPosition {
+    Relative,
+    Absolute,
+}
+impl From<TaffyPosition> for core::Position {
+    fn from(input: TaffyPosition) -> core::Position {
+        match input {
+            TaffyPosition::Relative => core::Position::Relative,
+            TaffyPosition::Absolute => core::Position::Absolute,
+        }
+    }
+}
+enum_prop_getter!(TaffyStyle_GetPosition; position);
+enum_prop_setter!(TaffyStyle_SetPosition; position; TaffyPosition);
+
+
+// Overflow
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(C)]
+pub enum TaffyOverflow {
+    Visible,
+    Hidden,
+    Scroll,
+}
+impl From<TaffyOverflow> for core::Overflow {
+    fn from(input: TaffyOverflow) -> core::Overflow {
+        match input {
+            TaffyOverflow::Visible => core::Overflow::Visible,
+            TaffyOverflow::Hidden => core::Overflow::Hidden,
+            TaffyOverflow::Scroll => core::Overflow::Scroll,
+        }
+    }
+}
+enum_prop_getter!(TaffyStyle_GetOverflowX; overflow.x);
+enum_prop_setter!(TaffyStyle_SetOverflowX; overflow.x; TaffyOverflow);
+enum_prop_getter!(TaffyStyle_GetOverflowY; overflow.y);
+enum_prop_setter!(TaffyStyle_SetOverflowY; overflow.y; TaffyOverflow);
+
+
 /* API variant with single parameter that combines "value" and "unit" into a `StyleValue` struct */
 
 // Generate a function to get a style value such as margin.top or size.width
 macro_rules! numeric_prop_getter {
-    ($func_name:ident, $property:ident, $edge:ident) => {
+    ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> StyleValueResult {
-            get_style!(raw_style, style, style.$property.$edge)
+            get_style!(raw_style, style, style.$($props).*)
         }
     };
 }
 
 // Generate a function to set a style value such as margin.top or size.width
 macro_rules! numeric_prop_setter {
-    ($func_name:ident, $property:ident, $edge:ident) => {
+    ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
-            with_style_mut!(raw_style, style, style.$property.$edge = try_from_value!(value))
+            with_style_mut!(raw_style, style, style.$($props).* = try_from_value!(value))
         }
     };
 }
 
 // Size
-numeric_prop_getter!(TaffyStyle_GetWidth, size, width);
-numeric_prop_setter!(TaffyStyle_SetWidth, size, width);
-numeric_prop_getter!(TaffyStyle_GetHeight, size, height);
-numeric_prop_setter!(TaffyStyle_SetHeight, size, height);
+numeric_prop_getter!(TaffyStyle_GetWidth; size.width);
+numeric_prop_setter!(TaffyStyle_SetWidth; size.width);
+numeric_prop_getter!(TaffyStyle_GetHeight; size.height);
+numeric_prop_setter!(TaffyStyle_SetHeight; size.height);
 
 // MinSize
-numeric_prop_getter!(TaffyStyle_GetMinWidth, min_size, width);
-numeric_prop_setter!(TaffyStyle_SetMinWidth, min_size, width);
-numeric_prop_getter!(TaffyStyle_GetMinHeight, min_size, height);
-numeric_prop_setter!(TaffyStyle_SetMinHeight, min_size, height);
+numeric_prop_getter!(TaffyStyle_GetMinWidth; min_size.width);
+numeric_prop_setter!(TaffyStyle_SetMinWidth; min_size.width);
+numeric_prop_getter!(TaffyStyle_GetMinHeight; min_size.height);
+numeric_prop_setter!(TaffyStyle_SetMinHeight; min_size.height);
 
 // MaxSize
-numeric_prop_getter!(TaffyStyle_GetMaxWidth, max_size, width);
-numeric_prop_setter!(TaffyStyle_SetMaxWidth, max_size, width);
-numeric_prop_getter!(TaffyStyle_GetMaxHeight, max_size, height);
-numeric_prop_setter!(TaffyStyle_SetMaxHeight, max_size, height);
+numeric_prop_getter!(TaffyStyle_GetMaxWidth; max_size.width);
+numeric_prop_setter!(TaffyStyle_SetMaxWidth; max_size.width);
+numeric_prop_getter!(TaffyStyle_GetMaxHeight; max_size.height);
+numeric_prop_setter!(TaffyStyle_SetMaxHeight; max_size.height);
 
 // Inset
-numeric_prop_getter!(TaffyStyle_GetInsetTop, inset, top);
-numeric_prop_setter!(TaffyStyle_SetInsetTop, inset, top);
-numeric_prop_getter!(TaffyStyle_GetInsetBottom, inset, bottom);
-numeric_prop_setter!(TaffyStyle_SetInsetBottom, inset, bottom);
-numeric_prop_getter!(TaffyStyle_GetInsetLeft, inset, left);
-numeric_prop_getter!(TaffyStyle_GetInsetRight, inset, right);
-numeric_prop_setter!(TaffyStyle_SetInsetLeft, inset, left);
-numeric_prop_setter!(TaffyStyle_SetInsetRight, inset, right);
+numeric_prop_getter!(TaffyStyle_GetInsetTop; inset.top);
+numeric_prop_setter!(TaffyStyle_SetInsetTop; inset.top);
+numeric_prop_getter!(TaffyStyle_GetInsetBottom; inset.bottom);
+numeric_prop_setter!(TaffyStyle_SetInsetBottom; inset.bottom);
+numeric_prop_getter!(TaffyStyle_GetInsetLeft; inset.left);
+numeric_prop_getter!(TaffyStyle_GetInsetRight; inset.right);
+numeric_prop_setter!(TaffyStyle_SetInsetLeft; inset.left);
+numeric_prop_setter!(TaffyStyle_SetInsetRight; inset.right);
 
 // Margin
-numeric_prop_getter!(TaffyStyle_GetMarginTop, margin, top);
-numeric_prop_setter!(TaffyStyle_SetMarginTop, margin, top);
-numeric_prop_getter!(TaffyStyle_GetMarginBottom, margin, bottom);
-numeric_prop_setter!(TaffyStyle_SetMarginBottom, margin, bottom);
-numeric_prop_getter!(TaffyStyle_GetMarginLeft, margin, left);
-numeric_prop_getter!(TaffyStyle_GetMarginRight, margin, right);
-numeric_prop_setter!(TaffyStyle_SetMarginLeft, margin, left);
-numeric_prop_setter!(TaffyStyle_SetMarginRight, margin, right);
+numeric_prop_getter!(TaffyStyle_GetMarginTop; margin.top);
+numeric_prop_setter!(TaffyStyle_SetMarginTop; margin.top);
+numeric_prop_getter!(TaffyStyle_GetMarginBottom; margin.bottom);
+numeric_prop_setter!(TaffyStyle_SetMarginBottom; margin.bottom);
+numeric_prop_getter!(TaffyStyle_GetMarginLeft; margin.left);
+numeric_prop_getter!(TaffyStyle_GetMarginRight; margin.right);
+numeric_prop_setter!(TaffyStyle_SetMarginLeft; margin.left);
+numeric_prop_setter!(TaffyStyle_SetMarginRight; margin.right);
 
 // Padding
-numeric_prop_getter!(TaffyStyle_GetPaddingTop, padding, top);
-numeric_prop_setter!(TaffyStyle_SetPaddingTop, padding, top);
-numeric_prop_getter!(TaffyStyle_GetPaddingBottom, padding, bottom);
-numeric_prop_setter!(TaffyStyle_SetPaddingBottom, padding, bottom);
-numeric_prop_getter!(TaffyStyle_GetPaddingLeft, padding, left);
-numeric_prop_getter!(TaffyStyle_GetPaddingRight, padding, right);
-numeric_prop_setter!(TaffyStyle_SetPaddingLeft, padding, left);
-numeric_prop_setter!(TaffyStyle_SetPaddingRight, padding, right);
+numeric_prop_getter!(TaffyStyle_GetPaddingTop; padding.top);
+numeric_prop_setter!(TaffyStyle_SetPaddingTop; padding.top);
+numeric_prop_getter!(TaffyStyle_GetPaddingBottom; padding.bottom);
+numeric_prop_setter!(TaffyStyle_SetPaddingBottom; padding.bottom);
+numeric_prop_getter!(TaffyStyle_GetPaddingLeft; padding.left);
+numeric_prop_getter!(TaffyStyle_GetPaddingRight; padding.right);
+numeric_prop_setter!(TaffyStyle_SetPaddingLeft; padding.left);
+numeric_prop_setter!(TaffyStyle_SetPaddingRight; padding.right);
 
 // Border
-numeric_prop_getter!(TaffyStyle_GetBorderTop, border, top);
-numeric_prop_setter!(TaffyStyle_SetBorderTop, border, top);
-numeric_prop_getter!(TaffyStyle_GetBorderBottom, border, bottom);
-numeric_prop_setter!(TaffyStyle_SetBorderBottom, border, bottom);
-numeric_prop_getter!(TaffyStyle_GetBorderLeft, border, left);
-numeric_prop_getter!(TaffyStyle_GetBorderRight, border, right);
-numeric_prop_setter!(TaffyStyle_SetBorderLeft, border, left);
-numeric_prop_setter!(TaffyStyle_SetBorderRight, border, right);
+numeric_prop_getter!(TaffyStyle_GetBorderTop; border.top);
+numeric_prop_setter!(TaffyStyle_SetBorderTop; border.top);
+numeric_prop_getter!(TaffyStyle_GetBorderBottom; border.bottom);
+numeric_prop_setter!(TaffyStyle_SetBorderBottom; border.bottom);
+numeric_prop_getter!(TaffyStyle_GetBorderLeft; border.left);
+numeric_prop_getter!(TaffyStyle_GetBorderRight; border.right);
+numeric_prop_setter!(TaffyStyle_SetBorderLeft; border.left);
+numeric_prop_setter!(TaffyStyle_SetBorderRight; border.right);
 
 // Gap
-numeric_prop_getter!(TaffyStyle_GetColumnGap, gap, width);
-numeric_prop_setter!(TaffyStyle_SetColumnGap, gap, width);
-numeric_prop_getter!(TaffyStyle_GetRowGap, gap, height);
-numeric_prop_setter!(TaffyStyle_SetRowGap, gap, height);
+numeric_prop_getter!(TaffyStyle_GetColumnGap; gap.width);
+numeric_prop_setter!(TaffyStyle_SetColumnGap; gap.width);
+numeric_prop_getter!(TaffyStyle_GetRowGap; gap.height);
+numeric_prop_setter!(TaffyStyle_SetRowGap; gap.height);
 
 // Aspect ratio
 #[no_mangle]

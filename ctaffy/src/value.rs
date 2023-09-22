@@ -5,7 +5,7 @@ use taffy::prelude as core;
 use super::ReturnCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
+#[repr(C)]
 pub enum StyleValueUnit {
     /// A none value (used to unset optional fields)
     None,

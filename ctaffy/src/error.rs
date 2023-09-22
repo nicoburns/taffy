@@ -9,7 +9,7 @@ pub(crate) trait TaffyFFIResult {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
+#[repr(C)]
 pub enum ReturnCode {
     /// Operation suceeded
     Ok,

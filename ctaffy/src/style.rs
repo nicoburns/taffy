@@ -151,8 +151,8 @@ macro_rules! style_value_prop_getter {
 macro_rules! style_value_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
-        pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
-            with_style_mut!(raw_style, style, style.$($props).* = try_from_value!(value))
+        pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: f32, unit: StyleValueUnit) -> ReturnCode {
+            with_style_mut!(raw_style, style, style.$($props).* = try_from_raw!(unit, value))
         }
     };
 }

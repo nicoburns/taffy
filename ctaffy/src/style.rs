@@ -1,22 +1,15 @@
 //! Public API for C FFI
 
 use super::{
-    FloatResult, GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit,
-    TaffyEdge, TaffyFFIResult,
+    FloatResult, GridPlacement, GridPlacementResult, IntResult, ReturnCode, StyleValue, StyleValueResult,
+    StyleValueUnit, TaffyAlignContent, TaffyAlignItems, TaffyDisplay, TaffyEdge, TaffyFFIResult, TaffyFlexDirection,
+    TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow, TaffyPosition,
 };
 use std::ffi::c_void;
 use taffy::prelude as core;
 
 pub struct TaffyStyle;
 pub type TaffyStyleRef = *mut TaffyStyle;
-
-
-// AlignItems
-// AlignSelf
-// AlignContent
-// FlexDirection
-// FlexWrap
-// GridAutoFlow
 
 /// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {
@@ -79,8 +72,17 @@ macro_rules! try_from_raw {
 macro_rules! enum_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
-        pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> FloatResult {
-            get_style!(raw_style, style, style.$($props).* as u32 as f32)
+        pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> IntResult {
+            get_style!(raw_style, style, style.$($props).* as i32)
+        }
+    };
+}
+
+macro_rules! option_enum_prop_getter {
+    ($func_name:ident; $($props:ident).+) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> IntResult {
+            get_style!(raw_style, style, style.$($props).*.map(|v| v as i32).unwrap_or(0))
         }
     };
 }
@@ -96,69 +98,42 @@ macro_rules! enum_prop_setter {
 }
 
 // Display
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(C)]
-pub enum TaffyDisplay {
-    Block,
-    Flex,
-    Grid,
-    None,
-}
-impl From<TaffyDisplay> for core::Display {
-    fn from(input: TaffyDisplay) -> core::Display {
-        match input {
-            TaffyDisplay::Block => core::Display::Block,
-            TaffyDisplay::Flex => core::Display::Flex,
-            TaffyDisplay::Grid => core::Display::Grid,
-            TaffyDisplay::None => core::Display::None,
-        }
-    }
-}
 enum_prop_getter!(TaffyStyle_GetDisplay; display);
 enum_prop_setter!(TaffyStyle_SetDisplay; display; TaffyDisplay);
 
-
 // Position
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(C)]
-pub enum TaffyPosition {
-    Relative,
-    Absolute,
-}
-impl From<TaffyPosition> for core::Position {
-    fn from(input: TaffyPosition) -> core::Position {
-        match input {
-            TaffyPosition::Relative => core::Position::Relative,
-            TaffyPosition::Absolute => core::Position::Absolute,
-        }
-    }
-}
 enum_prop_getter!(TaffyStyle_GetPosition; position);
 enum_prop_setter!(TaffyStyle_SetPosition; position; TaffyPosition);
 
-
 // Overflow
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(C)]
-pub enum TaffyOverflow {
-    Visible,
-    Hidden,
-    Scroll,
-}
-impl From<TaffyOverflow> for core::Overflow {
-    fn from(input: TaffyOverflow) -> core::Overflow {
-        match input {
-            TaffyOverflow::Visible => core::Overflow::Visible,
-            TaffyOverflow::Hidden => core::Overflow::Hidden,
-            TaffyOverflow::Scroll => core::Overflow::Scroll,
-        }
-    }
-}
 enum_prop_getter!(TaffyStyle_GetOverflowX; overflow.x);
 enum_prop_setter!(TaffyStyle_SetOverflowX; overflow.x; TaffyOverflow);
 enum_prop_getter!(TaffyStyle_GetOverflowY; overflow.y);
 enum_prop_setter!(TaffyStyle_SetOverflowY; overflow.y; TaffyOverflow);
 
+// Alignment
+option_enum_prop_getter!(TaffyStyle_GetAlignContent; align_content);
+option_enum_prop_getter!(TaffyStyle_GetAlignItems; align_items);
+option_enum_prop_getter!(TaffyStyle_GetAlignSelf; align_self);
+option_enum_prop_getter!(TaffyStyle_GetJustifyContent; justify_content);
+option_enum_prop_getter!(TaffyStyle_GetJustifyItems; justify_items);
+option_enum_prop_getter!(TaffyStyle_GetJustifySelf; justify_self);
+enum_prop_setter!(TaffyStyle_SetAlignContent; align_content; TaffyAlignContent);
+enum_prop_setter!(TaffyStyle_SetAlignItems; align_items; TaffyAlignItems);
+enum_prop_setter!(TaffyStyle_SetAlignSelf; align_self; TaffyAlignItems);
+enum_prop_setter!(TaffyStyle_SetJustifyContent; justify_content; TaffyAlignContent);
+enum_prop_setter!(TaffyStyle_SetJustifyItems; justify_items; TaffyAlignItems);
+enum_prop_setter!(TaffyStyle_SetJustifySelf; justify_self; TaffyAlignItems);
+
+// FlexDirection & FlexWrap
+enum_prop_getter!(TaffyStyle_GetFlexDirection; flex_direction);
+enum_prop_setter!(TaffyStyle_SetFlexDirection; flex_direction; TaffyFlexDirection);
+enum_prop_getter!(TaffyStyle_GetFlexWrap; flex_wrap);
+enum_prop_setter!(TaffyStyle_SetFlexWrap; flex_wrap; TaffyFlexWrap);
+
+// GridAutoFlow
+enum_prop_getter!(TaffyStyle_GetGridAutoFlow; grid_auto_flow);
+enum_prop_setter!(TaffyStyle_SetGridAutoFlow; grid_auto_flow; TaffyGridAutoFlow);
 
 /* API variant with single parameter that combines "value" and "unit" into a `StyleValue` struct */
 

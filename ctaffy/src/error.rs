@@ -70,6 +70,22 @@ impl TaffyFFIResult for StyleValueResult {
 }
 
 #[repr(C)]
+pub struct IntResult {
+    pub return_code: ReturnCode,
+    pub value: i32,
+}
+
+impl TaffyFFIResult for IntResult {
+    type Value = i32;
+    fn from_value(value: Self::Value) -> Self {
+        Self { return_code: ReturnCode::Ok, value }
+    }
+    fn from_return_code(return_code: ReturnCode) -> Self {
+        Self { return_code, value: 0 }
+    }
+}
+
+#[repr(C)]
 pub struct FloatResult {
     pub return_code: ReturnCode,
     pub value: f32,

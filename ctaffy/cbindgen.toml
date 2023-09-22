@@ -3,10 +3,9 @@ cpp_compat = true
 documentation_style = "c99"
 line_length = 120
 
-# [parse]
-# parse_deps = true
-# include = ["taffy"]
-# extra_bindings = ["taffy"]
+[export]
+include = ["TaffyNodeId"]
 
 [parse.expand]
 crates = ["ctaffy"]
+

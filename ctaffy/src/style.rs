@@ -138,7 +138,7 @@ enum_prop_setter!(TaffyStyle_SetGridAutoFlow; grid_auto_flow; TaffyGridAutoFlow)
 /* API variant with single parameter that combines "value" and "unit" into a `StyleValue` struct */
 
 // Generate a function to get a style value such as margin.top or size.width
-macro_rules! numeric_prop_getter {
+macro_rules! style_value_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> StyleValueResult {
@@ -148,7 +148,7 @@ macro_rules! numeric_prop_getter {
 }
 
 // Generate a function to set a style value such as margin.top or size.width
-macro_rules! numeric_prop_setter {
+macro_rules! style_value_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
@@ -158,68 +158,68 @@ macro_rules! numeric_prop_setter {
 }
 
 // Size
-numeric_prop_getter!(TaffyStyle_GetWidth; size.width);
-numeric_prop_setter!(TaffyStyle_SetWidth; size.width);
-numeric_prop_getter!(TaffyStyle_GetHeight; size.height);
-numeric_prop_setter!(TaffyStyle_SetHeight; size.height);
+style_value_prop_getter!(TaffyStyle_GetWidth; size.width);
+style_value_prop_setter!(TaffyStyle_SetWidth; size.width);
+style_value_prop_getter!(TaffyStyle_GetHeight; size.height);
+style_value_prop_setter!(TaffyStyle_SetHeight; size.height);
 
 // MinSize
-numeric_prop_getter!(TaffyStyle_GetMinWidth; min_size.width);
-numeric_prop_setter!(TaffyStyle_SetMinWidth; min_size.width);
-numeric_prop_getter!(TaffyStyle_GetMinHeight; min_size.height);
-numeric_prop_setter!(TaffyStyle_SetMinHeight; min_size.height);
+style_value_prop_getter!(TaffyStyle_GetMinWidth; min_size.width);
+style_value_prop_setter!(TaffyStyle_SetMinWidth; min_size.width);
+style_value_prop_getter!(TaffyStyle_GetMinHeight; min_size.height);
+style_value_prop_setter!(TaffyStyle_SetMinHeight; min_size.height);
 
 // MaxSize
-numeric_prop_getter!(TaffyStyle_GetMaxWidth; max_size.width);
-numeric_prop_setter!(TaffyStyle_SetMaxWidth; max_size.width);
-numeric_prop_getter!(TaffyStyle_GetMaxHeight; max_size.height);
-numeric_prop_setter!(TaffyStyle_SetMaxHeight; max_size.height);
+style_value_prop_getter!(TaffyStyle_GetMaxWidth; max_size.width);
+style_value_prop_setter!(TaffyStyle_SetMaxWidth; max_size.width);
+style_value_prop_getter!(TaffyStyle_GetMaxHeight; max_size.height);
+style_value_prop_setter!(TaffyStyle_SetMaxHeight; max_size.height);
 
 // Inset
-numeric_prop_getter!(TaffyStyle_GetInsetTop; inset.top);
-numeric_prop_setter!(TaffyStyle_SetInsetTop; inset.top);
-numeric_prop_getter!(TaffyStyle_GetInsetBottom; inset.bottom);
-numeric_prop_setter!(TaffyStyle_SetInsetBottom; inset.bottom);
-numeric_prop_getter!(TaffyStyle_GetInsetLeft; inset.left);
-numeric_prop_getter!(TaffyStyle_GetInsetRight; inset.right);
-numeric_prop_setter!(TaffyStyle_SetInsetLeft; inset.left);
-numeric_prop_setter!(TaffyStyle_SetInsetRight; inset.right);
+style_value_prop_getter!(TaffyStyle_GetInsetTop; inset.top);
+style_value_prop_setter!(TaffyStyle_SetInsetTop; inset.top);
+style_value_prop_getter!(TaffyStyle_GetInsetBottom; inset.bottom);
+style_value_prop_setter!(TaffyStyle_SetInsetBottom; inset.bottom);
+style_value_prop_getter!(TaffyStyle_GetInsetLeft; inset.left);
+style_value_prop_getter!(TaffyStyle_GetInsetRight; inset.right);
+style_value_prop_setter!(TaffyStyle_SetInsetLeft; inset.left);
+style_value_prop_setter!(TaffyStyle_SetInsetRight; inset.right);
 
 // Margin
-numeric_prop_getter!(TaffyStyle_GetMarginTop; margin.top);
-numeric_prop_setter!(TaffyStyle_SetMarginTop; margin.top);
-numeric_prop_getter!(TaffyStyle_GetMarginBottom; margin.bottom);
-numeric_prop_setter!(TaffyStyle_SetMarginBottom; margin.bottom);
-numeric_prop_getter!(TaffyStyle_GetMarginLeft; margin.left);
-numeric_prop_getter!(TaffyStyle_GetMarginRight; margin.right);
-numeric_prop_setter!(TaffyStyle_SetMarginLeft; margin.left);
-numeric_prop_setter!(TaffyStyle_SetMarginRight; margin.right);
+style_value_prop_getter!(TaffyStyle_GetMarginTop; margin.top);
+style_value_prop_setter!(TaffyStyle_SetMarginTop; margin.top);
+style_value_prop_getter!(TaffyStyle_GetMarginBottom; margin.bottom);
+style_value_prop_setter!(TaffyStyle_SetMarginBottom; margin.bottom);
+style_value_prop_getter!(TaffyStyle_GetMarginLeft; margin.left);
+style_value_prop_getter!(TaffyStyle_GetMarginRight; margin.right);
+style_value_prop_setter!(TaffyStyle_SetMarginLeft; margin.left);
+style_value_prop_setter!(TaffyStyle_SetMarginRight; margin.right);
 
 // Padding
-numeric_prop_getter!(TaffyStyle_GetPaddingTop; padding.top);
-numeric_prop_setter!(TaffyStyle_SetPaddingTop; padding.top);
-numeric_prop_getter!(TaffyStyle_GetPaddingBottom; padding.bottom);
-numeric_prop_setter!(TaffyStyle_SetPaddingBottom; padding.bottom);
-numeric_prop_getter!(TaffyStyle_GetPaddingLeft; padding.left);
-numeric_prop_getter!(TaffyStyle_GetPaddingRight; padding.right);
-numeric_prop_setter!(TaffyStyle_SetPaddingLeft; padding.left);
-numeric_prop_setter!(TaffyStyle_SetPaddingRight; padding.right);
+style_value_prop_getter!(TaffyStyle_GetPaddingTop; padding.top);
+style_value_prop_setter!(TaffyStyle_SetPaddingTop; padding.top);
+style_value_prop_getter!(TaffyStyle_GetPaddingBottom; padding.bottom);
+style_value_prop_setter!(TaffyStyle_SetPaddingBottom; padding.bottom);
+style_value_prop_getter!(TaffyStyle_GetPaddingLeft; padding.left);
+style_value_prop_getter!(TaffyStyle_GetPaddingRight; padding.right);
+style_value_prop_setter!(TaffyStyle_SetPaddingLeft; padding.left);
+style_value_prop_setter!(TaffyStyle_SetPaddingRight; padding.right);
 
 // Border
-numeric_prop_getter!(TaffyStyle_GetBorderTop; border.top);
-numeric_prop_setter!(TaffyStyle_SetBorderTop; border.top);
-numeric_prop_getter!(TaffyStyle_GetBorderBottom; border.bottom);
-numeric_prop_setter!(TaffyStyle_SetBorderBottom; border.bottom);
-numeric_prop_getter!(TaffyStyle_GetBorderLeft; border.left);
-numeric_prop_getter!(TaffyStyle_GetBorderRight; border.right);
-numeric_prop_setter!(TaffyStyle_SetBorderLeft; border.left);
-numeric_prop_setter!(TaffyStyle_SetBorderRight; border.right);
+style_value_prop_getter!(TaffyStyle_GetBorderTop; border.top);
+style_value_prop_setter!(TaffyStyle_SetBorderTop; border.top);
+style_value_prop_getter!(TaffyStyle_GetBorderBottom; border.bottom);
+style_value_prop_setter!(TaffyStyle_SetBorderBottom; border.bottom);
+style_value_prop_getter!(TaffyStyle_GetBorderLeft; border.left);
+style_value_prop_getter!(TaffyStyle_GetBorderRight; border.right);
+style_value_prop_setter!(TaffyStyle_SetBorderLeft; border.left);
+style_value_prop_setter!(TaffyStyle_SetBorderRight; border.right);
 
 // Gap
-numeric_prop_getter!(TaffyStyle_GetColumnGap; gap.width);
-numeric_prop_setter!(TaffyStyle_SetColumnGap; gap.width);
-numeric_prop_getter!(TaffyStyle_GetRowGap; gap.height);
-numeric_prop_setter!(TaffyStyle_SetRowGap; gap.height);
+style_value_prop_getter!(TaffyStyle_GetColumnGap; gap.width);
+style_value_prop_setter!(TaffyStyle_SetColumnGap; gap.width);
+style_value_prop_getter!(TaffyStyle_GetRowGap; gap.height);
+style_value_prop_setter!(TaffyStyle_SetRowGap; gap.height);
 
 // Aspect ratio
 #[no_mangle]
@@ -237,47 +237,37 @@ pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: *mut TaffyStyle, v
     })
 }
 
+// Generate a function to get a style value such as margin.top or size.width
+macro_rules! float_prop_getter {
+    ($func_name:ident; $($props:ident).+) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> FloatResult {
+            get_style!(raw_style, style, style.$($props).*)
+        }
+    };
+}
+
+// Generate a function to set a style value such as margin.top or size.width
+macro_rules! float_prop_setter {
+    ($func_name:ident; $($props:ident).+) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: f32) -> ReturnCode {
+            with_style_mut!(raw_style, style, style.$($props).* = value)
+        }
+    };
+}
+
+// Scrollbar width
+float_prop_getter!(TaffyStyle_GetScrollbarWidth; scrollbar_width);
+float_prop_setter!(TaffyStyle_SetScrollbarWidth; scrollbar_width);
+
 // Flex
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_GetFlexBasis(raw_style: *const TaffyStyle) -> StyleValueResult {
-    get_style!(raw_style, style, style.flex_basis)
-}
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetFlexBasis(
-    raw_style: *mut TaffyStyle,
-    value: f32,
-    unit: StyleValueUnit,
-) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.flex_basis = try_from_raw!(unit, value))
-}
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_GetFlexGrow(raw_style: *const TaffyStyle) -> FloatResult {
-    get_style!(raw_style, style, style.flex_grow)
-}
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetFlexGrow(raw_style: *mut TaffyStyle, value: f32) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.flex_grow = value)
-}
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_GetFlexShrink(raw_style: *const TaffyStyle) -> FloatResult {
-    get_style!(raw_style, style, style.flex_shrink)
-}
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetFlexShrink(raw_style: *mut TaffyStyle, value: f32) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.flex_shrink = value)
-}
-
-// /// Function to get the margin_top value
-// #[no_mangle]
-// pub unsafe extern "C" fn TaffyStyle_GetMarginTop(raw_style: *const TaffyStyle) -> StyleValueResult {
-//     get_style!(raw_style, style, style.margin.top)
-// }
-
-// /// Function to set the margin_top value
-// #[no_mangle]
-// pub unsafe extern "C" fn TaffyStyle_SetMarginTop(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
-//     with_style_mut!(raw_style, style, style.margin.top = try_from_value!(value))
-// }
+style_value_prop_getter!(TaffyStyle_GetFlexBasis; flex_basis);
+style_value_prop_setter!(TaffyStyle_SetFlexBasis; flex_basis);
+float_prop_getter!(TaffyStyle_GetFlexGrow; flex_grow);
+float_prop_setter!(TaffyStyle_SetFlexGrow; flex_grow);
+float_prop_getter!(TaffyStyle_GetFlexShrink; flex_shrink);
+float_prop_setter!(TaffyStyle_SetFlexShrink; flex_shrink);
 
 /// Function to set all the value of margin
 #[no_mangle]

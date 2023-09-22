@@ -2,7 +2,8 @@
 pub use taffy::style::Style as TaffyStyle;
 
 use super::{
-    GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, TaffyFFIResult, TaffyEdge,
+    FloatResult, GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit,
+    TaffyEdge, TaffyFFIResult,
 };
 use std::ffi::c_void;
 use taffy::geometry::Rect;
@@ -65,17 +66,147 @@ macro_rules! try_from_raw {
 
 /* API variant with single parameter that combines "value" and "unit" into a `StyleValue` struct */
 
-/// Function to get the margin_top value
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_GetMarginTop(raw_style: *const TaffyStyle) -> StyleValueResult {
-    get_style!(raw_style, style, style.margin.top)
+// Generate a function to get a style value such as margin.top or size.width
+macro_rules! numeric_prop_getter {
+    ($func_name:ident, $property:ident, $edge:ident) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *const TaffyStyle) -> StyleValueResult {
+            get_style!(raw_style, style, style.$property.$edge)
+        }
+    };
 }
 
-/// Function to set the margin_top value
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetMarginTop(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.margin.top = try_from_value!(value))
+// Generate a function to set a style value such as margin.top or size.width
+macro_rules! numeric_prop_setter {
+    ($func_name:ident, $property:ident, $edge:ident) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $func_name(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
+            with_style_mut!(raw_style, style, style.$property.$edge = try_from_value!(value))
+        }
+    };
 }
+
+// Size
+numeric_prop_getter!(TaffyStyle_GetWidth, size, width);
+numeric_prop_setter!(TaffyStyle_SetWidth, size, width);
+numeric_prop_getter!(TaffyStyle_GetHeight, size, height);
+numeric_prop_setter!(TaffyStyle_SetHeight, size, height);
+
+// MinSize
+numeric_prop_getter!(TaffyStyle_GetMinWidth, min_size, width);
+numeric_prop_setter!(TaffyStyle_SetMinWidth, min_size, width);
+numeric_prop_getter!(TaffyStyle_GetMinHeight, min_size, height);
+numeric_prop_setter!(TaffyStyle_SetMinHeight, min_size, height);
+
+// MaxSize
+numeric_prop_getter!(TaffyStyle_GetMaxWidth, max_size, width);
+numeric_prop_setter!(TaffyStyle_SetMaxWidth, max_size, width);
+numeric_prop_getter!(TaffyStyle_GetMaxHeight, max_size, height);
+numeric_prop_setter!(TaffyStyle_SetMaxHeight, max_size, height);
+
+// Inset
+numeric_prop_getter!(TaffyStyle_GetInsetTop, inset, top);
+numeric_prop_setter!(TaffyStyle_SetInsetTop, inset, top);
+numeric_prop_getter!(TaffyStyle_GetInsetBottom, inset, bottom);
+numeric_prop_setter!(TaffyStyle_SetInsetBottom, inset, bottom);
+numeric_prop_getter!(TaffyStyle_GetInsetLeft, inset, left);
+numeric_prop_getter!(TaffyStyle_GetInsetRight, inset, right);
+numeric_prop_setter!(TaffyStyle_SetInsetLeft, inset, left);
+numeric_prop_setter!(TaffyStyle_SetInsetRight, inset, right);
+
+// Margin
+numeric_prop_getter!(TaffyStyle_GetMarginTop, margin, top);
+numeric_prop_setter!(TaffyStyle_SetMarginTop, margin, top);
+numeric_prop_getter!(TaffyStyle_GetMarginBottom, margin, bottom);
+numeric_prop_setter!(TaffyStyle_SetMarginBottom, margin, bottom);
+numeric_prop_getter!(TaffyStyle_GetMarginLeft, margin, left);
+numeric_prop_getter!(TaffyStyle_GetMarginRight, margin, right);
+numeric_prop_setter!(TaffyStyle_SetMarginLeft, margin, left);
+numeric_prop_setter!(TaffyStyle_SetMarginRight, margin, right);
+
+// Padding
+numeric_prop_getter!(TaffyStyle_GetPaddingTop, padding, top);
+numeric_prop_setter!(TaffyStyle_SetPaddingTop, padding, top);
+numeric_prop_getter!(TaffyStyle_GetPaddingBottom, padding, bottom);
+numeric_prop_setter!(TaffyStyle_SetPaddingBottom, padding, bottom);
+numeric_prop_getter!(TaffyStyle_GetPaddingLeft, padding, left);
+numeric_prop_getter!(TaffyStyle_GetPaddingRight, padding, right);
+numeric_prop_setter!(TaffyStyle_SetPaddingLeft, padding, left);
+numeric_prop_setter!(TaffyStyle_SetPaddingRight, padding, right);
+
+// Border
+numeric_prop_getter!(TaffyStyle_GetBorderTop, border, top);
+numeric_prop_setter!(TaffyStyle_SetBorderTop, border, top);
+numeric_prop_getter!(TaffyStyle_GetBorderBottom, border, bottom);
+numeric_prop_setter!(TaffyStyle_SetBorderBottom, border, bottom);
+numeric_prop_getter!(TaffyStyle_GetBorderLeft, border, left);
+numeric_prop_getter!(TaffyStyle_GetBorderRight, border, right);
+numeric_prop_setter!(TaffyStyle_SetBorderLeft, border, left);
+numeric_prop_setter!(TaffyStyle_SetBorderRight, border, right);
+
+// Gap
+numeric_prop_getter!(TaffyStyle_GetColumnGap, gap, width);
+numeric_prop_setter!(TaffyStyle_SetColumnGap, gap, width);
+numeric_prop_getter!(TaffyStyle_GetRowGap, gap, height);
+numeric_prop_setter!(TaffyStyle_SetRowGap, gap, height);
+
+// Aspect ratio
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_GetAspectRatio(raw_style: *const TaffyStyle) -> FloatResult {
+    get_style!(raw_style, style, style.aspect_ratio.unwrap_or(f32::NAN))
+}
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: *mut TaffyStyle, value: f32) -> ReturnCode {
+    with_style_mut!(raw_style, style, {
+        if value.is_finite() && value > 0.0 {
+            style.aspect_ratio = Some(value)
+        } else {
+            style.aspect_ratio = None;
+        }
+    })
+}
+
+// Flex
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_GetFlexBasis(raw_style: *const TaffyStyle) -> StyleValueResult {
+    get_style!(raw_style, style, style.flex_basis)
+}
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_SetFlexBasis(
+    raw_style: *mut TaffyStyle,
+    value: f32,
+    unit: StyleValueUnit,
+) -> ReturnCode {
+    with_style_mut!(raw_style, style, style.flex_basis = try_from_raw!(unit, value))
+}
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_GetFlexGrow(raw_style: *const TaffyStyle) -> FloatResult {
+    get_style!(raw_style, style, style.flex_grow)
+}
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_SetFlexGrow(raw_style: *mut TaffyStyle, value: f32) -> ReturnCode {
+    with_style_mut!(raw_style, style, style.flex_grow = value)
+}
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_GetFlexShrink(raw_style: *const TaffyStyle) -> FloatResult {
+    get_style!(raw_style, style, style.flex_shrink)
+}
+#[no_mangle]
+pub unsafe extern "C" fn TaffyStyle_SetFlexShrink(raw_style: *mut TaffyStyle, value: f32) -> ReturnCode {
+    with_style_mut!(raw_style, style, style.flex_shrink = value)
+}
+
+// /// Function to get the margin_top value
+// #[no_mangle]
+// pub unsafe extern "C" fn TaffyStyle_GetMarginTop(raw_style: *const TaffyStyle) -> StyleValueResult {
+//     get_style!(raw_style, style, style.margin.top)
+// }
+
+// /// Function to set the margin_top value
+// #[no_mangle]
+// pub unsafe extern "C" fn TaffyStyle_SetMarginTop(raw_style: *mut TaffyStyle, value: StyleValue) -> ReturnCode {
+//     with_style_mut!(raw_style, style, style.margin.top = try_from_value!(value))
+// }
 
 /// Function to set all the value of margin
 #[no_mangle]
@@ -94,38 +225,22 @@ pub unsafe extern "C" fn TaffyStyle_SetMargin(
             TaffyEdge::Vertical => {
                 style.margin.top = value;
                 style.margin.bottom = value;
-            },
+            }
             TaffyEdge::Horizontal => {
                 style.margin.left = value;
                 style.margin.right = value;
-            },
+            }
             TaffyEdge::All => {
                 style.margin.top = value;
                 style.margin.bottom = value;
                 style.margin.left = value;
                 style.margin.right = value;
-            },
+            }
         };
     })
 }
 
 /* API variant with seperate "value" and "unit" parameters */
-
-/// Function to get the margin_top value
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_GetPaddingTop(raw_style: *const TaffyStyle) -> StyleValueResult {
-    get_style!(raw_style, style, style.padding.top)
-}
-
-/// Function to set the padding_top value
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetPaddingTop(
-    raw_style: *mut TaffyStyle,
-    value: f32,
-    unit: StyleValueUnit,
-) -> ReturnCode {
-    with_style_mut!(raw_style, style, style.padding.top = try_from_raw!(unit, value))
-}
 
 /// Function to set all the value of padding
 #[no_mangle]
@@ -160,9 +275,6 @@ pub unsafe extern "C" fn TaffyStyleGetGridColumn(raw_style: *mut TaffyStyle) -> 
 
 /// Set grid item's column placement
 #[no_mangle]
-pub unsafe extern "C" fn TaffyStyleSetGridColumn(
-    raw_style: *mut TaffyStyle,
-    placement: GridPlacement,
-) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyleSetGridColumn(raw_style: *mut TaffyStyle, placement: GridPlacement) -> ReturnCode {
     with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }

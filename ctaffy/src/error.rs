@@ -68,6 +68,22 @@ impl TaffyFFIResult for StyleValueResult {
 }
 
 #[repr(C)]
+pub struct FloatResult {
+    pub return_code: ReturnCode,
+    pub value: f32,
+}
+
+impl TaffyFFIResult for FloatResult {
+    type Value = f32;
+    fn from_value(value: Self::Value) -> Self {
+        Self { return_code: ReturnCode::Ok, value }
+    }
+    fn from_return_code(return_code: ReturnCode) -> Self {
+        Self { return_code, value: 0.0 }
+    }
+}
+
+#[repr(C)]
 pub struct GridPlacementResult {
     pub return_code: ReturnCode,
     pub value: GridPlacement,

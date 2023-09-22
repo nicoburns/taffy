@@ -116,6 +116,34 @@ impl TryFrom<StyleValue> for core::LengthPercentageAuto {
     }
 }
 
+impl From<core::Dimension> for StyleValue {
+    fn from(value: core::Dimension) -> Self {
+        match value {
+            core::Dimension::Length(value) => Self { unit: StyleValueUnit::Length, value },
+            core::Dimension::Percent(value) => Self { unit: StyleValueUnit::Percent, value },
+            core::Dimension::Auto => Self { unit: StyleValueUnit::Auto, value: 0.0 },
+        }
+    }
+}
+
+impl TryFrom<StyleValue> for core::Dimension {
+    type Error = ReturnCode;
+
+    fn try_from(value: StyleValue) -> Result<Self, Self::Error> {
+        match value.unit {
+            StyleValueUnit::Auto => Ok(core::Dimension::Auto),
+            StyleValueUnit::Length => Ok(core::Dimension::Length(value.value)),
+            StyleValueUnit::Percent => Ok(core::Dimension::Percent(value.value)),
+            StyleValueUnit::None => Err(ReturnCode::InvalidNone),
+            StyleValueUnit::MinContent => Err(ReturnCode::InvalidMinContent),
+            StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
+            StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
+            StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
+            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
+        }
+    }
+}
+
 /// For all fields, zero represents not set
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]

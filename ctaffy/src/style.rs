@@ -1,10 +1,11 @@
 //! Public API for C FFI
 pub use taffy::style::Style as TaffyStyle;
 
-use taffy::geometry::Rect;
+use super::{
+    GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, TaffyFFIResult,
+};
 use std::ffi::c_void;
-use super::{GridPlacement, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, GridPlacementResult, TaffyFFIResult};
-
+use taffy::geometry::Rect;
 
 /// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {
@@ -35,7 +36,7 @@ macro_rules! get_style {
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         assert_style_pointer_is_non_null!($raw_style_ptr);
-        let $style_ident = unsafe { &mut*($raw_style_ptr as *mut TaffyStyle) };
+        let $style_ident = unsafe { &mut *($raw_style_ptr as *mut TaffyStyle) };
 
         $block;
 
@@ -105,7 +106,11 @@ pub unsafe extern "C" fn TaffyStyle_get_padding_top(raw_style: *const TaffyStyle
 
 /// Function to set the padding_top value
 #[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_set_padding_top(raw_style: *mut TaffyStyle, value: f32, unit: StyleValueUnit) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyle_set_padding_top(
+    raw_style: *mut TaffyStyle,
+    value: f32,
+    unit: StyleValueUnit,
+) -> ReturnCode {
     with_style_mut!(raw_style, style, style.padding.top = try_from_raw!(unit, value))
 }
 
@@ -142,6 +147,9 @@ pub unsafe extern "C" fn TaffyStyle_get_grid_column(raw_style: *mut TaffyStyle) 
 
 /// Set grid item's column placement
 #[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_set_grid_column(raw_style: *mut TaffyStyle, placement: GridPlacement) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyle_set_grid_column(
+    raw_style: *mut TaffyStyle,
+    placement: GridPlacement,
+) -> ReturnCode {
     with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }

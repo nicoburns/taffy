@@ -1,8 +1,8 @@
 //! Return types for C FFI
 
-use super::{StyleValue, StyleValueUnit, GridPlacement};
+use super::{GridPlacement, StyleValue, StyleValueUnit};
 
-pub (crate) trait TaffyFFIResult {
+pub(crate) trait TaffyFFIResult {
     type Value;
     fn from_value(value: Self::Value) -> Self;
     fn from_return_code(return_code: ReturnCode) -> Self;
@@ -44,7 +44,7 @@ pub enum ReturnCode {
 impl TaffyFFIResult for ReturnCode {
     type Value = ReturnCode;
     fn from_value(value: Self::Value) -> Self {
-       value
+        value
     }
     fn from_return_code(return_code: ReturnCode) -> Self {
         return_code
@@ -66,7 +66,6 @@ impl TaffyFFIResult for StyleValueResult {
         Self { return_code, value: StyleValue { unit: StyleValueUnit::None, value: 0.0 } }
     }
 }
-
 
 #[repr(C)]
 pub struct GridPlacementResult {

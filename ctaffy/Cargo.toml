@@ -1,0 +1,14 @@
+[package]
+name = "ctaffy"
+version = "0.0.1"
+authors = [
+    "Nico Burns <nico@nicoburns.com>",
+]
+edition = "2021"
+include = ["src/**/*", "Cargo.toml"]
+description = "C bindings to Taffy (A flexible UI layout library)"
+repository = "https://github.com/DioxusLabs/taffy"
+license = "MIT"
+
+[dependencies]
+taffy = { path = ".." }

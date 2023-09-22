@@ -1,7 +1,7 @@
 //! Public API for C FFI
 
-use crate::geometry::Rect;
-use crate::prelude as core;
+use taffy::geometry::Rect;
+use taffy::prelude as core;
 use std::ffi::c_void;
 
 use super::{GridPlacement, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, GridPlacementResult, TaffyFFIResult};

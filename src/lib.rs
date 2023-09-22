@@ -77,7 +77,6 @@ extern crate alloc;
 extern crate serde;
 
 pub mod compute;
-pub mod ffi;
 pub mod geometry;
 pub mod prelude;
 pub mod style;

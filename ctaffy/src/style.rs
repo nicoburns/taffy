@@ -2,7 +2,7 @@
 pub use taffy::style::Style as TaffyStyle;
 
 use super::{
-    GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, TaffyFFIResult,
+    GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit, TaffyFFIResult, TaffyEdge,
 };
 use std::ffi::c_void;
 use taffy::geometry::Rect;
@@ -79,19 +79,32 @@ pub unsafe extern "C" fn TaffyStyle_SetMarginTop(raw_style: *mut TaffyStyle, val
 
 /// Function to set all the value of margin
 #[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetMarginTrbl(
+pub unsafe extern "C" fn TaffyStyle_SetMargin(
     raw_style: *mut TaffyStyle,
-    top: StyleValue,
-    right: StyleValue,
-    bottom: StyleValue,
-    left: StyleValue,
+    edge: TaffyEdge,
+    value: StyleValue,
 ) -> ReturnCode {
+    let value = try_from_value!(value);
     with_style_mut!(raw_style, style, {
-        style.margin = Rect {
-            top: try_from_value!(top),
-            right: try_from_value!(right),
-            bottom: try_from_value!(bottom),
-            left: try_from_value!(left),
+        match edge {
+            TaffyEdge::Top => style.margin.top = value,
+            TaffyEdge::Bottom => style.margin.bottom = value,
+            TaffyEdge::Left => style.margin.left = value,
+            TaffyEdge::Right => style.margin.right = value,
+            TaffyEdge::Vertical => {
+                style.margin.top = value;
+                style.margin.bottom = value;
+            },
+            TaffyEdge::Horizontal => {
+                style.margin.left = value;
+                style.margin.right = value;
+            },
+            TaffyEdge::All => {
+                style.margin.top = value;
+                style.margin.bottom = value;
+                style.margin.left = value;
+                style.margin.right = value;
+            },
         };
     })
 }

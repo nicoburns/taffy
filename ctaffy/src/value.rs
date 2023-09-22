@@ -6,6 +6,25 @@ use super::ReturnCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
+pub enum TaffyEdge {
+    /// The top edge of the box
+    Top,
+    /// The bottom edge of the box
+    Bottom,
+    /// The left edge of the box
+    Left,
+    /// The right edge of the box
+    Right,
+    /// Both the top and bottom edges of the box
+    Vertical,
+    /// Both the left and right edges of the box
+    Horizontal,
+    /// All four edges of the box
+    All,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
 pub enum StyleValueUnit {
     /// A none value (used to unset optional fields)
     None,

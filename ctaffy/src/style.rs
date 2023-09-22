@@ -240,31 +240,6 @@ pub unsafe extern "C" fn TaffyStyle_SetMargin(
     })
 }
 
-/* API variant with seperate "value" and "unit" parameters */
-
-/// Function to set all the value of padding
-#[no_mangle]
-pub unsafe extern "C" fn TaffyStyle_SetPaddingTrbl(
-    raw_style: *mut TaffyStyle,
-    top_value: f32,
-    top_value_unit: StyleValueUnit,
-    right_value: f32,
-    right_value_unit: StyleValueUnit,
-    left_value: f32,
-    left_value_unit: StyleValueUnit,
-    bottom_value: f32,
-    bottom_value_unit: StyleValueUnit,
-) -> ReturnCode {
-    with_style_mut!(raw_style, style, {
-        style.padding = Rect {
-            top: try_from_raw!(top_value_unit, top_value),
-            right: try_from_raw!(right_value_unit, right_value),
-            bottom: try_from_raw!(bottom_value_unit, bottom_value),
-            left: try_from_raw!(left_value_unit, left_value),
-        };
-    })
-}
-
 /* Grid APIs */
 
 /// Get grid item's column placement

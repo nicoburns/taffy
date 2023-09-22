@@ -1,5 +1,4 @@
 //! Public API for C FFI
-pub use taffy::style::Style as TaffyStyle;
 
 use super::{
     FloatResult, GridPlacement, GridPlacementResult, ReturnCode, StyleValue, StyleValueResult, StyleValueUnit,
@@ -8,6 +7,16 @@ use super::{
 use std::ffi::c_void;
 use taffy::prelude as core;
 
+pub struct TaffyStyle;
+pub type TaffyStyleRef = *mut TaffyStyle;
+
+
+// AlignItems
+// AlignSelf
+// AlignContent
+// FlexDirection
+// FlexWrap
+// GridAutoFlow
 
 /// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {

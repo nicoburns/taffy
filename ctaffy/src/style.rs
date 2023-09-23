@@ -3,15 +3,14 @@
 use super::{
     FloatResult, GridPlacement, GridPlacementResult, IntResult, ReturnCode, StyleValue, StyleValueResult,
     StyleValueUnit, TaffyAlignContent, TaffyAlignItems, TaffyDisplay, TaffyEdge, TaffyFFIResult, TaffyFlexDirection,
-    TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow, TaffyPosition, TaffyStyleMutRef, TaffyStyleConstRef
+    TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow, TaffyPosition, TaffyStyleConstRef, TaffyStyleMutRef,
 };
-use std::ffi::c_void;
 use taffy::prelude as core;
 
 /// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
 macro_rules! assert_style_pointer_is_non_null {
     ($raw_style_ptr:expr) => {{
-        if ($raw_style_ptr as *const c_void) == std::ptr::null() {
+        if $raw_style_ptr.is_null() {
             return TaffyFFIResult::from_return_code(ReturnCode::NullStylePointer);
         }
     }};
@@ -69,6 +68,7 @@ macro_rules! try_from_raw {
 macro_rules! enum_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> IntResult {
             get_style!(raw_style, style, style.$($props).* as i32)
         }
@@ -78,6 +78,7 @@ macro_rules! enum_prop_getter {
 macro_rules! option_enum_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> IntResult {
             get_style!(raw_style, style, style.$($props).*.map(|v| v as i32).unwrap_or(0))
         }
@@ -88,6 +89,7 @@ macro_rules! option_enum_prop_getter {
 macro_rules! enum_prop_setter {
     ($func_name:ident; $($props:ident).+; $enum:ident) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: $enum) -> ReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = value.into())
         }
@@ -138,6 +140,7 @@ enum_prop_setter!(TaffyStyle_SetGridAutoFlow; grid_auto_flow; TaffyGridAutoFlow)
 macro_rules! style_value_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> StyleValueResult {
             get_style!(raw_style, style, style.$($props).*)
         }
@@ -148,6 +151,7 @@ macro_rules! style_value_prop_getter {
 macro_rules! style_value_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32, unit: StyleValueUnit) -> ReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = try_from_raw!(unit, value))
         }
@@ -220,10 +224,12 @@ style_value_prop_setter!(TaffyStyle_SetRowGap; gap.height);
 
 // Aspect ratio
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn TaffyStyle_GetAspectRatio(raw_style: TaffyStyleConstRef) -> FloatResult {
     get_style!(raw_style, style, style.aspect_ratio.unwrap_or(f32::NAN))
 }
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: TaffyStyleMutRef, value: f32) -> ReturnCode {
     with_style_mut!(raw_style, style, {
         if value.is_finite() && value > 0.0 {
@@ -238,6 +244,7 @@ pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: TaffyStyleMutRef, 
 macro_rules! float_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> FloatResult {
             get_style!(raw_style, style, style.$($props).*)
         }
@@ -248,6 +255,7 @@ macro_rules! float_prop_getter {
 macro_rules! float_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32) -> ReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = value)
         }
@@ -268,6 +276,7 @@ float_prop_setter!(TaffyStyle_SetFlexShrink; flex_shrink);
 
 /// Function to set all the value of margin
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn TaffyStyle_SetMargin(
     raw_style: TaffyStyleMutRef,
     edge: TaffyEdge,
@@ -302,12 +311,14 @@ pub unsafe extern "C" fn TaffyStyle_SetMargin(
 
 /// Get grid item's column placement
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn TaffyStyleGetGridColumn(raw_style: TaffyStyleMutRef) -> GridPlacementResult {
     get_style!(raw_style, style, style.grid_column)
 }
 
 /// Set grid item's column placement
 #[no_mangle]
+#[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn TaffyStyleSetGridColumn(raw_style: TaffyStyleMutRef, placement: GridPlacement) -> ReturnCode {
     with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }

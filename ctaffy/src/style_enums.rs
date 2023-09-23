@@ -263,7 +263,8 @@ impl From<TaffyFlexDirection> for core::FlexDirection {
 
 /// Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
 ///
-/// The "dense" packing algorithm attempts to fill in holes earlier in the grid, if smaller items come up later. This may cause items to appear out-of-order, when doing so would fill in holes left by larger items.
+/// The "dense" packing algorithm attempts to fill in holes earlier in the grid, if smaller items come up later.
+/// This may cause items to appear out-of-order, when doing so would fill in holes left by larger items.
 ///
 /// Defaults to [`GridAutoFlow::Row`]
 ///

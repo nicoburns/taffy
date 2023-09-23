@@ -18,7 +18,7 @@ macro_rules! bail {
 macro_rules! bail_if_null {
     ($raw_ptr:expr, $err_code:ident) => {
         if $raw_ptr.is_null() {
-            crate::bail!($err_code);
+            $crate::bail!($err_code);
         }
     };
 }

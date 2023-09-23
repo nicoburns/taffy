@@ -1,7 +1,7 @@
 //! Public API for C FFI
 
 use super::{
-    bail_if_null, GridPlacement, ReturnCode, StyleValue, StyleValueUnit, TaffyAlignContent, TaffyAlignItems,
+    bail_if_null, GridPlacement, ReturnCode, StyleValue, TaffyUnit, TaffyAlignContent, TaffyAlignItems,
     TaffyDisplay, TaffyEdge, TaffyFFIResult, TaffyFlexDirection, TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow,
     TaffyPosition, TaffyResult, TaffyStyleConstRef, TaffyStyleMutRef,
 };
@@ -46,7 +46,7 @@ macro_rules! try_from_value {
     };
 }
 
-/// Attempt to convert a [`StyleValueUnit`] and a `f32` into a type that implements `TryFrom<StyleValue>`
+/// Attempt to convert a [`TaffyUnit`] and a `f32` into a type that implements `TryFrom<StyleValue>`
 /// In the case of a conversion error, return a [`ReturnCode`].
 macro_rules! try_from_raw {
     ($unit:expr, $value:expr) => {
@@ -143,7 +143,7 @@ macro_rules! style_value_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32, unit: StyleValueUnit) -> ReturnCode {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32, unit: TaffyUnit) -> ReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = try_from_raw!(unit, value))
         }
     };

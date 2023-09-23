@@ -25,7 +25,7 @@ pub enum TaffyEdge {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
-pub enum StyleValueUnit {
+pub enum TaffyUnit {
     /// A none value (used to unset optional fields)
     None,
     /// Fixed Length (pixel) value
@@ -51,17 +51,17 @@ pub enum StyleValueUnit {
 pub struct StyleValue {
     /// The value. If the unit is variant that doesn't require a value (e.g. Auto) then the value is ignored.
     pub value: f32,
-    pub unit: StyleValueUnit,
+    pub unit: TaffyUnit,
 }
 impl TaffyFFIDefault for StyleValue {
     fn default() -> Self {
-        Self { unit: StyleValueUnit::None, value: 0.0 }
+        Self { unit: TaffyUnit::None, value: 0.0 }
     }
 }
 
 impl StyleValue {
     #[inline(always)]
-    pub fn from_raw(unit: StyleValueUnit, value: f32) -> Self {
+    pub fn from_raw(unit: TaffyUnit, value: f32) -> Self {
         Self { unit, value }
     }
 }
@@ -69,8 +69,8 @@ impl StyleValue {
 impl From<core::LengthPercentage> for StyleValue {
     fn from(value: core::LengthPercentage) -> Self {
         match value {
-            core::LengthPercentage::Length(value) => Self { unit: StyleValueUnit::Length, value },
-            core::LengthPercentage::Percent(value) => Self { unit: StyleValueUnit::Percent, value },
+            core::LengthPercentage::Length(value) => Self { unit: TaffyUnit::Length, value },
+            core::LengthPercentage::Percent(value) => Self { unit: TaffyUnit::Percent, value },
         }
     }
 }
@@ -80,15 +80,15 @@ impl TryFrom<StyleValue> for core::LengthPercentage {
 
     fn try_from(value: StyleValue) -> Result<Self, Self::Error> {
         match value.unit {
-            StyleValueUnit::Length => Ok(core::LengthPercentage::Length(value.value)),
-            StyleValueUnit::Percent => Ok(core::LengthPercentage::Percent(value.value)),
-            StyleValueUnit::None => Err(ReturnCode::InvalidNone),
-            StyleValueUnit::Auto => Err(ReturnCode::InvalidAuto),
-            StyleValueUnit::MinContent => Err(ReturnCode::InvalidMinContent),
-            StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
-            StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
-            StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
+            TaffyUnit::Length => Ok(core::LengthPercentage::Length(value.value)),
+            TaffyUnit::Percent => Ok(core::LengthPercentage::Percent(value.value)),
+            TaffyUnit::None => Err(ReturnCode::InvalidNone),
+            TaffyUnit::Auto => Err(ReturnCode::InvalidAuto),
+            TaffyUnit::MinContent => Err(ReturnCode::InvalidMinContent),
+            TaffyUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
+            TaffyUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
+            TaffyUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
+            TaffyUnit::Fr => Err(ReturnCode::InvalidFr),
         }
     }
 }
@@ -96,9 +96,9 @@ impl TryFrom<StyleValue> for core::LengthPercentage {
 impl From<core::LengthPercentageAuto> for StyleValue {
     fn from(value: core::LengthPercentageAuto) -> Self {
         match value {
-            core::LengthPercentageAuto::Length(value) => Self { unit: StyleValueUnit::Length, value },
-            core::LengthPercentageAuto::Percent(value) => Self { unit: StyleValueUnit::Percent, value },
-            core::LengthPercentageAuto::Auto => Self { unit: StyleValueUnit::Auto, value: 0.0 },
+            core::LengthPercentageAuto::Length(value) => Self { unit: TaffyUnit::Length, value },
+            core::LengthPercentageAuto::Percent(value) => Self { unit: TaffyUnit::Percent, value },
+            core::LengthPercentageAuto::Auto => Self { unit: TaffyUnit::Auto, value: 0.0 },
         }
     }
 }
@@ -108,15 +108,15 @@ impl TryFrom<StyleValue> for core::LengthPercentageAuto {
 
     fn try_from(value: StyleValue) -> Result<Self, Self::Error> {
         match value.unit {
-            StyleValueUnit::Auto => Ok(core::LengthPercentageAuto::Auto),
-            StyleValueUnit::Length => Ok(core::LengthPercentageAuto::Length(value.value)),
-            StyleValueUnit::Percent => Ok(core::LengthPercentageAuto::Percent(value.value)),
-            StyleValueUnit::None => Err(ReturnCode::InvalidNone),
-            StyleValueUnit::MinContent => Err(ReturnCode::InvalidMinContent),
-            StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
-            StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
-            StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
+            TaffyUnit::Auto => Ok(core::LengthPercentageAuto::Auto),
+            TaffyUnit::Length => Ok(core::LengthPercentageAuto::Length(value.value)),
+            TaffyUnit::Percent => Ok(core::LengthPercentageAuto::Percent(value.value)),
+            TaffyUnit::None => Err(ReturnCode::InvalidNone),
+            TaffyUnit::MinContent => Err(ReturnCode::InvalidMinContent),
+            TaffyUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
+            TaffyUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
+            TaffyUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
+            TaffyUnit::Fr => Err(ReturnCode::InvalidFr),
         }
     }
 }
@@ -124,9 +124,9 @@ impl TryFrom<StyleValue> for core::LengthPercentageAuto {
 impl From<core::Dimension> for StyleValue {
     fn from(value: core::Dimension) -> Self {
         match value {
-            core::Dimension::Length(value) => Self { unit: StyleValueUnit::Length, value },
-            core::Dimension::Percent(value) => Self { unit: StyleValueUnit::Percent, value },
-            core::Dimension::Auto => Self { unit: StyleValueUnit::Auto, value: 0.0 },
+            core::Dimension::Length(value) => Self { unit: TaffyUnit::Length, value },
+            core::Dimension::Percent(value) => Self { unit: TaffyUnit::Percent, value },
+            core::Dimension::Auto => Self { unit: TaffyUnit::Auto, value: 0.0 },
         }
     }
 }
@@ -136,15 +136,15 @@ impl TryFrom<StyleValue> for core::Dimension {
 
     fn try_from(value: StyleValue) -> Result<Self, Self::Error> {
         match value.unit {
-            StyleValueUnit::Auto => Ok(core::Dimension::Auto),
-            StyleValueUnit::Length => Ok(core::Dimension::Length(value.value)),
-            StyleValueUnit::Percent => Ok(core::Dimension::Percent(value.value)),
-            StyleValueUnit::None => Err(ReturnCode::InvalidNone),
-            StyleValueUnit::MinContent => Err(ReturnCode::InvalidMinContent),
-            StyleValueUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
-            StyleValueUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
-            StyleValueUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
-            StyleValueUnit::Fr => Err(ReturnCode::InvalidFr),
+            TaffyUnit::Auto => Ok(core::Dimension::Auto),
+            TaffyUnit::Length => Ok(core::Dimension::Length(value.value)),
+            TaffyUnit::Percent => Ok(core::Dimension::Percent(value.value)),
+            TaffyUnit::None => Err(ReturnCode::InvalidNone),
+            TaffyUnit::MinContent => Err(ReturnCode::InvalidMinContent),
+            TaffyUnit::MaxContent => Err(ReturnCode::InvalidMaxContent),
+            TaffyUnit::FitContentPx => Err(ReturnCode::InvalidFitContentPx),
+            TaffyUnit::FitContentPercent => Err(ReturnCode::InvalidFitContentPercent),
+            TaffyUnit::Fr => Err(ReturnCode::InvalidFr),
         }
     }
 }

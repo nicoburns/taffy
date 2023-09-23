@@ -203,7 +203,8 @@ typedef enum TaffyFlexWrap {
 
 // Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
 //
-// The "dense" packing algorithm attempts to fill in holes earlier in the grid, if smaller items come up later. This may cause items to appear out-of-order, when doing so would fill in holes left by larger items.
+// The "dense" packing algorithm attempts to fill in holes earlier in the grid, if smaller items come up later.
+// This may cause items to appear out-of-order, when doing so would fill in holes left by larger items.
 //
 // Defaults to [`GridAutoFlow::Row`]
 //
@@ -267,10 +268,10 @@ typedef struct TaffyNodeId TaffyNodeId;
 
 typedef struct TaffyStyle TaffyStyle;
 
-typedef struct IntResult {
+typedef struct TaffyIntResult {
   enum ReturnCode return_code;
   int32_t value;
-} IntResult;
+} TaffyIntResult;
 
 typedef const struct TaffyStyle *TaffyStyleConstRef;
 
@@ -282,15 +283,15 @@ typedef struct StyleValue {
   enum StyleValueUnit unit;
 } StyleValue;
 
-typedef struct StyleValueResult {
+typedef struct TaffyStyleValueResult {
   enum ReturnCode return_code;
   struct StyleValue value;
-} StyleValueResult;
+} TaffyStyleValueResult;
 
-typedef struct FloatResult {
+typedef struct TaffyFloatResult {
   enum ReturnCode return_code;
   float value;
-} FloatResult;
+} TaffyFloatResult;
 
 // For all fields, zero represents not set
 typedef struct GridPlacement {
@@ -299,42 +300,42 @@ typedef struct GridPlacement {
   uint16_t span;
 } GridPlacement;
 
-typedef struct GridPlacementResult {
+typedef struct TaffyGridPlacementResult {
   enum ReturnCode return_code;
   struct GridPlacement value;
-} GridPlacementResult;
+} TaffyGridPlacementResult;
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-struct IntResult TaffyStyle_GetDisplay(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetDisplay(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetDisplay(TaffyStyleMutRef raw_style, enum TaffyDisplay value);
 
-struct IntResult TaffyStyle_GetPosition(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetPosition(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetPosition(TaffyStyleMutRef raw_style, enum TaffyPosition value);
 
-struct IntResult TaffyStyle_GetOverflowX(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetOverflowX(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetOverflowX(TaffyStyleMutRef raw_style, enum TaffyOverflow value);
 
-struct IntResult TaffyStyle_GetOverflowY(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetOverflowY(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetOverflowY(TaffyStyleMutRef raw_style, enum TaffyOverflow value);
 
-struct IntResult TaffyStyle_GetAlignContent(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetAlignContent(TaffyStyleConstRef raw_style);
 
-struct IntResult TaffyStyle_GetAlignItems(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetAlignItems(TaffyStyleConstRef raw_style);
 
-struct IntResult TaffyStyle_GetAlignSelf(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetAlignSelf(TaffyStyleConstRef raw_style);
 
-struct IntResult TaffyStyle_GetJustifyContent(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetJustifyContent(TaffyStyleConstRef raw_style);
 
-struct IntResult TaffyStyle_GetJustifyItems(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetJustifyItems(TaffyStyleConstRef raw_style);
 
-struct IntResult TaffyStyle_GetJustifySelf(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetJustifySelf(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetAlignContent(TaffyStyleMutRef raw_style, enum TaffyAlignContent value);
 
@@ -348,131 +349,131 @@ enum ReturnCode TaffyStyle_SetJustifyItems(TaffyStyleMutRef raw_style, enum Taff
 
 enum ReturnCode TaffyStyle_SetJustifySelf(TaffyStyleMutRef raw_style, enum TaffyAlignItems value);
 
-struct IntResult TaffyStyle_GetFlexDirection(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetFlexDirection(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetFlexDirection(TaffyStyleMutRef raw_style, enum TaffyFlexDirection value);
 
-struct IntResult TaffyStyle_GetFlexWrap(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetFlexWrap(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetFlexWrap(TaffyStyleMutRef raw_style, enum TaffyFlexWrap value);
 
-struct IntResult TaffyStyle_GetGridAutoFlow(TaffyStyleConstRef raw_style);
+struct TaffyIntResult TaffyStyle_GetGridAutoFlow(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetGridAutoFlow(TaffyStyleMutRef raw_style, enum TaffyGridAutoFlow value);
 
-struct StyleValueResult TaffyStyle_GetWidth(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetWidth(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetWidth(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetHeight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetHeight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetHeight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMinWidth(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMinWidth(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMinWidth(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMinHeight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMinHeight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMinHeight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMaxWidth(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMaxWidth(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMaxWidth(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMaxHeight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMaxHeight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMaxHeight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetInsetTop(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetInsetTop(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetInsetTop(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetInsetBottom(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetInsetBottom(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetInsetBottom(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetInsetLeft(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetInsetLeft(TaffyStyleConstRef raw_style);
 
-struct StyleValueResult TaffyStyle_GetInsetRight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetInsetRight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetInsetLeft(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
 enum ReturnCode TaffyStyle_SetInsetRight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMarginTop(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMarginTop(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMarginTop(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMarginBottom(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMarginBottom(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMarginBottom(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetMarginLeft(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMarginLeft(TaffyStyleConstRef raw_style);
 
-struct StyleValueResult TaffyStyle_GetMarginRight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetMarginRight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetMarginLeft(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
 enum ReturnCode TaffyStyle_SetMarginRight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetPaddingTop(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetPaddingTop(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetPaddingTop(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetPaddingBottom(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetPaddingBottom(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetPaddingBottom(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetPaddingLeft(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetPaddingLeft(TaffyStyleConstRef raw_style);
 
-struct StyleValueResult TaffyStyle_GetPaddingRight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetPaddingRight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetPaddingLeft(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
 enum ReturnCode TaffyStyle_SetPaddingRight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetBorderTop(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetBorderTop(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetBorderTop(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetBorderBottom(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetBorderBottom(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetBorderBottom(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetBorderLeft(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetBorderLeft(TaffyStyleConstRef raw_style);
 
-struct StyleValueResult TaffyStyle_GetBorderRight(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetBorderRight(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetBorderLeft(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
 enum ReturnCode TaffyStyle_SetBorderRight(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetColumnGap(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetColumnGap(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetColumnGap(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct StyleValueResult TaffyStyle_GetRowGap(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetRowGap(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetRowGap(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct FloatResult TaffyStyle_GetAspectRatio(TaffyStyleConstRef raw_style);
+struct TaffyFloatResult TaffyStyle_GetAspectRatio(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetAspectRatio(TaffyStyleMutRef raw_style, float value);
 
-struct FloatResult TaffyStyle_GetScrollbarWidth(TaffyStyleConstRef raw_style);
+struct TaffyFloatResult TaffyStyle_GetScrollbarWidth(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetScrollbarWidth(TaffyStyleMutRef raw_style, float value);
 
-struct StyleValueResult TaffyStyle_GetFlexBasis(TaffyStyleConstRef raw_style);
+struct TaffyStyleValueResult TaffyStyle_GetFlexBasis(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetFlexBasis(TaffyStyleMutRef raw_style, float value, enum StyleValueUnit unit);
 
-struct FloatResult TaffyStyle_GetFlexGrow(TaffyStyleConstRef raw_style);
+struct TaffyFloatResult TaffyStyle_GetFlexGrow(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetFlexGrow(TaffyStyleMutRef raw_style, float value);
 
-struct FloatResult TaffyStyle_GetFlexShrink(TaffyStyleConstRef raw_style);
+struct TaffyFloatResult TaffyStyle_GetFlexShrink(TaffyStyleConstRef raw_style);
 
 enum ReturnCode TaffyStyle_SetFlexShrink(TaffyStyleMutRef raw_style, float value);
 
@@ -480,7 +481,7 @@ enum ReturnCode TaffyStyle_SetFlexShrink(TaffyStyleMutRef raw_style, float value
 enum ReturnCode TaffyStyle_SetMargin(TaffyStyleMutRef raw_style, enum TaffyEdge edge, struct StyleValue value);
 
 // Get grid item's column placement
-struct GridPlacementResult TaffyStyleGetGridColumn(TaffyStyleMutRef raw_style);
+struct TaffyGridPlacementResult TaffyStyleGetGridColumn(TaffyStyleMutRef raw_style);
 
 // Set grid item's column placement
 enum ReturnCode TaffyStyleSetGridColumn(TaffyStyleMutRef raw_style, struct GridPlacement placement);

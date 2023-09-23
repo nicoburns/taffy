@@ -53,6 +53,11 @@ pub struct StyleValue {
     pub value: f32,
     pub unit: StyleValueUnit,
 }
+impl Default for StyleValue {
+    fn default() -> Self {
+        Self { unit: StyleValueUnit::None, value: 0.0 }
+    }   
+}
 
 impl StyleValue {
     #[inline(always)]
@@ -151,6 +156,12 @@ pub struct GridPlacement {
     pub start: i16,
     pub end: i16,
     pub span: u16,
+}
+
+impl Default for GridPlacement {
+    fn default() -> Self {
+        Self { start: 0, end: 0, span: 0 }
+    }   
 }
 
 impl From<GridPlacement> for core::Line<core::GridPlacement> {

@@ -1,10 +1,16 @@
-language = "C"
+language = "c"
 cpp_compat = true
 documentation_style = "c99"
 line_length = 120
 
 [export]
 include = ["TaffyNodeId"]
+
+[export.rename]
+TaffyResult_f32 = "TaffyFloatResult"
+TaffyResult_i32 = "TaffyIntResult"
+TaffyResult_StyleValue = "TaffyStyleValueResult"
+TaffyResult_GridPlacement = "TaffyGridPlacementResult"
 
 [parse.expand]
 crates = ["ctaffy"]

@@ -1,7 +1,5 @@
 //! Return types for C FFI
 
-use super::{GridPlacement, StyleValue, StyleValueUnit};
-
 pub(crate) trait TaffyFFIResult {
     type Value;
     fn from_value(value: Self::Value) -> Self;
@@ -54,65 +52,17 @@ impl TaffyFFIResult for ReturnCode {
 }
 
 #[repr(C)]
-pub struct StyleValueResult {
+pub struct TaffyResult<T> {
     pub return_code: ReturnCode,
-    pub value: StyleValue,
+    pub value: T,
 }
 
-impl TaffyFFIResult for StyleValueResult {
-    type Value = StyleValue;
+impl<T: Default> TaffyFFIResult for TaffyResult<T> {
+    type Value = T;
     fn from_value(value: Self::Value) -> Self {
         Self { return_code: ReturnCode::Ok, value }
     }
     fn from_return_code(return_code: ReturnCode) -> Self {
-        Self { return_code, value: StyleValue { unit: StyleValueUnit::None, value: 0.0 } }
-    }
-}
-
-#[repr(C)]
-pub struct IntResult {
-    pub return_code: ReturnCode,
-    pub value: i32,
-}
-
-impl TaffyFFIResult for IntResult {
-    type Value = i32;
-    fn from_value(value: Self::Value) -> Self {
-        Self { return_code: ReturnCode::Ok, value }
-    }
-    fn from_return_code(return_code: ReturnCode) -> Self {
-        Self { return_code, value: 0 }
-    }
-}
-
-#[repr(C)]
-pub struct FloatResult {
-    pub return_code: ReturnCode,
-    pub value: f32,
-}
-
-impl TaffyFFIResult for FloatResult {
-    type Value = f32;
-    fn from_value(value: Self::Value) -> Self {
-        Self { return_code: ReturnCode::Ok, value }
-    }
-    fn from_return_code(return_code: ReturnCode) -> Self {
-        Self { return_code, value: 0.0 }
-    }
-}
-
-#[repr(C)]
-pub struct GridPlacementResult {
-    pub return_code: ReturnCode,
-    pub value: GridPlacement,
-}
-
-impl TaffyFFIResult for GridPlacementResult {
-    type Value = GridPlacement;
-    fn from_value(value: Self::Value) -> Self {
-        Self { return_code: ReturnCode::Ok, value }
-    }
-    fn from_return_code(return_code: ReturnCode) -> Self {
-        Self { return_code, value: GridPlacement { start: 0, end: 0, span: 0 } }
+        Self { return_code, value: T::default() }
     }
 }

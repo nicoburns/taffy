@@ -74,3 +74,25 @@ typedef struct TaffyDimensionResult {
 </table>
 
 Functions that return Result structs will either return a `TAFFY_RETURN_CODE_OK` along with a meaningful value, or a error variant of `TaffyReturnCode` along with
+
+## API Usage
+
+### Tree Creation and Manipulation
+
+The `TaffyTree` struct is the entrypoint to the Taffy C API and represents an entire tree of UI nodes. Taffy uses arena allocation, so the `TaffyTree` owns the entire tree of nodes at all times.
+
+You only ever get access to a `TaffyNodeId` handle which can be used to manipulate the structure of the tree, or pointers to `TaffyStyle` object (which can be used to set styles on a Node, but are considered borrowed pointers and thus must only be held temporarily).
+
+#### Lifecycle
+
+- `TaffyTree_New` allocates a new `TaffyTree` and returns an owned pointer to it.
+- `TaffyTree_Free` can be used to free the tree once you are done with it.
+
+All other functions in the API which accept a pointer to a `TaffyTree` have borrowing semantics: they access the tree during the duration of the function (and if the pointer is not a `const` pointer, may modify the tree), but will not store the pointer or take ownership of the tree.
+
+
+#### Node creation and manipulation
+
+- `TaffyTree_NewNode` creates a new Node within the tree and returns a `TaffyNodeId` handle to it. The node will initially have the default styles
+
+### Setting styles on node

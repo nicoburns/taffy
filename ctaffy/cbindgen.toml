@@ -12,8 +12,10 @@ include = ["TaffyNodeId"]
 [export.rename]
 TaffyResult_f32 = "TaffyFloatResult"
 TaffyResult_i32 = "TaffyIntResult"
-TaffyResult_StyleValue = "TaffyStyleValueResult"
-TaffyResult_GridPlacement = "TaffyGridPlacementResult"
+TaffyResult_TaffyNodeId = "TaffyNodeIdResult"
+TaffyResult_TaffyDimension = "TaffyDimensionResult"
+TaffyResult_TaffyGridPlacement = "TaffyGridPlacementResult"
+TaffyResult_TaffyStyleMutRef = "TaffyStyleMutRefResult"
 
 [parse.expand]
 crates = ["ctaffy"]

@@ -1,5 +1,5 @@
 use super::{
-    bail, bail_if_null, ok, try_or, ReturnCode, TaffyFFIDefault, TaffyFFIResult, TaffyResult, TaffyStyleMutRef,
+    bail, bail_if_null, ok, try_or, TaffyFFIDefault, TaffyFFIResult, TaffyResult, TaffyReturnCode, TaffyStyleMutRef,
 };
 use taffy::prelude as core;
 use taffy::Taffy as CoreTaffy;
@@ -65,10 +65,10 @@ pub unsafe extern "C" fn TaffyTree_New() -> TaffyTreeOwnedRef {
 /// Free a TaffyTree instance
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_Free(raw_tree: TaffyTreeOwnedRef) -> ReturnCode {
+pub unsafe extern "C" fn TaffyTree_Free(raw_tree: TaffyTreeOwnedRef) -> TaffyReturnCode {
     bail_if_null!(raw_tree, NullTreePointer);
     drop(Box::from_raw(raw_tree));
-    ReturnCode::Ok
+    TaffyReturnCode::Ok
 }
 
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
@@ -85,10 +85,10 @@ pub unsafe extern "C" fn TaffyTree_NewNode(raw_tree: TaffyTreeMutRef) -> TaffyRe
 /// Remove and Free a Node within a TaffyTree
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_RemoveNode(raw_tree: TaffyTreeMutRef, node_id: TaffyNodeId) -> ReturnCode {
+pub unsafe extern "C" fn TaffyTree_RemoveNode(raw_tree: TaffyTreeMutRef, node_id: TaffyNodeId) -> TaffyReturnCode {
     with_tree_mut!(raw_tree, tree, {
         try_or!(InvalidNodeId, tree.inner.remove(node_id.into()));
-        ok!(ReturnCode::Ok);
+        ok!(TaffyReturnCode::Ok);
     })
 }
 
@@ -99,10 +99,10 @@ pub unsafe extern "C" fn TaffyTree_AppendChild(
     raw_tree: TaffyTreeMutRef,
     parent_node_id: TaffyNodeId,
     child_node_id: TaffyNodeId,
-) -> ReturnCode {
+) -> TaffyReturnCode {
     with_tree_mut!(raw_tree, tree, {
         try_or!(InvalidNodeId, tree.inner.add_child(parent_node_id.into(), child_node_id.into()));
-        ok!(ReturnCode::Ok);
+        ok!(TaffyReturnCode::Ok);
     })
 }
 
@@ -127,23 +127,23 @@ pub unsafe extern "C" fn TaffyTree_ComputeLayout(
     node_id: TaffyNodeId,
     available_width: f32,
     available_height: f32,
-) -> ReturnCode {
+) -> TaffyReturnCode {
     with_tree_mut!(raw_tree, tree, {
         let available_space = core::Size {
             width: available_space_from_f32(available_width),
             height: available_space_from_f32(available_height),
         };
         try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), available_space));
-        ReturnCode::Ok
+        TaffyReturnCode::Ok
     })
 }
 
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeConstRef, node_id: TaffyNodeId) -> ReturnCode {
+pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeConstRef, node_id: TaffyNodeId) -> TaffyReturnCode {
     with_tree!(raw_tree, tree, {
         taffy::util::print_tree(&tree.inner, node_id.into());
-        ReturnCode::Ok
+        TaffyReturnCode::Ok
     })
 }

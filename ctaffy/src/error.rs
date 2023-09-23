@@ -10,7 +10,7 @@ macro_rules! ok {
 #[macro_export]
 macro_rules! bail {
     ($return_code:ident) => {
-        return TaffyFFIResult::from_return_code(ReturnCode::$return_code);
+        return TaffyFFIResult::from_return_code(TaffyReturnCode::$return_code);
     };
 }
 
@@ -38,7 +38,7 @@ macro_rules! try_or {
 pub(crate) trait TaffyFFIResult {
     type Value;
     fn from_value(value: Self::Value) -> Self;
-    fn from_return_code(return_code: ReturnCode) -> Self;
+    fn from_return_code(return_code: TaffyReturnCode) -> Self;
 }
 
 pub(crate) trait TaffyFFIDefault {
@@ -57,7 +57,7 @@ impl TaffyFFIDefault for i32 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
-pub enum ReturnCode {
+pub enum TaffyReturnCode {
     /// Operation suceeded
     Ok,
     /// The style pointer passed was null
@@ -94,28 +94,28 @@ pub enum ReturnCode {
     UnexpectedNegative,
 }
 
-impl TaffyFFIResult for ReturnCode {
-    type Value = ReturnCode;
+impl TaffyFFIResult for TaffyReturnCode {
+    type Value = TaffyReturnCode;
     fn from_value(value: Self::Value) -> Self {
         value
     }
-    fn from_return_code(return_code: ReturnCode) -> Self {
+    fn from_return_code(return_code: TaffyReturnCode) -> Self {
         return_code
     }
 }
 
 #[repr(C)]
 pub struct TaffyResult<T> {
-    pub return_code: ReturnCode,
+    pub return_code: TaffyReturnCode,
     pub value: T,
 }
 
 impl<T: TaffyFFIDefault> TaffyFFIResult for TaffyResult<T> {
     type Value = T;
     fn from_value(value: Self::Value) -> Self {
-        Self { return_code: ReturnCode::Ok, value }
+        Self { return_code: TaffyReturnCode::Ok, value }
     }
-    fn from_return_code(return_code: ReturnCode) -> Self {
+    fn from_return_code(return_code: TaffyReturnCode) -> Self {
         Self { return_code, value: T::default() }
     }
 }

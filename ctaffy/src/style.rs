@@ -1,15 +1,15 @@
 //! Public API for C FFI
 
 use super::{
-    bail_if_null, GridPlacement, ReturnCode, StyleValue, TaffyUnit, TaffyAlignContent, TaffyAlignItems,
-    TaffyDisplay, TaffyEdge, TaffyFFIResult, TaffyFlexDirection, TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow,
-    TaffyPosition, TaffyResult, TaffyStyleConstRef, TaffyStyleMutRef,
+    bail_if_null, TaffyAlignContent, TaffyAlignItems, TaffyDimension, TaffyDisplay, TaffyEdge, TaffyFFIResult,
+    TaffyFlexDirection, TaffyFlexWrap, TaffyGridAutoFlow, TaffyGridPlacement, TaffyOverflow, TaffyPosition,
+    TaffyResult, TaffyReturnCode, TaffyStyleConstRef, TaffyStyleMutRef, TaffyUnit,
 };
 use taffy::prelude as core;
 
 /// Assert that the passed raw style pointer is non-null
 /// Then give the passed expression access to the value of the inner [`core::Style`] struct pointed to by the raw style pointer
-/// Return whatever the expression evaluates to wrapped in a [`StyleValueResult`] if the expression does not interally return.
+/// Return whatever the expression evaluates to wrapped in a [`TaffyDimensionResult`] if the expression does not interally return.
 macro_rules! get_style {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         bail_if_null!($raw_style_ptr, NullStylePointer);
@@ -23,7 +23,7 @@ macro_rules! get_style {
 
 /// Assert that the passed raw style pointer is non-null
 /// Then give the passed expression mutable access to the value of the inner [`core::Style`] struct pointed to by the raw style pointer
-/// Return [`ReturnCode::Ok`] if the expression does not internally return.
+/// Return [`TaffyReturnCode::Ok`] if the expression does not internally return.
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
         bail_if_null!($raw_style_ptr, NullStylePointer);
@@ -31,12 +31,12 @@ macro_rules! with_style_mut {
 
         $block;
 
-        ReturnCode::Ok
+        TaffyReturnCode::Ok
     }};
 }
 
-/// Attempt to convert a [`StyleValue`] into a type that implements `TryFrom<StyleValue>`
-/// In the case of a conversion error, return a [`ReturnCode`].
+/// Attempt to convert a [`TaffyDimension`] into a type that implements `TryFrom<TaffyDimension>`
+/// In the case of a conversion error, return a [`TaffyReturnCode`].
 macro_rules! try_from_value {
     ($value:expr) => {
         match $value.try_into() {
@@ -46,11 +46,11 @@ macro_rules! try_from_value {
     };
 }
 
-/// Attempt to convert a [`TaffyUnit`] and a `f32` into a type that implements `TryFrom<StyleValue>`
-/// In the case of a conversion error, return a [`ReturnCode`].
+/// Attempt to convert a [`TaffyUnit`] and a `f32` into a type that implements `TryFrom<TaffyDimension>`
+/// In the case of a conversion error, return a [`TaffyReturnCode`].
 macro_rules! try_from_raw {
     ($unit:expr, $value:expr) => {
-        try_from_value!(StyleValue::from_raw($unit, $value))
+        try_from_value!(TaffyDimension::from_raw($unit, $value))
     };
 }
 
@@ -81,7 +81,7 @@ macro_rules! enum_prop_setter {
     ($func_name:ident; $($props:ident).+; $enum:ident) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: $enum) -> ReturnCode {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: $enum) -> TaffyReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = value.into())
         }
     };
@@ -125,14 +125,14 @@ enum_prop_setter!(TaffyStyle_SetFlexWrap; flex_wrap; TaffyFlexWrap);
 enum_prop_getter!(TaffyStyle_GetGridAutoFlow; grid_auto_flow);
 enum_prop_setter!(TaffyStyle_SetGridAutoFlow; grid_auto_flow; TaffyGridAutoFlow);
 
-/* API variant with single parameter that combines "value" and "unit" into a `StyleValue` struct */
+/* API variant with single parameter that combines "value" and "unit" into a `TaffyDimension` struct */
 
 // Generate a function to get a style value such as margin.top or size.width
 macro_rules! style_value_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyResult<StyleValue> {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyResult<TaffyDimension> {
             get_style!(raw_style, style, style.$($props).*)
         }
     };
@@ -143,7 +143,7 @@ macro_rules! style_value_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32, unit: TaffyUnit) -> ReturnCode {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32, unit: TaffyUnit) -> TaffyReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = try_from_raw!(unit, value))
         }
     };
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn TaffyStyle_GetAspectRatio(raw_style: TaffyStyleConstRef
 }
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: TaffyStyleMutRef, value: f32) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: TaffyStyleMutRef, value: f32) -> TaffyReturnCode {
     with_style_mut!(raw_style, style, {
         if value.is_finite() && value > 0.0 {
             style.aspect_ratio = Some(value)
@@ -247,7 +247,7 @@ macro_rules! float_prop_setter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32) -> ReturnCode {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32) -> TaffyReturnCode {
             with_style_mut!(raw_style, style, style.$($props).* = value)
         }
     };
@@ -271,8 +271,8 @@ float_prop_setter!(TaffyStyle_SetFlexShrink; flex_shrink);
 pub unsafe extern "C" fn TaffyStyle_SetMargin(
     raw_style: TaffyStyleMutRef,
     edge: TaffyEdge,
-    value: StyleValue,
-) -> ReturnCode {
+    value: TaffyDimension,
+) -> TaffyReturnCode {
     let value = try_from_value!(value);
     with_style_mut!(raw_style, style, {
         match edge {
@@ -303,13 +303,16 @@ pub unsafe extern "C" fn TaffyStyle_SetMargin(
 /// Get grid item's column placement
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyStyleGetGridColumn(raw_style: TaffyStyleMutRef) -> TaffyResult<GridPlacement> {
+pub unsafe extern "C" fn TaffyStyle_GetGridColumn(raw_style: TaffyStyleMutRef) -> TaffyResult<TaffyGridPlacement> {
     get_style!(raw_style, style, style.grid_column)
 }
 
 /// Set grid item's column placement
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyStyleSetGridColumn(raw_style: TaffyStyleMutRef, placement: GridPlacement) -> ReturnCode {
+pub unsafe extern "C" fn TaffyStyle_SetGridColumn(
+    raw_style: TaffyStyleMutRef,
+    placement: TaffyGridPlacement,
+) -> TaffyReturnCode {
     with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }

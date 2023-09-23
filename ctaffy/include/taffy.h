@@ -531,7 +531,10 @@ enum ReturnCode TaffyTree_AppendChild(TaffyTreeMutRef raw_tree,
 struct TaffyResult_TaffyStyleMutRef TaffyTree_GetStyleMutRef(TaffyTreeMutRef raw_tree, struct TaffyNodeId node_id);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
-enum ReturnCode TaffyTree_ComputeLayout(TaffyTreeMutRef raw_tree, struct TaffyNodeId node_id);
+enum ReturnCode TaffyTree_ComputeLayout(TaffyTreeMutRef raw_tree,
+                                        struct TaffyNodeId node_id,
+                                        float available_width,
+                                        float available_height);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 enum ReturnCode TaffyTree_PrintTree(TaffyTreeConstRef raw_tree, struct TaffyNodeId node_id);

@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
+#include <stdio.h>
+
 #include "taffy.h"
 
 int main() {
@@ -22,8 +25,14 @@ int main() {
     // Setup parent-child relationship
     TaffyTree_AppendChild(tree, parent, child);
 
-    // Compute layout + print result
-    TaffyTree_ComputeLayout(tree, parent);
+    // Compute layout (100x100 viewport)
+    printf("\nCompute layout with 100x100 viewport:\n");
+    TaffyTree_ComputeLayout(tree, parent, 100, 100);
+    TaffyTree_PrintTree(tree, parent);
+
+    // Compute layout (infinite viewport)
+    printf("\nCompute layout with infinite viewport:\n");
+    TaffyTree_ComputeLayout(tree, parent, INFINITY, INFINITY);
     TaffyTree_PrintTree(tree, parent);
 
     // Free tree

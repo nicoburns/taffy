@@ -2,7 +2,6 @@ use super::{
     bail, bail_if_null, ok, try_or, ReturnCode, TaffyFFIDefault, TaffyFFIResult, TaffyResult, TaffyStyleMutRef,
 };
 use taffy::prelude as core;
-use taffy::prelude::TaffyMaxContent;
 use taffy::Taffy as CoreTaffy;
 
 pub struct TaffyTree {
@@ -46,7 +45,15 @@ macro_rules! with_tree_mut {
     }};
 }
 
-// let $style_ident = unsafe { &*($raw_style_ptr as *const core::Style) };
+fn available_space_from_f32(input: f32) -> core::AvailableSpace {
+    if input.is_finite() && input >= 0.0 {
+        core::AvailableSpace::Definite(input)
+    } else if input == f32::NEG_INFINITY {
+        core::AvailableSpace::MinContent
+    } else {
+        core::AvailableSpace::MaxContent
+    }
+}
 
 /// Create a TaffyTree instance
 #[no_mangle]
@@ -115,9 +122,18 @@ pub unsafe extern "C" fn TaffyTree_GetStyleMutRef(
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_ComputeLayout(raw_tree: TaffyTreeMutRef, node_id: TaffyNodeId) -> ReturnCode {
+pub unsafe extern "C" fn TaffyTree_ComputeLayout(
+    raw_tree: TaffyTreeMutRef,
+    node_id: TaffyNodeId,
+    available_width: f32,
+    available_height: f32,
+) -> ReturnCode {
     with_tree_mut!(raw_tree, tree, {
-        try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), core::Size::MAX_CONTENT));
+        let available_space = core::Size {
+            width: available_space_from_f32(available_width),
+            height: available_space_from_f32(available_height),
+        };
+        try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), available_space));
         ReturnCode::Ok
     })
 }

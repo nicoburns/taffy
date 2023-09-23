@@ -316,3 +316,20 @@ pub unsafe extern "C" fn TaffyStyle_SetGridColumn(
 ) -> TaffyReturnCode {
     with_style_mut!(raw_style, style, style.grid_column = placement.into())
 }
+
+/// Get grid item's row placement
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyStyle_GetGridRow(raw_style: TaffyStyleMutRef) -> TaffyResult<TaffyGridPlacement> {
+    get_style!(raw_style, style, style.grid_row)
+}
+
+/// Set grid item's row placement
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyStyle_SetGridRow(
+    raw_style: TaffyStyleMutRef,
+    placement: TaffyGridPlacement,
+) -> TaffyReturnCode {
+    with_style_mut!(raw_style, style, style.grid_row = placement.into())
+}

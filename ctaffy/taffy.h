@@ -5,56 +5,56 @@
 
 typedef enum ReturnCode {
   // Operation suceeded
-  Ok,
+  RETURN_CODE_OK,
   // The style pointer passed was null
-  NullStylePointer,
+  RETURN_CODE_NULL_STYLE_POINTER,
   // An enum value was specified that was outside the range of valid value for this enum
-  InvalidEnumValue,
+  RETURN_CODE_INVALID_ENUM_VALUE,
   // A Points unit was specified but is not valid in this context
-  InvalidNone,
+  RETURN_CODE_INVALID_NONE,
   // A Points unit was specified but is not valid in this context
-  InvalidPoints,
+  RETURN_CODE_INVALID_POINTS,
   // A Percent unit was specified but is not valid in this context
-  InvalidPercent,
+  RETURN_CODE_INVALID_PERCENT,
   // A MinContent unit was specified but is not valid in this context
-  InvalidMinContent,
+  RETURN_CODE_INVALID_MIN_CONTENT,
   // A MaxContent unit was specified but is not valid in this context
-  InvalidMaxContent,
+  RETURN_CODE_INVALID_MAX_CONTENT,
   // A FitContentPx unit was specified but is not valid in this context
-  InvalidFitContentPx,
+  RETURN_CODE_INVALID_FIT_CONTENT_PX,
   // A FitContentPercent unit was specified but is not valid in this context
-  InvalidFitContentPercent,
+  RETURN_CODE_INVALID_FIT_CONTENT_PERCENT,
   // An Auto unit was specified but is not valid in this context
-  InvalidAuto,
+  RETURN_CODE_INVALID_AUTO,
   // An Fr unit was specified but is not valid in this context
-  InvalidFr,
+  RETURN_CODE_INVALID_FR,
   // A NaN value was specified but is not valid in this context
-  UnexpectedNaN,
+  RETURN_CODE_UNEXPECTED_NA_N,
   // A infinite value was specified but is not valid in this context
-  UnexpectedInfinity,
+  RETURN_CODE_UNEXPECTED_INFINITY,
   // A negative value was specified but is not valid in this context
-  UnexpectedNegative,
+  RETURN_CODE_UNEXPECTED_NEGATIVE,
 } ReturnCode;
 
 typedef enum StyleValueUnit {
   // A none value (used to unset optional fields)
-  None,
+  STYLE_VALUE_UNIT_NONE,
   // Fixed Length (pixel) value
-  Length,
+  STYLE_VALUE_UNIT_LENGTH,
   // Percentage value
-  Percent,
+  STYLE_VALUE_UNIT_PERCENT,
   // Min-content size
-  MinContent,
+  STYLE_VALUE_UNIT_MIN_CONTENT,
   // Max-content size
-  MaxContent,
+  STYLE_VALUE_UNIT_MAX_CONTENT,
   // fit-content() function with a pixel limit
-  FitContentPx,
+  STYLE_VALUE_UNIT_FIT_CONTENT_PX,
   // fit-content() function with a percentage limit
-  FitContentPercent,
+  STYLE_VALUE_UNIT_FIT_CONTENT_PERCENT,
   // Automatic values
-  Auto,
+  STYLE_VALUE_UNIT_AUTO,
   // fr unit
-  Fr,
+  STYLE_VALUE_UNIT_FR,
 } StyleValueUnit;
 
 // Sets the distribution of space between and around content items
@@ -65,34 +65,34 @@ typedef enum StyleValueUnit {
 typedef enum TaffyAlignContent {
   // Items are aligned according to their algorithm-specific default value
   // This is equivalent to not setting a value in CSS
-  Normal,
+  TAFFY_ALIGN_CONTENT_NORMAL,
   // Items are packed toward the start of the axis
-  Start,
+  TAFFY_ALIGN_CONTENT_START,
   // Items are packed toward the end of the axis
-  End,
+  TAFFY_ALIGN_CONTENT_END,
   // Items are packed towards the flex-relative start of the axis.
   //
   // For flex containers with flex_direction RowReverse or ColumnReverse this is equivalent
   // to End. In all other cases it is equivalent to Start.
-  FlexStart,
+  TAFFY_ALIGN_CONTENT_FLEX_START,
   // Items are packed towards the flex-relative end of the axis.
   //
   // For flex containers with flex_direction RowReverse or ColumnReverse this is equivalent
   // to Start. In all other cases it is equivalent to End.
-  FlexEnd,
+  TAFFY_ALIGN_CONTENT_FLEX_END,
   // Items are centered around the middle of the axis
-  Center,
+  TAFFY_ALIGN_CONTENT_CENTER,
   // Items are stretched to fill the container
-  Stretch,
+  TAFFY_ALIGN_CONTENT_STRETCH,
   // The first and last items are aligned flush with the edges of the container (no gap)
   // The gap between items is distributed evenly.
-  SpaceBetween,
+  TAFFY_ALIGN_CONTENT_SPACE_BETWEEN,
   // The gap between the first and last items is exactly THE SAME as the gap between items.
   // The gaps are distributed evenly
-  SpaceEvenly,
+  TAFFY_ALIGN_CONTENT_SPACE_EVENLY,
   // The gap between the first and last items is exactly HALF the gap between items.
   // The gaps are distributed evenly in proportion to these ratios.
-  SpaceAround,
+  TAFFY_ALIGN_CONTENT_SPACE_AROUND,
 } TaffyAlignContent;
 
 // Used to control how child nodes are aligned.
@@ -103,27 +103,27 @@ typedef enum TaffyAlignContent {
 typedef enum TaffyAlignItems {
   // Items are aligned according to their algorithm-specific default value
   // This is equivalent to not setting a value in CSS
-  Normal,
+  TAFFY_ALIGN_ITEMS_NORMAL,
   // Items are packed toward the start of the axis
-  Start,
+  TAFFY_ALIGN_ITEMS_START,
   // Items are packed toward the end of the axis
-  End,
+  TAFFY_ALIGN_ITEMS_END,
   // Items are packed towards the flex-relative start of the axis.
   //
   // For flex containers with flex_direction RowReverse or ColumnReverse this is equivalent
   // to End. In all other cases it is equivalent to Start.
-  FlexStart,
+  TAFFY_ALIGN_ITEMS_FLEX_START,
   // Items are packed towards the flex-relative end of the axis.
   //
   // For flex containers with flex_direction RowReverse or ColumnReverse this is equivalent
   // to Start. In all other cases it is equivalent to End.
-  FlexEnd,
+  TAFFY_ALIGN_ITEMS_FLEX_END,
   // Items are packed along the center of the cross axis
-  Center,
+  TAFFY_ALIGN_ITEMS_CENTER,
   // Items are aligned such as their baselines align
-  Baseline,
+  TAFFY_ALIGN_ITEMS_BASELINE,
   // Stretch to fill the container
-  Stretch,
+  TAFFY_ALIGN_ITEMS_STRETCH,
 } TaffyAlignItems;
 
 // Sets the layout used for the children of this node
@@ -131,30 +131,30 @@ typedef enum TaffyAlignItems {
 // The default values depends on on which feature flags are enabled. The order of precedence is: Flex, Grid, Block, None.
 typedef enum TaffyDisplay {
   // The children will follow the block layout algorithm
-  Block,
+  TAFFY_DISPLAY_BLOCK,
   // The children will follow the flexbox layout algorithm
-  Flex,
+  TAFFY_DISPLAY_FLEX,
   // The children will follow the CSS Grid layout algorithm
-  Grid,
+  TAFFY_DISPLAY_GRID,
   // The children will not be laid out, and will follow absolute positioning
-  None,
+  TAFFY_DISPLAY_NONE,
 } TaffyDisplay;
 
 typedef enum TaffyEdge {
   // The top edge of the box
-  Top,
+  TAFFY_EDGE_TOP,
   // The bottom edge of the box
-  Bottom,
+  TAFFY_EDGE_BOTTOM,
   // The left edge of the box
-  Left,
+  TAFFY_EDGE_LEFT,
   // The right edge of the box
-  Right,
+  TAFFY_EDGE_RIGHT,
   // Both the top and bottom edges of the box
-  Vertical,
+  TAFFY_EDGE_VERTICAL,
   // Both the left and right edges of the box
-  Horizontal,
+  TAFFY_EDGE_HORIZONTAL,
   // All four edges of the box
-  All,
+  TAFFY_EDGE_ALL,
 } TaffyEdge;
 
 // The direction of the flexbox layout main axis.
@@ -172,19 +172,19 @@ typedef enum TaffyFlexDirection {
   // Defines +x as the main axis
   //
   // Items will be added from left to right in a row.
-  Row,
+  TAFFY_FLEX_DIRECTION_ROW,
   // Defines +y as the main axis
   //
   // Items will be added from top to bottom in a column.
-  Column,
+  TAFFY_FLEX_DIRECTION_COLUMN,
   // Defines -x as the main axis
   //
   // Items will be added from right to left in a row.
-  RowReverse,
+  TAFFY_FLEX_DIRECTION_ROW_REVERSE,
   // Defines -y as the main axis
   //
   // Items will be added from bottom to top in a column.
-  ColumnReverse,
+  TAFFY_FLEX_DIRECTION_COLUMN_REVERSE,
 } TaffyFlexDirection;
 
 // Controls whether flex items are forced onto one line or can wrap onto multiple lines.
@@ -194,11 +194,11 @@ typedef enum TaffyFlexDirection {
 // [Specification](https://www.w3.org/TR/css-flexbox-1/#flex-wrap-property)
 typedef enum TaffyFlexWrap {
   // Items will not wrap and stay on a single line
-  NoWrap,
+  TAFFY_FLEX_WRAP_NO_WRAP,
   // Items will wrap according to this item's [`FlexDirection`]
-  Wrap,
+  TAFFY_FLEX_WRAP_WRAP,
   // Items will wrap in the opposite direction to this item's [`FlexDirection`]
-  WrapReverse,
+  TAFFY_FLEX_WRAP_WRAP_REVERSE,
 } TaffyFlexWrap;
 
 // Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
@@ -211,13 +211,13 @@ typedef enum TaffyFlexWrap {
 // [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow)
 typedef enum TaffyGridAutoFlow {
   // Items are placed by filling each row in turn, adding new rows as necessary
-  Row,
+  TAFFY_GRID_AUTO_FLOW_ROW,
   // Items are placed by filling each column in turn, adding new columns as necessary.
-  Column,
+  TAFFY_GRID_AUTO_FLOW_COLUMN,
   // Combines `Row` with the dense packing algorithm.
-  RowDense,
+  TAFFY_GRID_AUTO_FLOW_ROW_DENSE,
   // Combines `Column` with the dense packing algorithm.
-  ColumnDense,
+  TAFFY_GRID_AUTO_FLOW_COLUMN_DENSE,
 } TaffyGridAutoFlow;
 
 // How children overflowing their container should affect layout
@@ -235,12 +235,12 @@ typedef enum TaffyGridAutoFlow {
 // <https://developer.mozilla.org/en-US/docs/Web/CSS/overflow>
 typedef enum TaffyOverflow {
   // The automatic minimum size of this node as a flexbox/grid item should be based on the size of it's content.
-  Visible,
+  TAFFY_OVERFLOW_VISIBLE,
   // The automatic minimum size of this node as a flexbox/grid item should be `0`.
-  Hidden,
+  TAFFY_OVERFLOW_HIDDEN,
   // The automatic minimum size of this node as a flexbox/grid item should be `0`. Additionally, space should be reserved
   // for a scrollbar. The amount of space reserved is controlled by the `scrollbar_width` property.
-  Scroll,
+  TAFFY_OVERFLOW_SCROLL,
 } TaffyOverflow;
 
 // The positioning strategy for this item.
@@ -255,13 +255,13 @@ typedef enum TaffyOverflow {
 typedef enum TaffyPosition {
   // The offset is computed relative to the final position given by the layout algorithm.
   // Offsets do not affect the position of any other items; they are effectively a correction factor applied at the end.
-  Relative,
+  TAFFY_POSITION_RELATIVE,
   // The offset is computed relative to this item's closest positioned ancestor, if any.
   // Otherwise, it is placed relative to the origin.
   // No space is created for the item in the page layout, and its size will not be altered.
   //
   // WARNING: to opt-out of layouting entirely, you must use [`Display::None`] instead on your [`Style`] object.
-  Absolute,
+  TAFFY_POSITION_ABSOLUTE,
 } TaffyPosition;
 
 typedef struct TaffyNodeId TaffyNodeId;

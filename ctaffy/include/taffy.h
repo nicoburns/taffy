@@ -311,23 +311,35 @@ typedef struct TaffyGridPlacementResult {
 
 typedef struct TaffyTree *TaffyTreeOwnedRef;
 
+typedef struct TaffyTree *TaffyTreeMutRef;
+
 typedef struct TaffyNodeId {
   uint64_t _0;
 } TaffyNodeId;
+
+typedef const struct TaffyTree *TaffyTreeConstRef;
 
 typedef struct TaffyNodeIdResult {
   enum TaffyReturnCode return_code;
   struct TaffyNodeId value;
 } TaffyNodeIdResult;
 
-typedef struct TaffyTree *TaffyTreeMutRef;
-
 typedef struct TaffyStyleMutRefResult {
   enum TaffyReturnCode return_code;
   TaffyStyleMutRef value;
 } TaffyStyleMutRefResult;
 
-typedef const struct TaffyTree *TaffyTreeConstRef;
+typedef struct TaffyLayout {
+  float x;
+  float y;
+  float width;
+  float height;
+} TaffyLayout;
+
+typedef struct TaffyResult_TaffyLayout {
+  enum TaffyReturnCode return_code;
+  struct TaffyLayout value;
+} TaffyResult_TaffyLayout;
 
 #ifdef __cplusplus
 extern "C" {
@@ -510,11 +522,26 @@ struct TaffyGridPlacementResult TaffyStyle_GetGridColumn(TaffyStyleMutRef raw_st
 // Set grid item's column placement
 enum TaffyReturnCode TaffyStyle_SetGridColumn(TaffyStyleMutRef raw_style, struct TaffyGridPlacement placement);
 
+// Get grid item's row placement
+struct TaffyGridPlacementResult TaffyStyle_GetGridRow(TaffyStyleMutRef raw_style);
+
+// Set grid item's row placement
+enum TaffyReturnCode TaffyStyle_SetGridRow(TaffyStyleMutRef raw_style, struct TaffyGridPlacement placement);
+
 // Create a TaffyTree instance
 TaffyTreeOwnedRef TaffyTree_New(void);
 
 // Free a TaffyTree instance
 enum TaffyReturnCode TaffyTree_Free(TaffyTreeOwnedRef raw_tree);
+
+// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+enum TaffyReturnCode TaffyTree_ComputeLayout(TaffyTreeMutRef raw_tree,
+                                             struct TaffyNodeId node_id,
+                                             float available_width,
+                                             float available_height);
+
+// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+enum TaffyReturnCode TaffyTree_PrintTree(TaffyTreeConstRef raw_tree, struct TaffyNodeId node_id);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 struct TaffyNodeIdResult TaffyTree_NewNode(TaffyTreeMutRef raw_tree);
@@ -528,16 +555,10 @@ enum TaffyReturnCode TaffyTree_AppendChild(TaffyTreeMutRef raw_tree,
                                            struct TaffyNodeId child_node_id);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
-struct TaffyStyleMutRefResult TaffyTree_GetStyleMutRef(TaffyTreeMutRef raw_tree, struct TaffyNodeId node_id);
+struct TaffyStyleMutRefResult TaffyTree_GetStyleMut(TaffyTreeMutRef raw_tree, struct TaffyNodeId node_id);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
-enum TaffyReturnCode TaffyTree_ComputeLayout(TaffyTreeMutRef raw_tree,
-                                             struct TaffyNodeId node_id,
-                                             float available_width,
-                                             float available_height);
-
-// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
-enum TaffyReturnCode TaffyTree_PrintTree(TaffyTreeConstRef raw_tree, struct TaffyNodeId node_id);
+struct TaffyResult_TaffyLayout TaffyTree_GetLayout(TaffyTreeConstRef raw_tree, struct TaffyNodeId node_id);
 
 #ifdef __cplusplus
 } // extern "C"

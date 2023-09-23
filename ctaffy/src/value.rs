@@ -46,6 +46,19 @@ pub enum TaffyUnit {
     Fr,
 }
 
+#[repr(C)]
+pub struct TaffyLayout {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+impl TaffyFFIDefault for TaffyLayout {
+    fn default() -> Self {
+        TaffyLayout { x: 0.0, y: 0.0, width: 0.0, height: 0.0 }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
 pub struct TaffyDimension {

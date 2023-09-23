@@ -1,5 +1,6 @@
 use super::{
-    bail, bail_if_null, ok, try_or, TaffyFFIDefault, TaffyFFIResult, TaffyResult, TaffyReturnCode, TaffyStyleMutRef,
+    bail, bail_if_null, ok, try_or, TaffyFFIDefault, TaffyFFIResult, TaffyLayout, TaffyResult, TaffyReturnCode,
+    TaffyStyleMutRef,
 };
 use taffy::prelude as core;
 use taffy::Taffy as CoreTaffy;
@@ -55,6 +56,10 @@ fn available_space_from_f32(input: f32) -> core::AvailableSpace {
     }
 }
 
+// -------------------------------------------------
+// Create and Free
+// -------------------------------------------------
+
 /// Create a TaffyTree instance
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
@@ -70,6 +75,43 @@ pub unsafe extern "C" fn TaffyTree_Free(raw_tree: TaffyTreeOwnedRef) -> TaffyRet
     drop(Box::from_raw(raw_tree));
     TaffyReturnCode::Ok
 }
+
+// -------------------------------------------------
+// Compute and Print
+// -------------------------------------------------
+
+/// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyTree_ComputeLayout(
+    raw_tree: TaffyTreeMutRef,
+    node_id: TaffyNodeId,
+    available_width: f32,
+    available_height: f32,
+) -> TaffyReturnCode {
+    with_tree_mut!(raw_tree, tree, {
+        let available_space = core::Size {
+            width: available_space_from_f32(available_width),
+            height: available_space_from_f32(available_height),
+        };
+        try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), available_space));
+        TaffyReturnCode::Ok
+    })
+}
+
+/// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeConstRef, node_id: TaffyNodeId) -> TaffyReturnCode {
+    with_tree!(raw_tree, tree, {
+        taffy::util::print_tree(&tree.inner, node_id.into());
+        TaffyReturnCode::Ok
+    })
+}
+
+// -------------------------------------------------
+// Tree manipulation
+// -------------------------------------------------
 
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
@@ -106,10 +148,14 @@ pub unsafe extern "C" fn TaffyTree_AppendChild(
     })
 }
 
+// -------------------------------------------------
+// Style and Layout access
+// -------------------------------------------------
+
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_GetStyleMutRef(
+pub unsafe extern "C" fn TaffyTree_GetStyleMut(
     raw_tree: TaffyTreeMutRef,
     node_id: TaffyNodeId,
 ) -> TaffyResult<TaffyStyleMutRef> {
@@ -122,28 +168,17 @@ pub unsafe extern "C" fn TaffyTree_GetStyleMutRef(
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_ComputeLayout(
-    raw_tree: TaffyTreeMutRef,
+pub unsafe extern "C" fn TaffyTree_GetLayout(
+    raw_tree: TaffyTreeConstRef,
     node_id: TaffyNodeId,
-    available_width: f32,
-    available_height: f32,
-) -> TaffyReturnCode {
-    with_tree_mut!(raw_tree, tree, {
-        let available_space = core::Size {
-            width: available_space_from_f32(available_width),
-            height: available_space_from_f32(available_height),
-        };
-        try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), available_space));
-        TaffyReturnCode::Ok
-    })
-}
-
-/// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
-#[no_mangle]
-#[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeConstRef, node_id: TaffyNodeId) -> TaffyReturnCode {
+) -> TaffyResult<TaffyLayout> {
     with_tree!(raw_tree, tree, {
-        taffy::util::print_tree(&tree.inner, node_id.into());
-        TaffyReturnCode::Ok
+        let layout = try_or!(InvalidNodeId, tree.inner.layout(node_id.into()));
+        ok!(TaffyLayout {
+            x: layout.location.x,
+            y: layout.location.y,
+            width: layout.size.width,
+            height: layout.size.height
+        });
     })
 }

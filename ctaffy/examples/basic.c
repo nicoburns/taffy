@@ -11,13 +11,13 @@ int main() {
 
     // Create child (+set styles)
     TaffyNodeId child = TaffyTree_NewNode(tree).value;
-    TaffyStyle *child_style = TaffyTree_GetStyleMutRef(tree, child).value;
+    TaffyStyle *child_style = TaffyTree_GetStyleMut(tree, child).value;
     TaffyStyle_SetWidth(child_style, 0.5, TAFFY_UNIT_PERCENT);
     TaffyStyle_SetHeight(child_style, 0, TAFFY_UNIT_AUTO);
 
     // Create parent (+set styles)
     TaffyNodeId parent = TaffyTree_NewNode(tree).value;
-    TaffyStyle *parent_style = TaffyTree_GetStyleMutRef(tree, parent).value;
+    TaffyStyle *parent_style = TaffyTree_GetStyleMut(tree, parent).value;
     TaffyStyle_SetWidth(parent_style, 100, TAFFY_UNIT_LENGTH);
     TaffyStyle_SetHeight(parent_style, 100, TAFFY_UNIT_LENGTH);
     TaffyStyle_SetJustifyContent(parent_style, TAFFY_ALIGN_CONTENT_CENTER);

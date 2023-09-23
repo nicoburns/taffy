@@ -2,6 +2,7 @@ use super::{
     bail, bail_if_null, ok, try_or, ReturnCode, TaffyFFIDefault, TaffyFFIResult, TaffyResult, TaffyStyleMutRef,
 };
 use taffy::prelude as core;
+use taffy::prelude::TaffyMaxContent;
 use taffy::Taffy as CoreTaffy;
 
 pub struct TaffyTree {
@@ -9,6 +10,7 @@ pub struct TaffyTree {
 }
 pub type TaffyTreeOwnedRef = *mut TaffyTree;
 pub type TaffyTreeMutRef = *mut TaffyTree;
+pub type TaffyTreeConstRef = *const TaffyTree;
 
 #[repr(C)]
 pub struct TaffyNodeId(u64);
@@ -28,17 +30,19 @@ impl From<TaffyNodeId> for core::NodeId {
     }
 }
 
-/// Assert that the passed raw style pointer is non-null
-/// Then give the passed expression mutable access to the value of the inner [`core::Style`] struct pointed to by the raw style pointer
-/// Return [`ReturnCode::Ok`] if the expression does not internally return.
+macro_rules! with_tree {
+    ($raw_tree_ptr:expr, $tree_ident:ident, $block:expr) => {{
+        bail_if_null!($raw_tree_ptr, NullTreePointer);
+        let $tree_ident = unsafe { &*($raw_tree_ptr as *const TaffyTree) };
+        $block
+    }};
+}
+
 macro_rules! with_tree_mut {
     ($raw_tree_ptr:expr, $tree_ident:ident, $block:expr) => {{
         bail_if_null!($raw_tree_ptr, NullTreePointer);
         let $tree_ident = unsafe { &mut *($raw_tree_ptr as *mut TaffyTree) };
-
         $block
-
-        // ReturnCode::Ok
     }};
 }
 
@@ -66,7 +70,7 @@ pub unsafe extern "C" fn TaffyTree_Free(raw_tree: TaffyTreeOwnedRef) -> ReturnCo
 pub unsafe extern "C" fn TaffyTree_NewNode(raw_tree: TaffyTreeMutRef) -> TaffyResult<TaffyNodeId> {
     with_tree_mut!(raw_tree, tree, {
         // TODO: make new_leaf infallible
-        let node_id = try_or!(NullTreePointer, tree.inner.new_leaf(core::Style::default()));
+        let node_id = tree.inner.new_leaf(core::Style::default()).unwrap();
         ok!(node_id.into());
     })
 }
@@ -81,6 +85,20 @@ pub unsafe extern "C" fn TaffyTree_RemoveNode(raw_tree: TaffyTreeMutRef, node_id
     })
 }
 
+/// Remove and Free a Node within a TaffyTree
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyTree_AppendChild(
+    raw_tree: TaffyTreeMutRef,
+    parent_node_id: TaffyNodeId,
+    child_node_id: TaffyNodeId,
+) -> ReturnCode {
+    with_tree_mut!(raw_tree, tree, {
+        try_or!(InvalidNodeId, tree.inner.add_child(parent_node_id.into(), child_node_id.into()));
+        ok!(ReturnCode::Ok);
+    })
+}
+
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
@@ -91,5 +109,25 @@ pub unsafe extern "C" fn TaffyTree_GetStyleMutRef(
     with_tree_mut!(raw_tree, tree, {
         let style = try_or!(InvalidNodeId, tree.inner.try_style_mut(node_id.into()));
         ok!(style as *mut core::Style as TaffyStyleMutRef);
+    })
+}
+
+/// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyTree_ComputeLayout(raw_tree: TaffyTreeMutRef, node_id: TaffyNodeId) -> ReturnCode {
+    with_tree_mut!(raw_tree, tree, {
+        try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), core::Size::MAX_CONTENT));
+        ReturnCode::Ok
+    })
+}
+
+/// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeConstRef, node_id: TaffyNodeId) -> ReturnCode {
+    with_tree!(raw_tree, tree, {
+        taffy::util::print_tree(&tree.inner, node_id.into());
+        ReturnCode::Ok
     })
 }

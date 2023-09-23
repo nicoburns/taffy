@@ -1,27 +1,18 @@
 //! Public API for C FFI
 
 use super::{
-    TaffyResult, GridPlacement, ReturnCode, StyleValue,
-    StyleValueUnit, TaffyAlignContent, TaffyAlignItems, TaffyDisplay, TaffyEdge, TaffyFFIResult, TaffyFlexDirection,
-    TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow, TaffyPosition, TaffyStyleConstRef, TaffyStyleMutRef,
+    bail_if_null, GridPlacement, ReturnCode, StyleValue, StyleValueUnit, TaffyAlignContent, TaffyAlignItems,
+    TaffyDisplay, TaffyEdge, TaffyFFIResult, TaffyFlexDirection, TaffyFlexWrap, TaffyGridAutoFlow, TaffyOverflow,
+    TaffyPosition, TaffyResult, TaffyStyleConstRef, TaffyStyleMutRef,
 };
 use taffy::prelude as core;
-
-/// Return [`ReturnCode::NullStylePointer`] if the passed pointer is null
-macro_rules! assert_style_pointer_is_non_null {
-    ($raw_style_ptr:expr) => {{
-        if $raw_style_ptr.is_null() {
-            return TaffyFFIResult::from_return_code(ReturnCode::NullStylePointer);
-        }
-    }};
-}
 
 /// Assert that the passed raw style pointer is non-null
 /// Then give the passed expression access to the value of the inner [`core::Style`] struct pointed to by the raw style pointer
 /// Return whatever the expression evaluates to wrapped in a [`StyleValueResult`] if the expression does not interally return.
 macro_rules! get_style {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
-        assert_style_pointer_is_non_null!($raw_style_ptr);
+        bail_if_null!($raw_style_ptr, NullStylePointer);
         let $style_ident = unsafe { &*($raw_style_ptr as *const core::Style) };
 
         let return_value = $block;
@@ -35,7 +26,7 @@ macro_rules! get_style {
 /// Return [`ReturnCode::Ok`] if the expression does not internally return.
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
-        assert_style_pointer_is_non_null!($raw_style_ptr);
+        bail_if_null!($raw_style_ptr, NullStylePointer);
         let $style_ident = unsafe { &mut *($raw_style_ptr as *mut core::Style) };
 
         $block;

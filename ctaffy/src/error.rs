@@ -1,9 +1,58 @@
 //! Return types for C FFI
 
+#[macro_export]
+macro_rules! ok {
+    ($value:expr) => {
+        return TaffyFFIResult::from_value($value);
+    };
+}
+
+#[macro_export]
+macro_rules! bail {
+    ($return_code:ident) => {
+        return TaffyFFIResult::from_return_code(ReturnCode::$return_code);
+    };
+}
+
+#[macro_export]
+macro_rules! bail_if_null {
+    ($raw_ptr:expr, $err_code:ident) => {
+        if $raw_ptr.is_null() {
+            crate::bail!($err_code);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_or {
+    ($error_code:ident, $block:expr) => {
+        match { $block } {
+            Ok(val) => val,
+            Err(_) => {
+                bail!($error_code);
+            }
+        }
+    };
+}
+
 pub(crate) trait TaffyFFIResult {
     type Value;
     fn from_value(value: Self::Value) -> Self;
     fn from_return_code(return_code: ReturnCode) -> Self;
+}
+
+pub(crate) trait TaffyFFIDefault {
+    fn default() -> Self;
+}
+impl TaffyFFIDefault for f32 {
+    fn default() -> Self {
+        0.0
+    }
+}
+impl TaffyFFIDefault for i32 {
+    fn default() -> Self {
+        0
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,6 +62,10 @@ pub enum ReturnCode {
     Ok,
     /// The style pointer passed was null
     NullStylePointer,
+    /// The tree pointer passed was null
+    NullTreePointer,
+    /// The node referenced by the node id passed does not exist
+    InvalidNodeId,
     /// An enum value was specified that was outside the range of valid value for this enum
     InvalidEnumValue,
     /// A Points unit was specified but is not valid in this context
@@ -57,7 +110,7 @@ pub struct TaffyResult<T> {
     pub value: T,
 }
 
-impl<T: Default> TaffyFFIResult for TaffyResult<T> {
+impl<T: TaffyFFIDefault> TaffyFFIResult for TaffyResult<T> {
     type Value = T;
     fn from_value(value: Self::Value) -> Self {
         Self { return_code: ReturnCode::Ok, value }

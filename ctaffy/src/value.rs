@@ -2,7 +2,7 @@
 
 use taffy::prelude as core;
 
-use super::ReturnCode;
+use super::{ReturnCode, TaffyFFIDefault};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
@@ -53,10 +53,10 @@ pub struct StyleValue {
     pub value: f32,
     pub unit: StyleValueUnit,
 }
-impl Default for StyleValue {
+impl TaffyFFIDefault for StyleValue {
     fn default() -> Self {
         Self { unit: StyleValueUnit::None, value: 0.0 }
-    }   
+    }
 }
 
 impl StyleValue {
@@ -158,10 +158,10 @@ pub struct GridPlacement {
     pub span: u16,
 }
 
-impl Default for GridPlacement {
+impl TaffyFFIDefault for GridPlacement {
     fn default() -> Self {
         Self { start: 0, end: 0, span: 0 }
-    }   
+    }
 }
 
 impl From<GridPlacement> for core::Line<core::GridPlacement> {

@@ -1,17 +1,23 @@
 mod error;
 mod style;
 mod style_enums;
+mod tree;
 mod value;
-
-pub struct Taffy;
-pub type TaffyMutRef = *mut Taffy;
-pub type TaffyConstRef = *const Taffy;
-
-pub struct TaffyNodeId(u64);
 
 pub struct TaffyStyle;
 pub type TaffyStyleMutRef = *mut TaffyStyle;
 pub type TaffyStyleConstRef = *const TaffyStyle;
+
+impl TaffyFFIDefault for TaffyStyleMutRef {
+    fn default() -> Self {
+        core::ptr::null_mut()
+    }
+}
+impl TaffyFFIDefault for TaffyStyleConstRef {
+    fn default() -> Self {
+        core::ptr::null()
+    }
+}
 
 pub struct TaffyLayout;
 pub type TaffyLayoutConstRef = *const TaffyLayout;
@@ -19,4 +25,5 @@ pub type TaffyLayoutConstRef = *const TaffyLayout;
 pub use error::*;
 pub use style::*;
 pub use style_enums::*;
+pub use tree::*;
 pub use value::*;

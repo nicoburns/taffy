@@ -19,9 +19,6 @@ impl TaffyFFIDefault for TaffyStyleConstRef {
     }
 }
 
-pub struct TaffyLayout;
-pub type TaffyLayoutConstRef = *const TaffyLayout;
-
 pub use error::*;
 pub use style::*;
 pub use style_enums::*;

@@ -11,10 +11,10 @@ There are readable examples in the examples directory.
 Assuming you have Rust and Cargo installed (and a C compiler), then this should work to run the basic example:
 
 ```bash
-$ git clone https://github.com/DioxusLabs/taffy.git
-$ cd taffy/ctaffy/examples
-$ ./compile-basic.sh
-$ ./basic
+git clone https://github.com/DioxusLabs/taffy.git
+cd taffy/ctaffy/examples
+./compile-basic.sh
+./basic
 ```
 
 ## Naming Conventions
@@ -41,7 +41,7 @@ typedef enum TaffyReturnCode {
 } TaffyReturnCode;
 ```
 
-`TAFFY_RETURN_CODE_OK` indicates that the operation succeeded. All other variant indicate 
+`TAFFY_RETURN_CODE_OK` indicates that the operation succeeded. All other variant indicate
 
 ### Result structs
 
@@ -89,7 +89,6 @@ You only ever get access to a `TaffyNodeId` handle which can be used to manipula
 - `TaffyTree_Free` can be used to free the tree once you are done with it.
 
 All other functions in the API which accept a pointer to a `TaffyTree` have borrowing semantics: they access the tree during the duration of the function (and if the pointer is not a `const` pointer, may modify the tree), but will not store the pointer or take ownership of the tree.
-
 
 #### Node creation and manipulation
 

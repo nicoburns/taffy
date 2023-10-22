@@ -102,9 +102,9 @@ pub unsafe extern "C" fn TaffyTree_ComputeLayout(
 /// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeConstRef, node_id: TaffyNodeId) -> TaffyReturnCode {
-    with_tree!(raw_tree, tree, {
-        taffy::util::print_tree(&tree.inner, node_id.into());
+pub unsafe extern "C" fn TaffyTree_PrintTree(raw_tree: TaffyTreeMutRef, node_id: TaffyNodeId) -> TaffyReturnCode {
+    with_tree_mut!(raw_tree, tree, {
+        tree.inner.print_tree(node_id.into());
         TaffyReturnCode::Ok
     })
 }

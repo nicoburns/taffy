@@ -166,6 +166,17 @@ typedef enum TaffyGridAutoFlow {
   TAFFY_GRID_AUTO_FLOW_COLUMN_DENSE,
 } TaffyGridAutoFlow;
 
+typedef enum TaffyMeasureMode {
+  // A none value (used to unset optional fields)
+  TAFFY_MEASURE_MODE_EXACT,
+  // Fixed Length (pixel) value
+  TAFFY_MEASURE_MODE_FIT_CONTENT,
+  // Percentage value
+  TAFFY_MEASURE_MODE_MIN_CONTENT,
+  // Min-content size
+  TAFFY_MEASURE_MODE_MAX_CONTENT,
+} TaffyMeasureMode;
+
 // How children overflowing their container should affect layout
 //
 // In CSS the primary effect of this property is to control whether contents of a parent container that overflow that container should
@@ -317,8 +328,6 @@ typedef struct TaffyNodeId {
   uint64_t _0;
 } TaffyNodeId;
 
-typedef const struct TaffyTree *TaffyTreeConstRef;
-
 typedef struct TaffyNodeIdResult {
   enum TaffyReturnCode return_code;
   struct TaffyNodeId value;
@@ -328,6 +337,13 @@ typedef struct TaffyStyleMutRefResult {
   enum TaffyReturnCode return_code;
   TaffyStyleMutRef value;
 } TaffyStyleMutRefResult;
+
+typedef struct TaffySize {
+  float width;
+  float height;
+} TaffySize;
+
+typedef struct TaffySize (*TaffyMeasureFunction)(enum TaffyMeasureMode width_measure_mode, float width, enum TaffyMeasureMode height_measure_mode, float height, void *context);
 
 typedef struct TaffyLayout {
   float x;
@@ -340,6 +356,8 @@ typedef struct TaffyResult_TaffyLayout {
   enum TaffyReturnCode return_code;
   struct TaffyLayout value;
 } TaffyResult_TaffyLayout;
+
+typedef const struct TaffyTree *TaffyTreeConstRef;
 
 #ifdef __cplusplus
 extern "C" {
@@ -541,7 +559,7 @@ enum TaffyReturnCode TaffyTree_ComputeLayout(TaffyTreeMutRef raw_tree,
                                              float available_height);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
-enum TaffyReturnCode TaffyTree_PrintTree(TaffyTreeConstRef raw_tree, struct TaffyNodeId node_id);
+enum TaffyReturnCode TaffyTree_PrintTree(TaffyTreeMutRef raw_tree, struct TaffyNodeId node_id);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 struct TaffyNodeIdResult TaffyTree_NewNode(TaffyTreeMutRef raw_tree);
@@ -556,6 +574,12 @@ enum TaffyReturnCode TaffyTree_AppendChild(TaffyTreeMutRef raw_tree,
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 struct TaffyStyleMutRefResult TaffyTree_GetStyleMut(TaffyTreeMutRef raw_tree, struct TaffyNodeId node_id);
+
+// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+enum TaffyReturnCode TaffyTree_SetNodeContext(TaffyTreeMutRef raw_tree,
+                                              struct TaffyNodeId node_id,
+                                              TaffyMeasureFunction measure_function,
+                                              void *context);
 
 // Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
 struct TaffyResult_TaffyLayout TaffyTree_GetLayout(TaffyTreeConstRef raw_tree, struct TaffyNodeId node_id);

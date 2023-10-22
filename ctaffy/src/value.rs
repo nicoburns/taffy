@@ -46,6 +46,32 @@ pub enum TaffyUnit {
     Fr,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+pub enum TaffyMeasureMode {
+    /// A none value (used to unset optional fields)
+    Exact,
+    /// Fixed Length (pixel) value
+    FitContent,
+    /// Percentage value
+    MinContent,
+    /// Min-content size
+    MaxContent,
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct TaffySize {
+    width: f32,
+    height: f32,
+}
+impl From<TaffySize> for core::Size<f32> {
+    #[inline(always)]
+    fn from(value: TaffySize) -> Self {
+        core::Size { width: value.width, height: value.height }
+    }
+}
+
 #[repr(C)]
 pub struct TaffyLayout {
     pub x: f32,

@@ -1,12 +1,28 @@
 use super::{
-    bail, bail_if_null, ok, try_or, TaffyFFIDefault, TaffyFFIResult, TaffyLayout, TaffyResult, TaffyReturnCode,
-    TaffyStyleMutRef,
+    bail, bail_if_null, ok, try_or, TaffyFFIDefault, TaffyFFIResult, TaffyLayout, TaffyMeasureMode, TaffyResult,
+    TaffyReturnCode, TaffySize, TaffyStyleMutRef,
 };
+use ::core::ffi::c_void;
 use taffy::prelude as core;
+use taffy::style::AvailableSpace;
 use taffy::Taffy as CoreTaffy;
 
+pub type TaffyMeasureFunction = extern "C" fn(
+    width_measure_mode: TaffyMeasureMode,
+    width: f32,
+    height_measure_mode: TaffyMeasureMode,
+    height: f32,
+    context: *mut c_void,
+) -> TaffySize;
+
+#[allow(dead_code)] // false positive
+struct NodeContext {
+    context: *mut c_void,
+    measure_function: TaffyMeasureFunction,
+}
+
 pub struct TaffyTree {
-    inner: CoreTaffy,
+    inner: CoreTaffy<NodeContext>,
 }
 pub type TaffyTreeOwnedRef = *mut TaffyTree;
 pub type TaffyTreeMutRef = *mut TaffyTree;
@@ -94,7 +110,33 @@ pub unsafe extern "C" fn TaffyTree_ComputeLayout(
             width: available_space_from_f32(available_width),
             height: available_space_from_f32(available_height),
         };
-        try_or!(InvalidNodeId, tree.inner.compute_layout(node_id.into(), available_space));
+        try_or!(
+            InvalidNodeId,
+            tree.inner.compute_layout_with_measure(
+                node_id.into(),
+                available_space,
+                |known_dimensions, available_space, _node_id, node_context| {
+                    let (width, width_measure_mode) = match (known_dimensions.width, available_space.width) {
+                        (Some(width), _) => (width, TaffyMeasureMode::Exact),
+                        (None, AvailableSpace::Definite(width)) => (width, TaffyMeasureMode::FitContent),
+                        (None, AvailableSpace::MaxContent) => (f32::INFINITY, TaffyMeasureMode::MaxContent),
+                        (None, AvailableSpace::MinContent) => (f32::INFINITY, TaffyMeasureMode::MinContent),
+                    };
+                    let (height, height_measure_mode) = match (known_dimensions.height, available_space.height) {
+                        (Some(height), _) => (height, TaffyMeasureMode::Exact),
+                        (None, AvailableSpace::Definite(height)) => (height, TaffyMeasureMode::FitContent),
+                        (None, AvailableSpace::MaxContent) => (f32::INFINITY, TaffyMeasureMode::MaxContent),
+                        (None, AvailableSpace::MinContent) => (f32::INFINITY, TaffyMeasureMode::MinContent),
+                    };
+                    match node_context {
+                        Some(NodeContext { measure_function, context }) => {
+                            measure_function(width_measure_mode, width, height_measure_mode, height, *context).into()
+                        }
+                        _ => core::Size::ZERO,
+                    }
+                }
+            )
+        );
         TaffyReturnCode::Ok
     })
 }
@@ -162,6 +204,24 @@ pub unsafe extern "C" fn TaffyTree_GetStyleMut(
     with_tree_mut!(raw_tree, tree, {
         let style = try_or!(InvalidNodeId, tree.inner.try_style_mut(node_id.into()));
         ok!(style as *mut core::Style as TaffyStyleMutRef);
+    })
+}
+
+/// Create a new Node in the TaffyTree. Returns a NodeId handle to the node.
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn TaffyTree_SetNodeContext(
+    raw_tree: TaffyTreeMutRef,
+    node_id: TaffyNodeId,
+    measure_function: TaffyMeasureFunction,
+    context: *mut c_void,
+) -> TaffyReturnCode {
+    with_tree_mut!(raw_tree, tree, {
+        try_or!(
+            InvalidNodeId,
+            tree.inner.set_node_context(node_id.into(), Some(NodeContext { measure_function, context }))
+        );
+        ok!(TaffyReturnCode::Ok);
     })
 }
 

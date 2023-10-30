@@ -25,6 +25,16 @@ impl From<TaffyDisplay> for core::Display {
         }
     }
 }
+impl From<core::Display> for TaffyDisplay {
+    fn from(input: core::Display) -> TaffyDisplay {
+        match input {
+            core::Display::Block => TaffyDisplay::Block,
+            core::Display::Flex => TaffyDisplay::Flex,
+            core::Display::Grid => TaffyDisplay::Grid,
+            core::Display::None => TaffyDisplay::None,
+        }
+    }
+}
 
 /// The positioning strategy for this item.
 ///
@@ -53,6 +63,14 @@ impl From<TaffyPosition> for core::Position {
         match input {
             TaffyPosition::Relative => core::Position::Relative,
             TaffyPosition::Absolute => core::Position::Absolute,
+        }
+    }
+}
+impl From<core::Position> for TaffyPosition {
+    fn from(input: core::Position) -> TaffyPosition {
+        match input {
+            core::Position::Relative => TaffyPosition::Relative,
+            core::Position::Absolute => TaffyPosition::Absolute,
         }
     }
 }
@@ -87,6 +105,15 @@ impl From<TaffyOverflow> for core::Overflow {
             TaffyOverflow::Visible => core::Overflow::Visible,
             TaffyOverflow::Hidden => core::Overflow::Hidden,
             TaffyOverflow::Scroll => core::Overflow::Scroll,
+        }
+    }
+}
+impl From<core::Overflow> for TaffyOverflow {
+    fn from(input: core::Overflow) -> TaffyOverflow {
+        match input {
+            core::Overflow::Visible => TaffyOverflow::Visible,
+            core::Overflow::Hidden => TaffyOverflow::Hidden,
+            core::Overflow::Scroll => TaffyOverflow::Scroll,
         }
     }
 }
@@ -126,6 +153,7 @@ pub enum TaffyAlignItems {
 impl From<TaffyAlignItems> for Option<core::AlignItems> {
     fn from(input: TaffyAlignItems) -> Option<core::AlignItems> {
         match input {
+            TaffyAlignItems::Normal => None,
             TaffyAlignItems::Start => Some(core::AlignItems::Start),
             TaffyAlignItems::End => Some(core::AlignItems::End),
             TaffyAlignItems::FlexStart => Some(core::AlignItems::FlexStart),
@@ -133,7 +161,20 @@ impl From<TaffyAlignItems> for Option<core::AlignItems> {
             TaffyAlignItems::Center => Some(core::AlignItems::Center),
             TaffyAlignItems::Baseline => Some(core::AlignItems::Baseline),
             TaffyAlignItems::Stretch => Some(core::AlignItems::Stretch),
-            TaffyAlignItems::Normal => None,
+        }
+    }
+}
+impl From<Option<core::AlignItems>> for TaffyAlignItems {
+    fn from(input: Option<core::AlignItems>) -> TaffyAlignItems {
+        match input {
+            None => TaffyAlignItems::Normal,
+            Some(core::AlignItems::Start) => TaffyAlignItems::Start,
+            Some(core::AlignItems::End) => TaffyAlignItems::End,
+            Some(core::AlignItems::FlexStart) => TaffyAlignItems::FlexStart,
+            Some(core::AlignItems::FlexEnd) => TaffyAlignItems::FlexEnd,
+            Some(core::AlignItems::Center) => TaffyAlignItems::Center,
+            Some(core::AlignItems::Baseline) => TaffyAlignItems::Baseline,
+            Some(core::AlignItems::Stretch) => TaffyAlignItems::Stretch,
         }
     }
 }
@@ -180,6 +221,7 @@ pub enum TaffyAlignContent {
 impl From<TaffyAlignContent> for Option<core::AlignContent> {
     fn from(input: TaffyAlignContent) -> Option<core::AlignContent> {
         match input {
+            TaffyAlignContent::Normal => None,
             TaffyAlignContent::Start => Some(core::AlignContent::Start),
             TaffyAlignContent::End => Some(core::AlignContent::End),
             TaffyAlignContent::FlexStart => Some(core::AlignContent::FlexStart),
@@ -189,7 +231,22 @@ impl From<TaffyAlignContent> for Option<core::AlignContent> {
             TaffyAlignContent::SpaceBetween => Some(core::AlignContent::SpaceBetween),
             TaffyAlignContent::SpaceEvenly => Some(core::AlignContent::SpaceEvenly),
             TaffyAlignContent::SpaceAround => Some(core::AlignContent::SpaceAround),
-            TaffyAlignContent::Normal => None,
+        }
+    }
+}
+impl From<Option<core::AlignContent>> for TaffyAlignContent {
+    fn from(input: Option<core::AlignContent>) -> TaffyAlignContent {
+        match input {
+            None => TaffyAlignContent::Normal,
+            Some(core::AlignContent::Start) => TaffyAlignContent::Start,
+            Some(core::AlignContent::End) => TaffyAlignContent::End,
+            Some(core::AlignContent::FlexStart) => TaffyAlignContent::FlexStart,
+            Some(core::AlignContent::FlexEnd) => TaffyAlignContent::FlexEnd,
+            Some(core::AlignContent::Center) => TaffyAlignContent::Center,
+            Some(core::AlignContent::Stretch) => TaffyAlignContent::Stretch,
+            Some(core::AlignContent::SpaceBetween) => TaffyAlignContent::SpaceBetween,
+            Some(core::AlignContent::SpaceAround) => TaffyAlignContent::SpaceAround,
+            Some(core::AlignContent::SpaceEvenly) => TaffyAlignContent::SpaceEvenly,
         }
     }
 }
@@ -215,6 +272,15 @@ impl From<TaffyFlexWrap> for core::FlexWrap {
             TaffyFlexWrap::NoWrap => core::FlexWrap::NoWrap,
             TaffyFlexWrap::Wrap => core::FlexWrap::Wrap,
             TaffyFlexWrap::WrapReverse => core::FlexWrap::WrapReverse,
+        }
+    }
+}
+impl From<core::FlexWrap> for TaffyFlexWrap {
+    fn from(input: core::FlexWrap) -> TaffyFlexWrap {
+        match input {
+            core::FlexWrap::NoWrap => TaffyFlexWrap::NoWrap,
+            core::FlexWrap::Wrap => TaffyFlexWrap::Wrap,
+            core::FlexWrap::WrapReverse => TaffyFlexWrap::WrapReverse,
         }
     }
 }
@@ -260,6 +326,16 @@ impl From<TaffyFlexDirection> for core::FlexDirection {
         }
     }
 }
+impl From<core::FlexDirection> for TaffyFlexDirection {
+    fn from(input: core::FlexDirection) -> TaffyFlexDirection {
+        match input {
+            core::FlexDirection::Row => TaffyFlexDirection::Row,
+            core::FlexDirection::Column => TaffyFlexDirection::Column,
+            core::FlexDirection::RowReverse => TaffyFlexDirection::RowReverse,
+            core::FlexDirection::ColumnReverse => TaffyFlexDirection::ColumnReverse,
+        }
+    }
+}
 
 /// Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
 ///
@@ -288,6 +364,16 @@ impl From<TaffyGridAutoFlow> for core::GridAutoFlow {
             TaffyGridAutoFlow::Column => core::GridAutoFlow::Column,
             TaffyGridAutoFlow::RowDense => core::GridAutoFlow::RowDense,
             TaffyGridAutoFlow::ColumnDense => core::GridAutoFlow::ColumnDense,
+        }
+    }
+}
+impl From<core::GridAutoFlow> for TaffyGridAutoFlow {
+    fn from(input: core::GridAutoFlow) -> TaffyGridAutoFlow {
+        match input {
+            core::GridAutoFlow::Row => TaffyGridAutoFlow::Row,
+            core::GridAutoFlow::Column => TaffyGridAutoFlow::Column,
+            core::GridAutoFlow::RowDense => TaffyGridAutoFlow::RowDense,
+            core::GridAutoFlow::ColumnDense => TaffyGridAutoFlow::ColumnDense,
         }
     }
 }

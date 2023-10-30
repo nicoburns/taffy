@@ -24,6 +24,17 @@ macro_rules! bail_if_null {
 }
 
 #[macro_export]
+macro_rules! debug_assert_non_null {
+    ($raw_ptr:expr) => {
+        #[cfg(debug)]
+        if $raw_ptr.is_null() {
+            eprintln!("Supplied pointer was null");
+            ::std::process::exit(1);
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! try_or {
     ($error_code:ident, $block:expr) => {
         match { $block } {

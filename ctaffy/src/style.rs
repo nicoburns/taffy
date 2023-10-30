@@ -1,9 +1,9 @@
 //! Public API for C FFI
 
 use super::{
-    bail_if_null, TaffyAlignContent, TaffyAlignItems, TaffyDimension, TaffyDisplay, TaffyEdge, TaffyFFIResult,
+    debug_assert_non_null, TaffyAlignContent, TaffyAlignItems, TaffyDimension, TaffyDisplay, TaffyEdge,
     TaffyFlexDirection, TaffyFlexWrap, TaffyGridAutoFlow, TaffyGridPlacement, TaffyOverflow, TaffyPosition,
-    TaffyResult, TaffyReturnCode, TaffyStyleConstRef, TaffyStyleMutRef, TaffyUnit,
+    TaffyReturnCode, TaffyStyleConstRef, TaffyStyleMutRef, TaffyUnit,
 };
 use taffy::prelude as core;
 
@@ -12,12 +12,12 @@ use taffy::prelude as core;
 /// Return whatever the expression evaluates to wrapped in a [`TaffyDimensionResult`] if the expression does not interally return.
 macro_rules! get_style {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
-        bail_if_null!($raw_style_ptr, NullStylePointer);
+        debug_assert_non_null!($raw_style_ptr);
         let $style_ident = unsafe { &*($raw_style_ptr as *const core::Style) };
 
         let return_value = $block;
 
-        TaffyFFIResult::from_value(return_value.into())
+        return_value.into()
     }};
 }
 
@@ -26,7 +26,7 @@ macro_rules! get_style {
 /// Return [`TaffyReturnCode::Ok`] if the expression does not internally return.
 macro_rules! with_style_mut {
     ($raw_style_ptr:expr, $style_ident:ident, $block:expr) => {{
-        bail_if_null!($raw_style_ptr, NullStylePointer);
+        debug_assert_non_null!($raw_style_ptr);
         let $style_ident = unsafe { &mut *($raw_style_ptr as *mut core::Style) };
 
         $block;
@@ -57,11 +57,11 @@ macro_rules! try_from_raw {
 // Simple enum properties
 
 macro_rules! enum_prop_getter {
-    ($func_name:ident; $($props:ident).+) => {
+    ($func_name:ident; $enum:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyResult<i32> {
-            get_style!(raw_style, style, style.$($props).* as i32)
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> $enum {
+            get_style!(raw_style, style, style.$($props).*)
         }
     };
 }
@@ -70,7 +70,7 @@ macro_rules! option_enum_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyResult<i32> {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> i32 {
             get_style!(raw_style, style, style.$($props).*.map(|v| v as i32).unwrap_or(0))
         }
     };
@@ -78,7 +78,7 @@ macro_rules! option_enum_prop_getter {
 
 // Generate a function to set a style value such as margin.top or size.width
 macro_rules! enum_prop_setter {
-    ($func_name:ident; $($props:ident).+; $enum:ident) => {
+    ($func_name:ident; $enum:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: $enum) -> TaffyReturnCode {
@@ -87,52 +87,12 @@ macro_rules! enum_prop_setter {
     };
 }
 
-// Display
-enum_prop_getter!(TaffyStyle_GetDisplay; display);
-enum_prop_setter!(TaffyStyle_SetDisplay; display; TaffyDisplay);
-
-// Position
-enum_prop_getter!(TaffyStyle_GetPosition; position);
-enum_prop_setter!(TaffyStyle_SetPosition; position; TaffyPosition);
-
-// Overflow
-enum_prop_getter!(TaffyStyle_GetOverflowX; overflow.x);
-enum_prop_setter!(TaffyStyle_SetOverflowX; overflow.x; TaffyOverflow);
-enum_prop_getter!(TaffyStyle_GetOverflowY; overflow.y);
-enum_prop_setter!(TaffyStyle_SetOverflowY; overflow.y; TaffyOverflow);
-
-// Alignment
-option_enum_prop_getter!(TaffyStyle_GetAlignContent; align_content);
-option_enum_prop_getter!(TaffyStyle_GetAlignItems; align_items);
-option_enum_prop_getter!(TaffyStyle_GetAlignSelf; align_self);
-option_enum_prop_getter!(TaffyStyle_GetJustifyContent; justify_content);
-option_enum_prop_getter!(TaffyStyle_GetJustifyItems; justify_items);
-option_enum_prop_getter!(TaffyStyle_GetJustifySelf; justify_self);
-enum_prop_setter!(TaffyStyle_SetAlignContent; align_content; TaffyAlignContent);
-enum_prop_setter!(TaffyStyle_SetAlignItems; align_items; TaffyAlignItems);
-enum_prop_setter!(TaffyStyle_SetAlignSelf; align_self; TaffyAlignItems);
-enum_prop_setter!(TaffyStyle_SetJustifyContent; justify_content; TaffyAlignContent);
-enum_prop_setter!(TaffyStyle_SetJustifyItems; justify_items; TaffyAlignItems);
-enum_prop_setter!(TaffyStyle_SetJustifySelf; justify_self; TaffyAlignItems);
-
-// FlexDirection & FlexWrap
-enum_prop_getter!(TaffyStyle_GetFlexDirection; flex_direction);
-enum_prop_setter!(TaffyStyle_SetFlexDirection; flex_direction; TaffyFlexDirection);
-enum_prop_getter!(TaffyStyle_GetFlexWrap; flex_wrap);
-enum_prop_setter!(TaffyStyle_SetFlexWrap; flex_wrap; TaffyFlexWrap);
-
-// GridAutoFlow
-enum_prop_getter!(TaffyStyle_GetGridAutoFlow; grid_auto_flow);
-enum_prop_setter!(TaffyStyle_SetGridAutoFlow; grid_auto_flow; TaffyGridAutoFlow);
-
-/* API variant with single parameter that combines "value" and "unit" into a `TaffyDimension` struct */
-
 // Generate a function to get a style value such as margin.top or size.width
 macro_rules! style_value_prop_getter {
     ($func_name:ident; $($props:ident).+) => {
         #[no_mangle]
         #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyResult<TaffyDimension> {
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyDimension {
             get_style!(raw_style, style, style.$($props).*)
         }
     };
@@ -148,6 +108,67 @@ macro_rules! style_value_prop_setter {
         }
     };
 }
+
+// Generate a function to get a style value such as margin.top or size.width
+macro_rules! float_prop_getter {
+    ($func_name:ident; $($props:ident).+) => {
+        #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> f32 {
+            get_style!(raw_style, style, style.$($props).*)
+        }
+    };
+}
+
+// Generate a function to set a style value such as margin.top or size.width
+macro_rules! float_prop_setter {
+    ($func_name:ident; $($props:ident).+) => {
+        #[no_mangle]
+        #[allow(clippy::missing_safety_doc)]
+        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32) -> TaffyReturnCode {
+            with_style_mut!(raw_style, style, style.$($props).* = value)
+        }
+    };
+}
+
+enum_prop_getter!(TaffyStyle_GetDisplay; TaffyDisplay; display);
+enum_prop_setter!(TaffyStyle_SetDisplay; TaffyDisplay; display);
+
+// Position
+enum_prop_getter!(TaffyStyle_GetPosition; TaffyPosition; position);
+enum_prop_setter!(TaffyStyle_SetPosition; TaffyPosition; position);
+
+// Overflow
+enum_prop_getter!(TaffyStyle_GetOverflowX; TaffyOverflow; overflow.x);
+enum_prop_setter!(TaffyStyle_SetOverflowX; TaffyOverflow; overflow.x);
+enum_prop_getter!(TaffyStyle_GetOverflowY; TaffyOverflow; overflow.y);
+enum_prop_setter!(TaffyStyle_SetOverflowY; TaffyOverflow; overflow.y);
+
+// Alignment
+option_enum_prop_getter!(TaffyStyle_GetAlignContent; align_content);
+option_enum_prop_getter!(TaffyStyle_GetAlignItems; align_items);
+option_enum_prop_getter!(TaffyStyle_GetAlignSelf; align_self);
+option_enum_prop_getter!(TaffyStyle_GetJustifyContent; justify_content);
+option_enum_prop_getter!(TaffyStyle_GetJustifyItems; justify_items);
+option_enum_prop_getter!(TaffyStyle_GetJustifySelf; justify_self);
+enum_prop_setter!(TaffyStyle_SetAlignContent; TaffyAlignContent; align_content);
+enum_prop_setter!(TaffyStyle_SetAlignItems; TaffyAlignItems; align_items);
+enum_prop_setter!(TaffyStyle_SetAlignSelf; TaffyAlignItems; align_self);
+enum_prop_setter!(TaffyStyle_SetJustifyContent; TaffyAlignContent; justify_content);
+enum_prop_setter!(TaffyStyle_SetJustifyItems; TaffyAlignItems; justify_items);
+enum_prop_setter!(TaffyStyle_SetJustifySelf; TaffyAlignItems; justify_self);
+
+// FlexDirection & FlexWrap
+enum_prop_getter!(TaffyStyle_GetFlexDirection; TaffyFlexDirection; flex_direction);
+enum_prop_setter!(TaffyStyle_SetFlexDirection; TaffyFlexDirection; flex_direction);
+enum_prop_getter!(TaffyStyle_GetFlexWrap; TaffyFlexWrap; flex_wrap);
+enum_prop_setter!(TaffyStyle_SetFlexWrap; TaffyFlexWrap; flex_wrap);
+
+// GridAutoFlow
+enum_prop_getter!(TaffyStyle_GetGridAutoFlow; TaffyGridAutoFlow; grid_auto_flow);
+enum_prop_setter!(TaffyStyle_SetGridAutoFlow; TaffyGridAutoFlow; grid_auto_flow);
+
+/* API variant with single parameter that combines "value" and "unit" into a `TaffyDimension` struct */
 
 // Size
 style_value_prop_getter!(TaffyStyle_GetWidth; size.width);
@@ -216,7 +237,7 @@ style_value_prop_setter!(TaffyStyle_SetRowGap; gap.height);
 // Aspect ratio
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyStyle_GetAspectRatio(raw_style: TaffyStyleConstRef) -> TaffyResult<f32> {
+pub unsafe extern "C" fn TaffyStyle_GetAspectRatio(raw_style: TaffyStyleConstRef) -> f32 {
     get_style!(raw_style, style, style.aspect_ratio.unwrap_or(f32::NAN))
 }
 #[no_mangle]
@@ -229,28 +250,6 @@ pub unsafe extern "C" fn TaffyStyle_SetAspectRatio(raw_style: TaffyStyleMutRef, 
             style.aspect_ratio = None;
         }
     })
-}
-
-// Generate a function to get a style value such as margin.top or size.width
-macro_rules! float_prop_getter {
-    ($func_name:ident; $($props:ident).+) => {
-        #[no_mangle]
-        #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleConstRef) -> TaffyResult<f32> {
-            get_style!(raw_style, style, style.$($props).*)
-        }
-    };
-}
-
-// Generate a function to set a style value such as margin.top or size.width
-macro_rules! float_prop_setter {
-    ($func_name:ident; $($props:ident).+) => {
-        #[no_mangle]
-        #[allow(clippy::missing_safety_doc)]
-        pub unsafe extern "C" fn $func_name(raw_style: TaffyStyleMutRef, value: f32) -> TaffyReturnCode {
-            with_style_mut!(raw_style, style, style.$($props).* = value)
-        }
-    };
 }
 
 // Scrollbar width
@@ -303,7 +302,7 @@ pub unsafe extern "C" fn TaffyStyle_SetMargin(
 /// Get grid item's column placement
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyStyle_GetGridColumn(raw_style: TaffyStyleMutRef) -> TaffyResult<TaffyGridPlacement> {
+pub unsafe extern "C" fn TaffyStyle_GetGridColumn(raw_style: TaffyStyleMutRef) -> TaffyGridPlacement {
     get_style!(raw_style, style, style.grid_column)
 }
 
@@ -320,7 +319,7 @@ pub unsafe extern "C" fn TaffyStyle_SetGridColumn(
 /// Get grid item's row placement
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn TaffyStyle_GetGridRow(raw_style: TaffyStyleMutRef) -> TaffyResult<TaffyGridPlacement> {
+pub unsafe extern "C" fn TaffyStyle_GetGridRow(raw_style: TaffyStyleMutRef) -> TaffyGridPlacement {
     get_style!(raw_style, style, style.grid_row)
 }
 

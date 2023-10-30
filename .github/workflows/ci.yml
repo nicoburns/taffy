@@ -217,7 +217,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: |
-          cd ctaffy/examples
+          cd bindings/c/examples
           ./compile_basic.sh
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../../target/debug ./basic
         name: Build C Bindings

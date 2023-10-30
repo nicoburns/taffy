@@ -15,4 +15,4 @@ name = "ctaffy"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-taffy = { path = ".." }
+taffy = { path = "../.." }

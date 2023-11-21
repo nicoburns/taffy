@@ -31,24 +31,28 @@ mod std {
 
     /// Rounds to the nearest whole number
     #[must_use]
+    #[inline(always)]
     pub(crate) fn round(value: f32) -> f32 {
         value.round()
     }
 
     /// Computes the absolute value
     #[must_use]
+    #[inline(always)]
     pub(crate) fn abs(value: f32) -> f32 {
         value.abs()
     }
 
     /// Returns the largest of two f32 values
+    #[inline(always)]
     pub(crate) fn f32_max(a: f32, b: f32) -> f32 {
-        std::cmp::max_by(a, b, |a, b| a.total_cmp(b))
+        a.max(b)
     }
 
     /// Returns the smallest of two f32 values
+    #[inline(always)]
     pub(crate) fn f32_min(a: f32, b: f32) -> f32 {
-        std::cmp::min_by(a, b, |a, b| a.total_cmp(b))
+        a.min(b)
     }
 }
 
@@ -56,7 +60,6 @@ mod std {
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 mod alloc {
     extern crate alloc;
-    use core::cmp::Ordering;
 
     /// An allocation-backend agnostic vector type
     pub(crate) type Vec<A> = alloc::vec::Vec<A>;
@@ -74,37 +77,34 @@ mod alloc {
 
     /// Rounds to the nearest whole number
     #[must_use]
+    #[inline(always)]
     pub(crate) fn round(value: f32) -> f32 {
         num_traits::float::FloatCore::round(value)
     }
 
     /// Computes the absolute value
     #[must_use]
+    #[inline(always)]
     pub(crate) fn abs(value: f32) -> f32 {
         num_traits::float::FloatCore::abs(value)
     }
 
     /// Returns the largest of two f32 values
+    #[inline(always)]
     pub(crate) fn f32_max(a: f32, b: f32) -> f32 {
-        match a.total_cmp(&b) {
-            Ordering::Greater | Ordering::Equal => a,
-            Ordering::Less => b,
-        }
+        a.max(b)
     }
 
     /// Returns the smallest of two f32 values
+    #[inline(always)]
     pub(crate) fn f32_min(a: f32, b: f32) -> f32 {
-        match a.total_cmp(&b) {
-            Ordering::Less => a,
-            Ordering::Greater | Ordering::Equal => b,
-        }
+        a.min(b)
     }
 }
 
 /// For when neither `alloc` nor `std` is enabled
 #[cfg(all(not(feature = "alloc"), not(feature = "std")))]
 mod core {
-    use core::cmp::Ordering;
 
     /// The maximum number of nodes in the tree
     pub const MAX_NODE_COUNT: usize = 256;
@@ -133,6 +133,7 @@ mod core {
     /// Rounds to the nearest whole number
     #[inline]
     #[must_use]
+    #[inline(always)]
     pub(crate) fn round(value: f32) -> f32 {
         num_traits::float::FloatCore::round(value)
     }
@@ -140,23 +141,20 @@ mod core {
     /// Computes the absolute value
     #[inline]
     #[must_use]
+    #[inline(always)]
     pub(crate) fn abs(value: f32) -> f32 {
         num_traits::float::FloatCore::abs(value)
     }
 
     /// Returns the largest of two f32 values
+    #[inline(always)]
     pub(crate) fn f32_max(a: f32, b: f32) -> f32 {
-        match a.total_cmp(&b) {
-            Ordering::Greater | Ordering::Equal => a,
-            Ordering::Less => b,
-        }
+        a.max(b)
     }
 
     /// Returns the smallest of two f32 values
+    #[inline(always)]
     pub(crate) fn f32_min(a: f32, b: f32) -> f32 {
-        match a.total_cmp(&b) {
-            Ordering::Less => a,
-            Ordering::Greater | Ordering::Equal => b,
-        }
+        a.min(b)
     }
 }

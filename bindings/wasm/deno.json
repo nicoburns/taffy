@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "build:deno": "deno run -A https://deno.land/x/wasmbuild@0.15.6/main.ts",
+    "build:wasm": "wasm-pack build",
+    "test:deno": "deno run -A wasm_test_deno.ts"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "version": "3",
+  "remote": {
+    "https://deno.land/x/dir@1.5.1/data_local_dir/mod.ts": "91eb1c4bfadfbeda30171007bac6d85aadacd43224a5ed721bbe56bc64e9eb66",
+    "https://deno.land/x/wasmbuild@0.15.6/loader/cache.ts": "362d03a2ceb3d3e130373102a5de6d54ffda659a0911c2fcc090c29c3555f7ef",
+    "https://deno.land/x/wasmbuild@0.15.6/loader/fetch.ts": "7d015203a93cbadd05034cbb6e726d35f47e1f51140d91e69aeddc5d71b06ec8"
+  }
+}

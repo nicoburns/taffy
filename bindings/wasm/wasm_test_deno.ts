@@ -6,6 +6,6 @@ const tree = new TaffyTree();
 
 const node = new Node(tree);
 
-node.setWidth(10, StyleUnit)
+node.setWidth(10, StyleUnit.Px)
 
 console.log(node.computeLayout(0).width);

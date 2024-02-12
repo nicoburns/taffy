@@ -93,6 +93,9 @@ impl From<core::Position> for TaffyPosition {
 pub enum TaffyOverflow {
     /// The automatic minimum size of this node as a flexbox/grid item should be based on the size of it's content.
     Visible,
+    /// The automatic minimum size of this node as a flexbox/grid item should be based on the size of its content.
+    /// Content that overflows this node should *not* contribute to the scroll region of its parent.
+    Clip,
     /// The automatic minimum size of this node as a flexbox/grid item should be `0`.
     Hidden,
     /// The automatic minimum size of this node as a flexbox/grid item should be `0`. Additionally, space should be reserved
@@ -103,6 +106,7 @@ impl From<TaffyOverflow> for core::Overflow {
     fn from(input: TaffyOverflow) -> core::Overflow {
         match input {
             TaffyOverflow::Visible => core::Overflow::Visible,
+            TaffyOverflow::Clip => core::Overflow::Clip,
             TaffyOverflow::Hidden => core::Overflow::Hidden,
             TaffyOverflow::Scroll => core::Overflow::Scroll,
         }
@@ -112,6 +116,7 @@ impl From<core::Overflow> for TaffyOverflow {
     fn from(input: core::Overflow) -> TaffyOverflow {
         match input {
             core::Overflow::Visible => TaffyOverflow::Visible,
+            core::Overflow::Clip => TaffyOverflow::Clip,
             core::Overflow::Hidden => TaffyOverflow::Hidden,
             core::Overflow::Scroll => TaffyOverflow::Scroll,
         }

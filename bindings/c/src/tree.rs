@@ -5,7 +5,7 @@ use super::{
 use ::core::ffi::c_void;
 use taffy::prelude as core;
 use taffy::style::AvailableSpace;
-use taffy::Taffy as CoreTaffy;
+use taffy::TaffyTree as CoreTaffy;
 
 pub type TaffyMeasureFunction = extern "C" fn(
     width_measure_mode: TaffyMeasureMode,

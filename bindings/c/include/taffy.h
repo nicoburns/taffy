@@ -193,6 +193,9 @@ typedef enum TaffyMeasureMode {
 typedef enum TaffyOverflow {
   // The automatic minimum size of this node as a flexbox/grid item should be based on the size of it's content.
   TAFFY_OVERFLOW_VISIBLE,
+  // The automatic minimum size of this node as a flexbox/grid item should be based on the size of its content.
+  // Content that overflows this node should *not* contribute to the scroll region of its parent.
+  TAFFY_OVERFLOW_CLIP,
   // The automatic minimum size of this node as a flexbox/grid item should be `0`.
   TAFFY_OVERFLOW_HIDDEN,
   // The automatic minimum size of this node as a flexbox/grid item should be `0`. Additionally, space should be reserved
@@ -323,7 +326,11 @@ typedef struct TaffySize {
   float height;
 } TaffySize;
 
-typedef struct TaffySize (*TaffyMeasureFunction)(enum TaffyMeasureMode width_measure_mode, float width, enum TaffyMeasureMode height_measure_mode, float height, void *context);
+typedef struct TaffySize (*TaffyMeasureFunction)(enum TaffyMeasureMode width_measure_mode,
+                                                 float width,
+                                                 enum TaffyMeasureMode height_measure_mode,
+                                                 float height,
+                                                 void *context);
 
 typedef struct TaffyLayout {
   float x;

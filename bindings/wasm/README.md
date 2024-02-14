@@ -1,4 +1,13 @@
-import { instantiate } from "./lib/taffy_layout.generated.js";
+# Taffy Wasm Bindings
+
+Crate to provide wasm bindings for taffy
+
+## Usage
+
+### Deno
+
+```typescript
+import { instantiate } from "@loading/taffy";
 
 const { Node, TaffyTree } = await instantiate();
 
@@ -15,3 +24,4 @@ console.log(node.computeLayout(100).child(0).width);
 console.log(node.computeLayout(100).child(0).height);
 console.log(node.computeLayout(100).child(0).x);
 console.log(node.computeLayout(100).child(0).y);
+```

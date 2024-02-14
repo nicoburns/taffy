@@ -1,9 +1,24 @@
 // @generated file from wasmbuild -- do not edit
+// @ts-nocheck: generated
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
-// @deno-types="./taffy_layout.d.ts";
-// source-hash: 7590b82ddfd1b76403aedbad5b94e669516e3e67
+// source-hash: 1b596263ecdc57128743768df9349b0e26d876ce
 let wasm;
+
+const heap = new Array(128).fill(undefined);
+
+heap.push(undefined, null, true, false);
+
+let heap_next = heap.length;
+
+function addHeapObject(obj) {
+  if (heap_next === heap.length) heap.push(heap.length + 1);
+  const idx = heap_next;
+  heap_next = heap[idx];
+
+  heap[idx] = obj;
+  return idx;
+}
 
 const cachedTextDecoder = typeof TextDecoder !== "undefined"
   ? new TextDecoder("utf-8", { ignoreBOM: true, fatal: true })
@@ -27,21 +42,6 @@ function getUint8Memory0() {
 function getStringFromWasm0(ptr, len) {
   ptr = ptr >>> 0;
   return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
-}
-
-const heap = new Array(128).fill(undefined);
-
-heap.push(undefined, null, true, false);
-
-let heap_next = heap.length;
-
-function addHeapObject(obj) {
-  if (heap_next === heap.length) heap.push(heap.length + 1);
-  const idx = heap_next;
-  heap_next = heap[idx];
-
-  heap[idx] = obj;
-  return idx;
 }
 
 function getObject(idx) {
@@ -359,6 +359,30 @@ export const StyleUnit = Object.freeze({
   "7": "Fr",
 });
 /**
+ * Controls whether flex items are forced onto one line or can wrap onto multiple lines.
+ *
+ * Defaults to [`FlexWrap::NoWrap`]
+ *
+ * [Specification](https://www.w3.org/TR/css-flexbox-1/#flex-wrap-property)
+ */
+export const FlexWrap = Object.freeze({
+  /**
+   * Items will not wrap and stay on a single line
+   */
+  NoWrap: 0,
+  "0": "NoWrap",
+  /**
+   * Items will wrap according to this item's [`FlexDirection`]
+   */
+  Wrap: 1,
+  "1": "Wrap",
+  /**
+   * Items will wrap in the opposite direction to this item's [`FlexDirection`]
+   */
+  WrapReverse: 2,
+  "2": "WrapReverse",
+});
+/**
  * The positioning strategy for this item.
  *
  * This controls both how the origin is determined for the [`Style::position`] field,
@@ -427,30 +451,6 @@ export const Overflow = Object.freeze({
    */
   Scroll: 3,
   "3": "Scroll",
-});
-/**
- * Controls whether flex items are forced onto one line or can wrap onto multiple lines.
- *
- * Defaults to [`FlexWrap::NoWrap`]
- *
- * [Specification](https://www.w3.org/TR/css-flexbox-1/#flex-wrap-property)
- */
-export const FlexWrap = Object.freeze({
-  /**
-   * Items will not wrap and stay on a single line
-   */
-  NoWrap: 0,
-  "0": "NoWrap",
-  /**
-   * Items will wrap according to this item's [`FlexDirection`]
-   */
-  Wrap: 1,
-  "1": "Wrap",
-  /**
-   * Items will wrap in the opposite direction to this item's [`FlexDirection`]
-   */
-  WrapReverse: 2,
-  "2": "WrapReverse",
 });
 /**
  * Controls whether grid items are placed row-wise or column-wise. And whether the sparse or dense packing algorithm is used.
@@ -571,12 +571,17 @@ export class Node {
   }
   /**
    * @param {TaffyTree} tree
+   * @param {any} style
    */
-  constructor(tree) {
-    _assertClass(tree, TaffyTree);
-    const ret = wasm.node_new(tree.__wbg_ptr);
-    this.__wbg_ptr = ret >>> 0;
-    return this;
+  constructor(tree, style) {
+    try {
+      _assertClass(tree, TaffyTree);
+      const ret = wasm.node_new(tree.__wbg_ptr, addBorrowedObject(style));
+      this.__wbg_ptr = ret >>> 0;
+      return this;
+    } finally {
+      heap[stack_pointer++] = undefined;
+    }
   }
   /**
    * @param {any} measure
@@ -1712,6 +1717,10 @@ export class TaffyTree {
 
 const imports = {
   __wbindgen_placeholder__: {
+    __wbindgen_number_new: function (arg0) {
+      const ret = arg0;
+      return addHeapObject(ret);
+    },
     __wbindgen_string_new: function (arg0, arg1) {
       const ret = getStringFromWasm0(arg0, arg1);
       return addHeapObject(ret);
@@ -1738,10 +1747,6 @@ const imports = {
       var len1 = WASM_VECTOR_LEN;
       getInt32Memory0()[arg0 / 4 + 1] = len1;
       getInt32Memory0()[arg0 / 4 + 0] = ptr1;
-    },
-    __wbindgen_number_new: function (arg0) {
-      const ret = arg0;
-      return addHeapObject(ret);
     },
     __wbindgen_object_clone_ref: function (arg0) {
       const ret = getObject(arg0);
@@ -1948,7 +1953,7 @@ const isNodeOrDeno = typeof Deno === "object" ||
 const loader = new WasmBuildLoader({
   imports,
   // cache: isNodeOrDeno
-  //   ? (await import("@wasmbuild/cache.ts"))
+  //   ? (await import("https://deno.land/x/wasmbuild@0.15.6/loader/cache.ts"))
   //     .cacheToLocalDir
   //   : undefined,
 });

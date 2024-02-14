@@ -1,7 +1,7 @@
 // @generated file from wasmbuild -- do not edit
-// @ts-nocheck: generated
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
+// @deno-types="./taffy_layout.d.ts";
 // source-hash: 7590b82ddfd1b76403aedbad5b94e669516e3e67
 let wasm;
 
@@ -1947,10 +1947,10 @@ const isNodeOrDeno = typeof Deno === "object" ||
 
 const loader = new WasmBuildLoader({
   imports,
-  cache: isNodeOrDeno
-    ? (await import("https://deno.land/x/wasmbuild@0.15.6/loader/cache.ts"))
-      .cacheToLocalDir
-    : undefined,
+  // cache: isNodeOrDeno
+  //   ? (await import("@wasmbuild/cache.ts"))
+  //     .cacheToLocalDir
+  //   : undefined,
 });
 /**
  * Options for instantiating a Wasm instance.

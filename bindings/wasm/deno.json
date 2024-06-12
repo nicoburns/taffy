@@ -1,0 +1,15 @@
+{
+  "name": "@loading/taffy",
+  "version": "0.1.2",
+  "exports": {
+    ".": "./lib/taffy_layout.generated.js"
+  },
+  "imports": {
+    "@wasmbuild/cache.ts": "https://deno.land/x/wasmbuild@0.15.6/loader/cache.ts"
+  },
+  "tasks": {
+    "build:deno": "deno run -A https://deno.land/x/wasmbuild@0.15.6/main.ts",
+    "build:wasm": "wasm-pack build",
+    "test:deno": "deno run -A wasm_test_deno.ts"
+  }
+}

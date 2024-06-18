@@ -102,9 +102,7 @@ where
         width: known_dimensions
             .width
             .map(AvailableSpace::from)
-            .unwrap_or(available_space.width)
-            .maybe_sub(margin.horizontal_axis_sum())
-            .maybe_set(known_dimensions.width)
+            .unwrap_or(available_space.width.maybe_sub(margin.horizontal_axis_sum()))
             .maybe_set(node_size.width)
             .maybe_set(node_max_size.width)
             .map_definite_value(|size| {
@@ -113,9 +111,7 @@ where
         height: known_dimensions
             .height
             .map(AvailableSpace::from)
-            .unwrap_or(available_space.height)
-            .maybe_sub(margin.vertical_axis_sum())
-            .maybe_set(known_dimensions.height)
+            .unwrap_or(available_space.height.maybe_sub(margin.vertical_axis_sum()))
             .maybe_set(node_size.height)
             .maybe_set(node_max_size.height)
             .map_definite_value(|size| {

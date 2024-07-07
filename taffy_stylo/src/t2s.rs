@@ -56,6 +56,14 @@ pub(crate) fn box_generation_mode(input: stylo::Display) -> taffy::BoxGeneration
 }
 
 #[inline]
+pub(crate) fn box_sizing(input: stylo::BoxSizing) -> taffy::BoxSizing {
+    match input {
+        stylo::BoxSizing::BorderBox => taffy::BoxSizing::BorderBox,
+        stylo::BoxSizing::ContentBox => taffy::BoxSizing::ContentBox,
+    }
+}
+
+#[inline]
 pub(crate) fn position(input: stylo::Position) -> taffy::Position {
     match input {
         // TODO: support position:static

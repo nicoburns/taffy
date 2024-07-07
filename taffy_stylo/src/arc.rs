@@ -21,6 +21,11 @@ impl taffy::CoreStyle for TaffyStyloStyle {
     }
 
     #[inline]
+    fn box_sizing(&self) -> taffy::BoxSizing {
+        t2s::box_sizing(self.0.get_position().box_sizing)
+    }
+
+    #[inline]
     fn overflow(&self) -> taffy::Point<taffy::Overflow> {
         let box_styles = self.0.get_box();
         taffy::Point { x: t2s::overflow(box_styles.overflow_x), y: t2s::overflow(box_styles.overflow_y) }

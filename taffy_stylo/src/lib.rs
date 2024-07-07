@@ -16,6 +16,7 @@ mod stylo {
     // pub(crate) use style::computed_values::justify_self::T as JustifySelf;
     pub(crate) use style::properties::longhands::aspect_ratio::computed_value::T as AspectRatio;
     pub(crate) use style::properties::longhands::position::computed_value::T as Position;
+    pub(crate) use style::properties::generated::longhands::box_sizing::computed_value::T as BoxSizing;
     // pub(crate) use style::properties::style_structs::{Margin, Padding};
     pub(crate) use style::values::computed::LengthPercentage;
     pub(crate) use style::values::generics::flex::GenericFlexBasis;

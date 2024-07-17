@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="../../scripts/gentest/test_helper.js"></script>
+  <link rel="stylesheet" type="text/css" href="../../scripts/gentest/test_base_style.css">
+  <title>
+    Test description
+  </title>
+</head>
+<body>
+
+<p style="text-wrap: nowrap; width: 20%; border: 3px solid black">
+  no no no no no no<span style="text-wrap: wrap">yes yes yes yes</span>no no no no no no no
+</p>
+
+<p style="text-wrap: wrap; width: 20%; border: 3px solid black">
+  yes yes yes yes<span style="text-wrap: nowrap">no no no no</span>yes yes yes yes
+</p>
+
+<p style="text-wrap: wrap; width: 20%; border: 3px solid black">
+  yes yes yes yes<span style="text-wrap: nowrap"> no no no no </span>yes yes yes yes
+</p>
+
+<p style="text-wrap: wrap; width: 20%; border: 3px solid black">
+  yes yes yes yes<span style="text-wrap: nowrap"> no no<br />no no </span>yes yes yes yes
+</p>
+
+</body>
+</html>

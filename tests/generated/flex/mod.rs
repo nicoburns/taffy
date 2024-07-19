@@ -499,6 +499,8 @@ mod size_defined_by_child;
 mod size_defined_by_child_with_border;
 mod size_defined_by_child_with_padding;
 mod size_defined_by_grand_child;
+mod taffy_issue_696;
+mod taffy_issue_696_reduced;
 mod undefined_height_with_min_max;
 mod undefined_width_with_min_max;
 mod undefined_width_with_min_max_row;

@@ -471,13 +471,13 @@ impl GridItem {
             if self.box_sizing == BoxSizing::ContentBox { padding_border_size } else { Size::ZERO };
         let size = self
             .size
-            .maybe_resolve(inner_node_size, |val, basis| tree.calc(val, basis))
+            .maybe_resolve(available_space, |val, basis| tree.calc(val, basis))
             .maybe_apply_aspect_ratio(self.aspect_ratio)
             .maybe_add(box_sizing_adjustment)
             .get(axis)
             .or_else(|| {
                 self.min_size
-                    .maybe_resolve(inner_node_size, |val, basis| tree.calc(val, basis))
+                    .maybe_resolve(Size::ZERO, |val, basis| tree.calc(val, basis))
                     .maybe_apply_aspect_ratio(self.aspect_ratio)
                     .maybe_add(box_sizing_adjustment)
                     .get(axis)

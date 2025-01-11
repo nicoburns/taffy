@@ -461,7 +461,7 @@ impl GridItem {
         tree: &mut impl LayoutPartialTree,
         axis: AbstractAxis,
         axis_tracks: &[GridTrack],
-        known_dimensions: Size<Option<f32>>,
+        available_space: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
         let padding = self.padding.resolve_or_zero(inner_node_size, |val, basis| tree.calc(val, basis));
@@ -509,7 +509,7 @@ impl GridItem {
                 // Otherwise, the automatic minimum size is zero, as usual.
                 if use_content_based_minimum {
                     let mut minimum_contribution =
-                        self.min_content_contribution_cached(axis, tree, known_dimensions, inner_node_size);
+                        self.min_content_contribution_cached(axis, tree, available_space, inner_node_size);
 
                     // If the item is a compressible replaced element, and has a definite preferred size or maximum size in the
                     // relevant axis, the size suggestion is capped by those sizes; for this purpose, any indefinite percentages\
@@ -543,11 +543,11 @@ impl GridItem {
         tree: &mut impl LayoutPartialTree,
         axis: AbstractAxis,
         axis_tracks: &[GridTrack],
-        known_dimensions: Size<Option<f32>>,
+        available_space: Size<Option<f32>>,
         inner_node_size: Size<Option<f32>>,
     ) -> f32 {
         self.minimum_contribution_cache.get(axis).unwrap_or_else(|| {
-            let size = self.minimum_contribution(tree, axis, axis_tracks, known_dimensions, inner_node_size);
+            let size = self.minimum_contribution(tree, axis, axis_tracks, available_space, inner_node_size);
             self.minimum_contribution_cache.set(axis, Some(size));
             size
         })

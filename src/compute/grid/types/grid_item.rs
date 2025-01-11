@@ -382,7 +382,7 @@ impl GridItem {
         tree.measure_child_size(
             self.node,
             known_dimensions,
-            inner_node_size,
+            available_space,
             available_space.map(|opt| match opt {
                 Some(size) => AvailableSpace::Definite(size),
                 None => AvailableSpace::MinContent,
@@ -421,7 +421,7 @@ impl GridItem {
         tree.measure_child_size(
             self.node,
             known_dimensions,
-            inner_node_size,
+            available_space,
             available_space.map(|opt| match opt {
                 Some(size) => AvailableSpace::Definite(size),
                 None => AvailableSpace::MaxContent,

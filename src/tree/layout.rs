@@ -42,7 +42,7 @@ impl CollapsibleMarginSet {
     pub const ZERO: Self = Self { positive: 0.0, negative: 0.0 };
 
     /// Create a set from a single margin
-    pub fn from_margin(margin: f32) -> Self {
+    pub const fn from_margin(margin: f32) -> Self {
         if margin >= 0.0 {
             Self { positive: margin, negative: 0.0 }
         } else {
@@ -69,7 +69,7 @@ impl CollapsibleMarginSet {
 
     /// Resolve the resultant margin from this set once all collapsible margins
     /// have been collapsed into it
-    pub fn resolve(&self) -> f32 {
+    pub const fn resolve(&self) -> f32 {
         self.positive + self.negative
     }
 }
@@ -193,7 +193,7 @@ impl LayoutOutput {
     pub const DEFAULT: Self = Self::HIDDEN;
 
     /// Constructor to create a `LayoutOutput` from just the size and baselines
-    pub fn from_sizes_and_baselines(
+    pub const fn from_sizes_and_baselines(
         size: Size<f32>,
         #[cfg_attr(not(feature = "content_size"), allow(unused_variables))] content_size: Size<f32>,
         first_baselines: Point<Option<f32>>,
@@ -210,12 +210,12 @@ impl LayoutOutput {
     }
 
     /// Construct a SizeBaselinesAndMargins from just the container and content sizes
-    pub fn from_sizes(size: Size<f32>, content_size: Size<f32>) -> Self {
+    pub const fn from_sizes(size: Size<f32>, content_size: Size<f32>) -> Self {
         Self::from_sizes_and_baselines(size, content_size, Point::NONE)
     }
 
     /// Construct a SizeBaselinesAndMargins from just the container's size.
-    pub fn from_outer_size(size: Size<f32>) -> Self {
+    pub const fn from_outer_size(size: Size<f32>) -> Self {
         Self::from_sizes(size, Size::zero())
     }
 }
@@ -295,29 +295,29 @@ impl Layout {
 
     /// Get the width of the node's content box
     #[inline]
-    pub fn content_box_width(&self) -> f32 {
+    pub const fn content_box_width(&self) -> f32 {
         self.size.width - self.padding.left - self.padding.right - self.border.left - self.border.right
     }
 
     /// Get the height of the node's content box
     #[inline]
-    pub fn content_box_height(&self) -> f32 {
+    pub const fn content_box_height(&self) -> f32 {
         self.size.height - self.padding.top - self.padding.bottom - self.border.top - self.border.bottom
     }
 
     /// Get the size of the node's content box
     #[inline]
-    pub fn content_box_size(&self) -> Size<f32> {
+    pub const fn content_box_size(&self) -> Size<f32> {
         Size { width: self.content_box_width(), height: self.content_box_height() }
     }
 
     /// Get x offset of the node's content box relative to it's parent's border box
-    pub fn content_box_x(&self) -> f32 {
+    pub const fn content_box_x(&self) -> f32 {
         self.location.x + self.border.left + self.padding.left
     }
 
     /// Get x offset of the node's content box relative to it's parent's border box
-    pub fn content_box_y(&self) -> f32 {
+    pub const fn content_box_y(&self) -> f32 {
         self.location.y + self.border.top + self.padding.top
     }
 }

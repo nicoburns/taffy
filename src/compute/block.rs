@@ -516,15 +516,19 @@ fn perform_final_layout_on_in_flow_children(
             item.static_position = Point {
                 x: match direction {
                     Direction::Ltr => resolved_content_box_inset.left,
-                    Direction::Rtl => container_outer_width - resolved_content_box_inset.right,
+                    Direction::Rtl => container_outer_width - resolved_content_box_inset.right - final_size.width,
                 },
                 y: committed_y_offset + active_collapsible_margin_set.resolve(),
             };
             let mut location = Point {
-                x: if direction.is_rtl() {
-                    container_outer_width - resolved_content_box_inset.right - final_size.width - resolved_margin.right
-                } else {
-                    resolved_content_box_inset.left + resolved_margin.left
+                x: match direction {
+                    Direction::Ltr => resolved_content_box_inset.left + resolved_margin.left,
+                    Direction::Rtl => {
+                        container_outer_width
+                            - resolved_content_box_inset.right
+                            - final_size.width
+                            - resolved_margin.right
+                    }
                 },
                 y: committed_y_offset + y_margin_offset,
             };

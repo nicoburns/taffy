@@ -824,7 +824,7 @@ fn perform_final_layout_on_in_flow_children(
                                 segment_id: None,
                                 x: resolved_content_box_inset.left,
                                 y: min_y,
-                                width: stretch_width,
+                                width: container_inner_width,
                                 height: f32::INFINITY,
                             },
                         );

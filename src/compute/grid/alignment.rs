@@ -313,7 +313,7 @@ pub(super) fn align_item_within_area(
         // TODO: Add support for baseline alignment. For now we treat it as "start".
         AlignSelf::Start | AlignSelf::FlexStart | AlignSelf::Baseline | AlignSelf::Stretch => {
             if direction.is_rtl() {
-                free_space + resolved_margin.start
+                grid_area_size - resolved_size - resolved_margin.end
             } else {
                 resolved_margin.start
             }

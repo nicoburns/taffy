@@ -1954,11 +1954,7 @@ fn calculate_flex_item(
     };
     let location = if direction.is_row() {
         Point {
-            x: if layout_direction.is_rtl() {
-                container_size.width - (offset_main + size.width) + scrollbar_size.width
-            } else {
-                offset_main
-            },
+            x: if layout_direction.is_rtl() { container_size.width - (offset_main + size.width) } else { offset_main },
             y: offset_cross,
         }
     } else {

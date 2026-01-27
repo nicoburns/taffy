@@ -2259,6 +2259,8 @@ fn perform_absolute_layout_on_absolute_children(
         let (start_main, end_main) = if constants.is_row { (left, right) } else { (top, bottom) };
         let (start_cross, end_cross) = if constants.is_row { (top, bottom) } else { (left, right) };
 
+        let is_rtl = constants.layout_direction.is_rtl();
+
         // Apply main-axis alignment
         // let free_main_space = free_space.main(constants.dir) - resolved_margin.main_axis_sum(constants.dir);
         let offset_main = if let Some(start) = start_main {
@@ -2270,7 +2272,7 @@ fn perform_absolute_layout_on_absolute_children(
                 - final_size.main(constants.dir)
                 - end
                 - resolved_margin.main_end(constants.dir)
-        } else if constants.is_row && constants.layout_direction.is_rtl() {
+        } else if constants.is_row & is_rtl {
             constants.container_size.main(constants.dir)
                 - constants.content_box_inset.main_end(constants.dir)
                 - final_size.main(constants.dir)
@@ -2278,24 +2280,32 @@ fn perform_absolute_layout_on_absolute_children(
         } else {
             // Stretch is an invalid value for justify_content in the flexbox algorithm, so we
             // treat it as if it wasn't set (and thus we default to FlexStart behaviour)
-            match (constants.justify_content.unwrap_or(JustifyContent::Start), constants.is_wrap_reverse) {
-                (JustifyContent::SpaceBetween, _)
-                | (JustifyContent::Start, _)
-                | (JustifyContent::Stretch, false)
-                | (JustifyContent::FlexStart, false)
-                | (JustifyContent::FlexEnd, true) => {
+            match (
+                constants.justify_content.unwrap_or(JustifyContent::Start),
+                constants.is_row & is_rtl,
+                constants.is_wrap_reverse ^ (constants.is_row & is_rtl),
+            ) {
+                (JustifyContent::SpaceBetween, _, _)
+                | (JustifyContent::Start, false, _)
+                | (JustifyContent::End, true, _)
+                | (JustifyContent::Stretch, _, false)
+                | (JustifyContent::FlexStart, _, false)
+                | (JustifyContent::FlexEnd, _, true) => {
                     constants.content_box_inset.main_start(constants.dir) + resolved_margin.main_start(constants.dir)
                 }
-                (JustifyContent::End, _)
-                | (JustifyContent::FlexEnd, false)
-                | (JustifyContent::FlexStart, true)
-                | (JustifyContent::Stretch, true) => {
+                (JustifyContent::End, false, _)
+                | (JustifyContent::Start, true, _)
+                | (JustifyContent::FlexEnd, _, false)
+                | (JustifyContent::FlexStart, _, true)
+                | (JustifyContent::Stretch, _, true) => {
                     constants.container_size.main(constants.dir)
                         - constants.content_box_inset.main_end(constants.dir)
                         - final_size.main(constants.dir)
                         - resolved_margin.main_end(constants.dir)
                 }
-                (JustifyContent::SpaceEvenly, _) | (JustifyContent::SpaceAround, _) | (JustifyContent::Center, _) => {
+                (JustifyContent::SpaceEvenly, _, _)
+                | (JustifyContent::SpaceAround, _, _)
+                | (JustifyContent::Center, _, _) => {
                     (constants.container_size.main(constants.dir)
                         + constants.content_box_inset.main_start(constants.dir)
                         - constants.content_box_inset.main_end(constants.dir)
@@ -2319,24 +2329,26 @@ fn perform_absolute_layout_on_absolute_children(
                 - end
                 - resolved_margin.cross_end(constants.dir)
         } else {
-            match (align_self, constants.is_wrap_reverse) {
+            match (align_self, !constants.is_row & is_rtl, constants.is_wrap_reverse ^ (!constants.is_row & is_rtl)) {
                 // Stretch alignment does not apply to absolutely positioned items
                 // See "Example 3" at https://www.w3.org/TR/css-flexbox-1/#abspos-items
                 // Note: Stretch should be FlexStart not Start when we support both
-                (AlignSelf::Start, _)
-                | (AlignSelf::Baseline | AlignSelf::Stretch | AlignSelf::FlexStart, false)
-                | (AlignSelf::FlexEnd, true) => {
+                (AlignSelf::Start, true, _)
+                | (AlignSelf::End, false, _)
+                | (AlignSelf::Baseline | AlignSelf::Stretch | AlignSelf::FlexStart, _, false)
+                | (AlignSelf::FlexEnd, _, true) => {
                     constants.content_box_inset.cross_start(constants.dir) + resolved_margin.cross_start(constants.dir)
                 }
-                (AlignSelf::End, _)
-                | (AlignSelf::Baseline | AlignSelf::Stretch | AlignSelf::FlexStart, true)
-                | (AlignSelf::FlexEnd, false) => {
+                (AlignSelf::End, true, _)
+                | (AlignSelf::Start, false, _)
+                | (AlignSelf::Baseline | AlignSelf::Stretch | AlignSelf::FlexStart, _, true)
+                | (AlignSelf::FlexEnd, _, false) => {
                     constants.container_size.cross(constants.dir)
                         - constants.content_box_inset.cross_end(constants.dir)
                         - final_size.cross(constants.dir)
                         - resolved_margin.cross_end(constants.dir)
                 }
-                (AlignSelf::Center, _) => {
+                (AlignSelf::Center, _, _) => {
                     (constants.container_size.cross(constants.dir)
                         + constants.content_box_inset.cross_start(constants.dir)
                         - constants.content_box_inset.cross_end(constants.dir)

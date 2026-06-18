@@ -1,7 +1,9 @@
 //! Style types for representing lengths / sizes
 use super::CompactLength;
 use crate::geometry::Rect;
-use crate::style_helpers::{FromLength, FromPercent, TaffyAuto, TaffyZero};
+use crate::style_helpers::{
+    FromLength, FromPercent, TaffyAuto, TaffyFitContent, TaffyMaxContent, TaffyMinContent, TaffyZero,
+};
 #[cfg(feature = "parse")]
 use crate::util::parse::{from_str_from_css, CssParseResult, FromCss, Parser, Token};
 
@@ -233,6 +235,17 @@ impl TaffyZero for Dimension {
 impl TaffyAuto for Dimension {
     const AUTO: Self = Self(CompactLength::AUTO);
 }
+impl TaffyMinContent for Dimension {
+    const MIN_CONTENT: Self = Self(CompactLength::MIN_CONTENT);
+}
+impl TaffyMaxContent for Dimension {
+    const MAX_CONTENT: Self = Self(CompactLength::MAX_CONTENT);
+}
+impl TaffyFitContent for Dimension {
+    fn fit_content(argument: LengthPercentage) -> Self {
+        Self(<CompactLength as TaffyFitContent>::fit_content(argument))
+    }
+}
 impl FromLength for Dimension {
     fn from_length<Input: Into<f32> + Copy>(value: Input) -> Self {
         Self::length(value.into())
@@ -257,10 +270,24 @@ impl From<LengthPercentageAuto> for Dimension {
 #[cfg(feature = "parse")]
 impl FromCss for Dimension {
     fn from_css<'i>(parser: &mut Parser<'i, '_>) -> CssParseResult<'i, Self> {
-        match parser.next()?.clone() {
+        let token = parser.next()?.clone();
+        match token {
             Token::Percentage { unit_value, .. } => Ok(Self::percent(unit_value)),
             Token::Dimension { unit, value, .. } if unit == "px" => Ok(Self::length(value)),
-            Token::Ident(ident) if ident == "auto" => Ok(Self::auto()),
+            Token::Ident(ref ident) => match ident.as_ref() {
+                "auto" => Ok(Self::auto()),
+                "min-content" => Ok(Self::min_content()),
+                "max-content" => Ok(Self::max_content()),
+                _ => Err(parser.new_unexpected_token_error(token))?,
+            },
+            Token::Function(ref name) if name.as_ref() == "fit-content" => parser.parse_nested_block(|parser| {
+                let token = parser.next()?.clone();
+                match token {
+                    Token::Percentage { unit_value, .. } => Ok(Self::fit_content_percent(unit_value)),
+                    Token::Dimension { unit, value, .. } if unit == "px" => Ok(Self::fit_content_px(value)),
+                    token => Err(parser.new_unexpected_token_error(token))?,
+                }
+            }),
             token => Err(parser.new_unexpected_token_error(token))?,
         }
     }
@@ -289,6 +316,26 @@ impl Dimension {
     #[inline(always)]
     pub const fn auto() -> Self {
         Self(CompactLength::auto())
+    }
+
+    #[inline(always)]
+    pub const fn min_content() -> Self {
+        Self(CompactLength::min_content())
+    }
+
+    #[inline(always)]
+    pub const fn max_content() -> Self {
+        Self(CompactLength::max_content())
+    }
+
+    #[inline(always)]
+    pub const fn fit_content_px(limit: f32) -> Self {
+        Self(CompactLength::fit_content_px(limit))
+    }
+
+    #[inline(always)]
+    pub const fn fit_content_percent(limit: f32) -> Self {
+        Self(CompactLength::fit_content_percent(limit))
     }
 
     /// A `calc()` value. The value passed here is treated as an opaque handle to
@@ -328,6 +375,60 @@ impl Dimension {
         self.0.is_auto()
     }
 
+    #[inline(always)]
+    pub fn is_min_content(self) -> bool {
+        self.0.is_min_content()
+    }
+
+    #[inline(always)]
+    pub fn is_max_content(self) -> bool {
+        self.0.is_max_content()
+    }
+
+    #[inline(always)]
+    pub fn is_fit_content(self) -> bool {
+        self.0.is_fit_content()
+    }
+
+    #[inline(always)]
+    pub fn is_intrinsic(self) -> bool {
+        matches!(
+            self.0.tag(),
+            CompactLength::MIN_CONTENT_TAG
+                | CompactLength::MAX_CONTENT_TAG
+                | CompactLength::FIT_CONTENT_PX_TAG
+                | CompactLength::FIT_CONTENT_PERCENT_TAG
+        )
+    }
+
+    #[inline(always)]
+    pub fn fit_content_limit(
+        self,
+        parent_size: Option<f32>,
+        calc_resolver: impl Fn(*const (), f32) -> f32,
+    ) -> Option<f32> {
+        match self.0.tag() {
+            CompactLength::FIT_CONTENT_PX_TAG => Some(self.0.value()),
+            CompactLength::FIT_CONTENT_PERCENT_TAG => parent_size.map(|size| self.0.value() * size),
+            _ => self.maybe_definite_value(parent_size, calc_resolver),
+        }
+    }
+
+    #[inline(always)]
+    pub fn maybe_definite_value(
+        self,
+        parent_size: Option<f32>,
+        calc_resolver: impl Fn(*const (), f32) -> f32,
+    ) -> Option<f32> {
+        match self.0.tag() {
+            CompactLength::LENGTH_TAG => Some(self.0.value()),
+            CompactLength::PERCENT_TAG => parent_size.map(|size| self.0.value() * size),
+            #[cfg(feature = "calc")]
+            _ if self.0.is_calc() => parent_size.map(|size| calc_resolver(self.0.calc_value(), size)),
+            _ => None,
+        }
+    }
+
     /// Get the raw `CompactLength` tag
     pub fn tag(self) -> usize {
         self.0.tag()
@@ -347,7 +448,16 @@ impl<'de> serde::Deserialize<'de> for Dimension {
     {
         let inner = CompactLength::deserialize(deserializer)?;
         // Note: validation intentionally excludes the CALC_TAG as deserializing calc() values is not supported
-        if matches!(inner.tag(), CompactLength::LENGTH_TAG | CompactLength::PERCENT_TAG | CompactLength::AUTO_TAG) {
+        if matches!(
+            inner.tag(),
+            CompactLength::LENGTH_TAG
+                | CompactLength::PERCENT_TAG
+                | CompactLength::AUTO_TAG
+                | CompactLength::MIN_CONTENT_TAG
+                | CompactLength::MAX_CONTENT_TAG
+                | CompactLength::FIT_CONTENT_PX_TAG
+                | CompactLength::FIT_CONTENT_PERCENT_TAG
+        ) {
             Ok(Self(inner))
         } else {
             Err(serde::de::Error::custom("Invalid tag"))

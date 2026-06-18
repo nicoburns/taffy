@@ -6,7 +6,7 @@ use crate::tree::{CollapsibleMarginSet, Layout, LayoutInput, LayoutOutput, RunMo
 use crate::tree::{LayoutPartialTree, LayoutPartialTreeExt, NodeId};
 use crate::util::debug::debug_log;
 use crate::util::sys::f32_max;
-use crate::util::sys::Vec;
+use crate::util::sys::{new_vec_with_capacity, Vec};
 use crate::util::MaybeMath;
 use crate::util::{MaybeResolve, ResolveOrZero};
 use crate::{
@@ -184,6 +184,7 @@ impl BlockContext<'_> {
 use super::common::alignment::{apply_alignment_fallback, compute_alignment_offset};
 #[cfg(feature = "content_size")]
 use super::common::content_size::compute_content_size_contribution;
+use super::common::intrinsic::maybe_resolve_intrinsic_size;
 
 /// Per-child data that is accumulated and modified over the course of the layout algorithm
 struct BlockItem {
@@ -598,81 +599,103 @@ fn compute_inner(
 /// Create a `Vec` of `BlockItem` structs where each item in the `Vec` represents a child of the current node
 #[inline]
 fn generate_item_list(
-    tree: &impl LayoutBlockContainer,
+    tree: &mut impl LayoutBlockContainer,
     node: NodeId,
     node_inner_size: Size<Option<f32>>,
 ) -> Vec<BlockItem> {
-    tree.child_ids(node)
-        .map(|child_node_id| (child_node_id, tree.get_block_child_style(child_node_id)))
-        .filter(|(_, style)| style.box_generation_mode() != BoxGenerationMode::None)
-        .enumerate()
-        .map(|(order, (child_node_id, child_style))| {
-            let aspect_ratio = child_style.aspect_ratio();
-            let padding = child_style.padding().resolve_or_zero(node_inner_size, |val, basis| tree.calc(val, basis));
-            let border = child_style.border().resolve_or_zero(node_inner_size, |val, basis| tree.calc(val, basis));
-            let pb_sum = (padding + border).sum_axes();
-            let box_sizing_adjustment =
-                if child_style.box_sizing() == BoxSizing::ContentBox { pb_sum } else { Size::ZERO };
+    let child_count = tree.child_count(node);
+    let mut items = new_vec_with_capacity(child_count);
 
-            let position = child_style.position();
-            let overflow = child_style.overflow();
+    for child_index in 0..child_count {
+        let child_node_id = tree.get_child_id(node, child_index);
+        let child_style = tree.get_block_child_style(child_node_id);
 
+        if child_style.box_generation_mode() == BoxGenerationMode::None {
+            continue;
+        }
+
+        let aspect_ratio = child_style.aspect_ratio();
+        let style_size = child_style.size();
+        let style_min_size = child_style.min_size();
+        let style_max_size = child_style.max_size();
+        let style_inset = child_style.inset();
+        let style_margin = child_style.margin();
+        let style_padding = child_style.padding();
+        let style_border = child_style.border();
+        let box_sizing = child_style.box_sizing();
+        let position = child_style.position();
+        let overflow = child_style.overflow();
+        let scrollbar_width = child_style.scrollbar_width();
+
+        #[cfg(feature = "float_layout")]
+        let float = child_style.float();
+        #[cfg(feature = "float_layout")]
+        let clear = child_style.clear();
+        #[cfg(feature = "float_layout")]
+        let is_not_floated = float == Float::None;
+
+        #[cfg(not(feature = "float_layout"))]
+        let is_not_floated = true;
+
+        let is_block = child_style.is_block();
+        let is_table = child_style.is_table();
+        drop(child_style);
+
+        let padding = style_padding.resolve_or_zero(node_inner_size, |val, basis| tree.calc(val, basis));
+        let border = style_border.resolve_or_zero(node_inner_size, |val, basis| tree.calc(val, basis));
+        let pb_sum = (padding + border).sum_axes();
+        let box_sizing_adjustment = if box_sizing == BoxSizing::ContentBox { pb_sum } else { Size::ZERO };
+        let is_scroll_container = overflow.x.is_scroll_container() || overflow.y.is_scroll_container();
+        let is_in_same_bfc =
+            is_block && !is_table && position != Position::Absolute && is_not_floated && !is_scroll_container;
+        let order = items.len() as u32;
+
+        items.push(BlockItem {
+            node_id: child_node_id,
+            order,
+            is_table,
+            is_in_same_bfc,
             #[cfg(feature = "float_layout")]
-            let float = child_style.float();
+            float,
             #[cfg(feature = "float_layout")]
-            let is_not_floated = float == Float::None;
+            clear,
+            size: maybe_resolve_intrinsic_size(
+                tree,
+                child_node_id,
+                style_size,
+                Size::NONE,
+                node_inner_size,
+                node_inner_size.map(AvailableSpace::from),
+                box_sizing_adjustment,
+                Line::FALSE,
+            )
+            .maybe_apply_aspect_ratio(aspect_ratio),
+            min_size: style_min_size
+                .maybe_resolve(node_inner_size, |val, basis| tree.calc(val, basis))
+                .maybe_apply_aspect_ratio(aspect_ratio)
+                .maybe_add(box_sizing_adjustment),
+            max_size: style_max_size
+                .maybe_resolve(node_inner_size, |val, basis| tree.calc(val, basis))
+                .maybe_apply_aspect_ratio(aspect_ratio)
+                .maybe_add(box_sizing_adjustment),
+            overflow,
+            scrollbar_width,
+            position,
+            inset: style_inset,
+            margin: style_margin,
+            padding,
+            border,
+            padding_border_sum: pb_sum,
 
-            #[cfg(not(feature = "float_layout"))]
-            let is_not_floated = true;
+            // Fields to be computed later (for now we initialise with dummy values)
+            computed_size: Size::zero(),
+            static_position: Point::zero(),
+            can_be_collapsed_through: false,
+            final_layout: None,
+        });
+    }
 
-            let is_block = child_style.is_block();
-            let is_table = child_style.is_table();
-            let is_scroll_container = overflow.x.is_scroll_container() || overflow.y.is_scroll_container();
-
-            let is_in_same_bfc: bool =
-                is_block && !is_table && position != Position::Absolute && is_not_floated && !is_scroll_container;
-
-            BlockItem {
-                node_id: child_node_id,
-                order: order as u32,
-                is_table,
-                is_in_same_bfc,
-                #[cfg(feature = "float_layout")]
-                float,
-                #[cfg(feature = "float_layout")]
-                clear: child_style.clear(),
-                size: child_style
-                    .size()
-                    .maybe_resolve(node_inner_size, |val, basis| tree.calc(val, basis))
-                    .maybe_apply_aspect_ratio(aspect_ratio)
-                    .maybe_add(box_sizing_adjustment),
-                min_size: child_style
-                    .min_size()
-                    .maybe_resolve(node_inner_size, |val, basis| tree.calc(val, basis))
-                    .maybe_apply_aspect_ratio(aspect_ratio)
-                    .maybe_add(box_sizing_adjustment),
-                max_size: child_style
-                    .max_size()
-                    .maybe_resolve(node_inner_size, |val, basis| tree.calc(val, basis))
-                    .maybe_apply_aspect_ratio(aspect_ratio)
-                    .maybe_add(box_sizing_adjustment),
-                overflow,
-                scrollbar_width: child_style.scrollbar_width(),
-                position,
-                inset: child_style.inset(),
-                margin: child_style.margin(),
-                padding,
-                border,
-                padding_border_sum: pb_sum,
-
-                // Fields to be computed later (for now we initialise with dummy values)
-                computed_size: Size::zero(),
-                static_position: Point::zero(),
-                can_be_collapsed_through: false,
-                final_layout: None,
-            }
-        })
-        .collect()
+    items
 }
 
 /// Compute the content-based width in the case that the width of the container is not known

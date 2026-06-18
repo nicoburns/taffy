@@ -3,6 +3,7 @@ use super::types::GridTrack;
 use crate::compute::common::alignment::{
     apply_alignment_fallback, compute_alignment_offset, resolve_self_alignment_safety,
 };
+use crate::compute::common::intrinsic::maybe_resolve_intrinsic_size;
 use crate::geometry::{InBothAbsAxis, Line, Point, Rect, Size};
 use crate::style::{
     AlignContent, AlignItems, AlignItemsKeyword, AlignSelf, AvailableSpace, CoreStyle, GridItemStyle, Overflow,
@@ -85,39 +86,49 @@ pub(super) fn align_and_position_item(
     let aspect_ratio = style.aspect_ratio();
     let justify_self = style.justify_self();
     let align_self = style.align_self();
-
     let position = style.position();
-    let inset_horizontal = style
-        .inset()
+    let style_size = style.size();
+    let style_min_size = style.min_size();
+    let style_max_size = style.max_size();
+    let style_inset = style.inset();
+    let style_margin = style.margin();
+    let style_padding = style.padding();
+    let style_border = style.border();
+    let box_sizing = style.box_sizing();
+    drop(style);
+
+    let inset_horizontal = style_inset
         .horizontal_components()
         .map(|size| size.resolve_to_option(grid_area_size.width, |val, basis| tree.calc(val, basis)));
-    let inset_vertical = style
-        .inset()
+    let inset_vertical = style_inset
         .vertical_components()
         .map(|size| size.resolve_to_option(grid_area_size.height, |val, basis| tree.calc(val, basis)));
     let padding =
-        style.padding().map(|p| p.resolve_or_zero(Some(grid_area_size.width), |val, basis| tree.calc(val, basis)));
+        style_padding.map(|p| p.resolve_or_zero(Some(grid_area_size.width), |val, basis| tree.calc(val, basis)));
     let border =
-        style.border().map(|p| p.resolve_or_zero(Some(grid_area_size.width), |val, basis| tree.calc(val, basis)));
+        style_border.map(|p| p.resolve_or_zero(Some(grid_area_size.width), |val, basis| tree.calc(val, basis)));
     let padding_border_size = (padding + border).sum_axes();
 
-    let box_sizing_adjustment =
-        if style.box_sizing() == BoxSizing::ContentBox { padding_border_size } else { Size::ZERO };
+    let box_sizing_adjustment = if box_sizing == BoxSizing::ContentBox { padding_border_size } else { Size::ZERO };
 
-    let inherent_size = style
-        .size()
-        .maybe_resolve(grid_area_size, |val, basis| tree.calc(val, basis))
-        .maybe_apply_aspect_ratio(aspect_ratio)
-        .maybe_add(box_sizing_adjustment);
-    let min_size = style
-        .min_size()
+    let inherent_size = maybe_resolve_intrinsic_size(
+        tree,
+        node,
+        style_size,
+        Size::NONE,
+        grid_area_size.map(Option::Some),
+        grid_area_size.map(AvailableSpace::Definite),
+        box_sizing_adjustment,
+        Line::FALSE,
+    )
+    .maybe_apply_aspect_ratio(aspect_ratio);
+    let min_size = style_min_size
         .maybe_resolve(grid_area_size, |val, basis| tree.calc(val, basis))
         .maybe_add(box_sizing_adjustment)
         .or(padding_border_size.map(Some))
         .maybe_max(padding_border_size)
         .maybe_apply_aspect_ratio(aspect_ratio);
-    let max_size = style
-        .max_size()
+    let max_size = style_max_size
         .maybe_resolve(grid_area_size, |val, basis| tree.calc(val, basis))
         .maybe_apply_aspect_ratio(aspect_ratio)
         .maybe_add(box_sizing_adjustment);
@@ -146,7 +157,7 @@ pub(super) fn align_and_position_item(
     // Note: This is not a bug. It is part of the CSS spec that both horizontal and vertical margins
     // resolve against the WIDTH of the grid area.
     let margin =
-        style.margin().map(|margin| margin.resolve_to_option(grid_area_size.width, |val, basis| tree.calc(val, basis)));
+        style_margin.map(|margin| margin.resolve_to_option(grid_area_size.width, |val, basis| tree.calc(val, basis)));
 
     let grid_area_minus_item_margins_size = Size {
         width: grid_area_size.width.maybe_sub(margin.left).maybe_sub(margin.right),
@@ -210,7 +221,6 @@ pub(super) fn align_and_position_item(
     let Size { width, height } = Size { width, height }.maybe_clamp(min_size, max_size);
 
     // Layout node
-    drop(style);
 
     let size = if position == Position::Absolute && (width.is_none() || height.is_none()) {
         tree.measure_child_size_both(

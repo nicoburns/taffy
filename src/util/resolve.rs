@@ -60,7 +60,11 @@ impl MaybeResolve<Option<f32>, Option<f32>> for Dimension {
     /// Can return `None`
     fn maybe_resolve(self, context: Option<f32>, calc: impl Fn(*const (), f32) -> f32) -> Option<f32> {
         match self.0.tag() {
-            CompactLength::AUTO_TAG => None,
+            CompactLength::AUTO_TAG
+            | CompactLength::MIN_CONTENT_TAG
+            | CompactLength::MAX_CONTENT_TAG
+            | CompactLength::FIT_CONTENT_PX_TAG
+            | CompactLength::FIT_CONTENT_PERCENT_TAG => None,
             CompactLength::LENGTH_TAG => Some(self.0.value()),
             CompactLength::PERCENT_TAG => context.map(|dim| dim * self.0.value()),
             #[cfg(feature = "calc")]

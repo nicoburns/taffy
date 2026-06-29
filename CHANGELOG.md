@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Grid: clamp the maximum grid size to prevent integer-overflow panics when given very large grid track counts or grid line indices (e.g. huge `repeat()` counts, `grid-row`/`grid-column` line indices, or spans). Grids are now clamped to a maximum of 10,000 tracks per axis.
+
 ## 0.11.0
 
 The MSRV for this release is 1.71.

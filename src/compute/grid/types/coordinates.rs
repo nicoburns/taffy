@@ -4,6 +4,21 @@ use crate::geometry::Line;
 use core::cmp::{max, Ordering};
 use core::ops::{Add, AddAssign, Sub};
 
+/// The maximum number of grid tracks (rows or columns) that Taffy will create in a single axis.
+///
+/// Grid lines are stored as `i16`, and a number of intermediate computations (line + span,
+/// implicit-grid expansion, placement search, etc.) can produce values up to roughly
+/// `3 * MAX_GRID_TRACKS`. Clamping both the number of explicit tracks and the magnitude of grid
+/// line indices (and spans) to this value keeps all of those computations comfortably within
+/// `i16` range, preventing the integer-overflow / out-of-range panics that pathologically large
+/// grids would otherwise trigger.
+///
+/// The value (10,000) matches the limit used by other browser engines such as Firefox.
+pub(crate) const MAX_GRID_TRACKS: u16 = 10_000;
+
+/// The maximum (positive) grid line index, as an `i16`. Equal to [`MAX_GRID_TRACKS`].
+const MAX_GRID_LINE: i16 = MAX_GRID_TRACKS as i16;
+
 /// Represents a grid line position in "CSS Grid Line" coordinates
 ///
 /// "CSS Grid Line" coordinates are those used in grid-row/grid-column in the CSS grid spec:
@@ -31,13 +46,20 @@ impl GridLine {
 
     /// Convert into OriginZero coordinates using the specified explicit track count
     pub(crate) fn into_origin_zero_line(self, explicit_track_count: u16) -> OriginZeroLine {
+        // Clamp the explicit track count so that `explicit_line_count` (and the addition below)
+        // cannot overflow `i16`. The explicit track count is also clamped at its source, this is
+        // a defensive belt-and-braces measure.
+        let explicit_track_count = explicit_track_count.min(MAX_GRID_TRACKS);
         let explicit_line_count = explicit_track_count + 1;
         let oz_line = match self.0.cmp(&0) {
             Ordering::Greater => self.0 - 1,
             Ordering::Less => self.0 + explicit_line_count as i16,
             Ordering::Equal => panic!("Grid line of zero is invalid"),
         };
-        OriginZeroLine(oz_line)
+        // Clamp the resulting line to the maximum grid size. Without this a single grid item with a
+        // very large (positive or negative) line index could force the implicit grid to grow past
+        // `i16::MAX`, causing overflow panics elsewhere.
+        OriginZeroLine(oz_line).clamp_to_max_grid_tracks()
     }
 }
 
@@ -85,6 +107,12 @@ impl Sub<u16> for OriginZeroLine {
 }
 
 impl OriginZeroLine {
+    /// Clamp the line index to `±MAX_GRID_TRACKS` so that the implicit grid (and all the `i16`
+    /// arithmetic that depends on line positions) cannot overflow `i16`.
+    pub(crate) fn clamp_to_max_grid_tracks(self) -> Self {
+        OriginZeroLine(self.0.clamp(-MAX_GRID_LINE, MAX_GRID_LINE))
+    }
+
     /// Converts a grid line in OriginZero coordinates into the index of that same grid line in the GridTrackVec.
     pub(crate) fn into_track_vec_index(self, track_counts: TrackCounts) -> usize {
         self.try_into_track_vec_index(track_counts).unwrap_or_else(|| {

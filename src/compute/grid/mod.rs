@@ -24,7 +24,7 @@ use types::{CellOccupancyMatrix, GridTrack, NamedLineResolver, TrackCounts};
 #[cfg(feature = "detailed_layout_info")]
 use types::{GridItem, GridTrackKind};
 
-pub(crate) use types::{GridCoordinate, GridLine, OriginZeroLine};
+pub(crate) use types::{GridCoordinate, GridLine, OriginZeroLine, MAX_GRID_TRACKS};
 
 mod alignment;
 mod explicit_grid;
@@ -185,8 +185,10 @@ pub fn compute_grid_layout<Tree: LayoutGridContainer>(
     // type CustomIdent<'a> = <<Tree as LayoutPartialTree>::CoreContainerStyle<'_> as CoreStyle>::CustomIdent;
     let mut name_resolver = NamedLineResolver::new(&style, col_auto_repetition_count, row_auto_repetition_count);
 
-    let explicit_col_count = grid_template_col_count.max(name_resolver.area_column_count());
-    let explicit_row_count = grid_template_row_count.max(name_resolver.area_row_count());
+    // Clamp the explicit track counts to the maximum grid size. Track counts above this could otherwise
+    // overflow `i16` when converted to grid line coordinates, causing panics.
+    let explicit_col_count = grid_template_col_count.max(name_resolver.area_column_count()).min(MAX_GRID_TRACKS);
+    let explicit_row_count = grid_template_row_count.max(name_resolver.area_row_count()).min(MAX_GRID_TRACKS);
 
     name_resolver.set_explicit_column_count(explicit_col_count);
     name_resolver.set_explicit_row_count(explicit_row_count);

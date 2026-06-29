@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Grid: clamp the maximum grid size to prevent integer-overflow panics when given very large grid track counts or grid line indices (e.g. huge `repeat()` counts, `grid-row`/`grid-column` line indices, or spans). Grids are now clamped to a maximum of 10,000 tracks per axis.
+- Grid: implement [CSS Grid §5.4 "Limiting Large Grids"](https://www.w3.org/TR/css-grid-1/#overlarge-grids) to prevent integer-overflow panics on pathologically large grids. The implicit grid is now clamped to a limited grid covering the line range `[-10000, 10000]`, and grid areas that fall outside it are clamped back in (rather than clamping individual line/span inputs). This fixes panics caused by huge `repeat()` counts, very large `grid-row`/`grid-column` line indices or spans, and by many items whose spans accumulate past `i16::MAX` during placement.
 
 ## 0.11.0
 

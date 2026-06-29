@@ -75,7 +75,9 @@ impl TrackCounts {
     /// Converts a grid line in OriginZero coordinates into the track immediately
     /// following that grid line as an index into the CellOccupancyMatrix.
     pub const fn oz_line_to_next_track(&self, index: OriginZeroLine) -> i16 {
-        index.0 + (self.negative_implicit as i16)
+        // Saturating: during placement, candidate line positions can transiently exceed the limited
+        // grid (before the resolved area is clamped), so this must not overflow `i16`.
+        index.0.saturating_add(self.negative_implicit as i16)
     }
 
     /// Converts start and end grid lines in OriginZero coordinates into a range of tracks

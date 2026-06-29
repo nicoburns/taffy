@@ -5,7 +5,7 @@ use crate::style::{GenericGridPlacement, GridPlacement};
 use crate::{CheapCloneStr, Direction, GridItemStyle};
 use core::cmp::{max, min};
 
-use super::types::TrackCounts;
+use super::types::{TrackCounts, MAX_GRID_TRACKS};
 use super::OriginZeroLine;
 
 /// Estimate the number of rows and columns in the grid
@@ -49,11 +49,20 @@ pub(crate) fn compute_grid_size_estimate<'a, S: GridItemStyle + 'a>(
         positive_implicit_block_tracks = row_max_span - explicit_block_tracks - negative_implicit_block_tracks;
     }
 
-    let column_counts =
-        TrackCounts::from_raw(negative_implicit_inline_tracks, explicit_inline_tracks, positive_implicit_inline_tracks);
+    // Clamp the estimated implicit track counts to the limited grid (CSS Grid §5.4). The estimate is
+    // only used to pre-size allocations, but clamping it keeps those allocations bounded and ensures
+    // the pre-sized matrix never reports more tracks than the limited grid permits.
+    let column_counts = TrackCounts::from_raw(
+        negative_implicit_inline_tracks.min(MAX_GRID_TRACKS),
+        explicit_inline_tracks.min(MAX_GRID_TRACKS),
+        positive_implicit_inline_tracks.min(MAX_GRID_TRACKS),
+    );
 
-    let row_counts =
-        TrackCounts::from_raw(negative_implicit_block_tracks, explicit_block_tracks, positive_implicit_block_tracks);
+    let row_counts = TrackCounts::from_raw(
+        negative_implicit_block_tracks.min(MAX_GRID_TRACKS),
+        explicit_block_tracks.min(MAX_GRID_TRACKS),
+        positive_implicit_block_tracks.min(MAX_GRID_TRACKS),
+    );
 
     (column_counts, row_counts)
 }
@@ -178,7 +187,10 @@ fn child_min_line_max_line_span<S: CheapCloneStr>(
         _ => 1,
     };
 
-    (min, max, span)
+    // Clamp the estimated lines and span to the limited grid (CSS Grid §5.4) so that the implicit
+    // grid estimate (and the intermediate arithmetic that sums these together) stays bounded
+    // regardless of how large the supplied line indices or spans are.
+    (min.clamp_to_limited_grid(), max.clamp_to_limited_grid(), span.min(MAX_GRID_TRACKS))
 }
 
 #[allow(clippy::bool_assert_comparison)]

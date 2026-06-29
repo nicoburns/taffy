@@ -1,6 +1,6 @@
 //! Implements placing items in the grid and resolving the implicit grid.
 //! <https://www.w3.org/TR/css-grid-1/#placement>
-use super::types::{CellOccupancyMatrix, CellOccupancyState, GridItem};
+use super::types::{CellOccupancyMatrix, CellOccupancyState, GridItem, MAX_GRID_TRACKS};
 use super::{NamedLineResolver, OriginZeroLine};
 use crate::geometry::Line;
 use crate::geometry::{AbsoluteAxis, InBothAbsAxis};
@@ -42,6 +42,10 @@ fn search_start_line(
 #[inline]
 /// Resolves an indefinite span at `position`, respecting the active axis direction.
 fn resolve_indefinite_grid_span(position: OriginZeroLine, span: u16, axis_is_reversed: bool) -> Line<OriginZeroLine> {
+    // A span can never be larger than the limited grid (CSS Grid §5.4). Clamping it here also keeps
+    // the placement search bounded: without it, an item whose span exceeds the grid could never be
+    // brought "in bounds", causing the search loop to run forever.
+    let span = span.min(MAX_GRID_TRACKS);
     if axis_is_reversed {
         Line { start: (position - span) + 1, end: position + 1 }
     } else {
@@ -53,9 +57,11 @@ fn resolve_indefinite_grid_span(position: OriginZeroLine, span: u16, axis_is_rev
 /// Mirrors a horizontal span around the explicit grid width.
 fn mirror_horizontal_span(span: Line<OriginZeroLine>, explicit_col_count: u16) -> Line<OriginZeroLine> {
     let explicit_col_end_line = explicit_col_count as i16;
+    // Saturating subtraction: the span may currently extend (far) outside the limited grid before it
+    // is clamped at `record_grid_placement`, so the mirrored value could otherwise overflow `i16`.
     Line {
-        start: OriginZeroLine(explicit_col_end_line - span.end.0),
-        end: OriginZeroLine(explicit_col_end_line - span.start.0),
+        start: OriginZeroLine(explicit_col_end_line.saturating_sub(span.end.0)),
+        end: OriginZeroLine(explicit_col_end_line.saturating_sub(span.start.0)),
     }
 }
 
@@ -244,10 +250,16 @@ pub(super) fn place_grid_items<'a, S, ChildIter>(
 
             // If using the "dense" placement algorithm then reset the grid position back to grid_start_position ready for the next item
             // Otherwise set it to the position of the current item so that the next item it placed after it.
+            // Clamp the cursor to the limited grid so that it cannot run away past the limited grid as
+            // items accumulate (which would otherwise let line positions grow without bound).
             grid_position = match (grid_auto_flow.is_dense(), primary_axis_is_reversed) {
                 (true, _) => grid_start_position,
-                (false, false) => (primary_span.end, secondary_span.start),
-                (false, true) => (primary_span.start, secondary_span.start),
+                (false, false) => {
+                    (primary_span.end.clamp_to_limited_grid(), secondary_span.start.clamp_to_limited_grid())
+                }
+                (false, true) => {
+                    (primary_span.start.clamp_to_limited_grid(), secondary_span.start.clamp_to_limited_grid())
+                }
             };
         });
 }
@@ -470,6 +482,13 @@ fn record_grid_placement<S: GridItemStyle>(
     secondary_span: Line<OriginZeroLine>,
     placement_type: CellOccupancyState,
 ) {
+    // Clamp the resolved grid area to the limited grid (CSS Grid §5.4). This is the single point at
+    // which both the occupancy matrix and the stored grid item are bounded, so it guarantees that
+    // the implicit grid (and total track count) can never grow past the limited grid, regardless of
+    // how large the item's lines/spans are or how many items accumulate.
+    let primary_span = primary_span.clamp_to_limited_grid();
+    let secondary_span = secondary_span.clamp_to_limited_grid();
+
     #[cfg(test)]
     println!("BEFORE placement:");
     #[cfg(test)]

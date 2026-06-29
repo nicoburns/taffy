@@ -157,3 +157,57 @@ fn huge_negative_grid_item_line_index_does_not_panic() {
 
     taffy.compute_layout(root, Size::MAX_CONTENT).unwrap();
 }
+
+/// Many items, each spanning a large number of tracks, that are packed into the same line.
+/// Their grid positions *accumulate* during placement; without clamping the accumulated grid size
+/// (rather than just the individual inputs) the running line position eventually overflows `i16`.
+#[test]
+fn accumulated_spans_do_not_panic() {
+    let mut taffy = new_test_tree();
+    let children: Vec<_> = (0..16)
+        .map(|_| {
+            taffy
+                .new_leaf(Style {
+                    grid_row: Line { start: line(1), end: auto() },
+                    grid_column: Line { start: auto(), end: span(9000) },
+                    ..Default::default()
+                })
+                .unwrap()
+        })
+        .collect();
+    let root = taffy
+        .new_with_children(
+            Style { display: Display::Grid, grid_auto_flow: GridAutoFlow::Row, ..Default::default() },
+            &children,
+        )
+        .unwrap();
+
+    taffy.compute_layout(root, Size::MAX_CONTENT).unwrap();
+}
+
+/// Many auto-placed items each spanning many tracks. The implicit grid should be clamped to the
+/// limited-grid maximum rather than growing without bound (which would overflow `i16`).
+#[test]
+fn many_auto_placed_large_span_items_do_not_panic() {
+    let mut taffy = new_test_tree();
+    let children: Vec<_> = (0..50)
+        .map(|_| {
+            taffy
+                .new_leaf(Style { grid_column: Line { start: auto(), end: span(5000) }, ..Default::default() })
+                .unwrap()
+        })
+        .collect();
+    let root = taffy
+        .new_with_children(
+            Style {
+                display: Display::Grid,
+                grid_template_columns: vec![length(10.0)],
+                grid_auto_flow: GridAutoFlow::Column,
+                ..Default::default()
+            },
+            &children,
+        )
+        .unwrap();
+
+    taffy.compute_layout(root, Size::MAX_CONTENT).unwrap();
+}

@@ -524,29 +524,109 @@ impl FloatContext {
 pub struct FloatIntrinsicWidthCalculator {
     /// The available width of the container
     available_width: AvailableSpace,
-    /// The running total intrinsic width contribution
+    /// The accumulated width of left-floated boxes in the current "band"
+    /// (only used when computing a max-content size)
+    left_band: f32,
+    /// The accumulated width of right-floated boxes in the current "band"
+    /// (only used when computing a max-content size)
+    right_band: f32,
+    /// The running maximum intrinsic width contribution
     contribution: f32,
 }
 
 impl FloatIntrinsicWidthCalculator {
     /// Create a new `FloatIntrinsicWidthCalculator`
     pub fn new(available_width: AvailableSpace) -> Self {
-        Self { available_width, contribution: 0.0 }
+        Self { available_width, left_band: 0.0, right_band: 0.0, contribution: 0.0 }
     }
 
     /// Add a float to the computation
-    pub fn add_float(&mut self, width: f32, _direction: FloatDirection, _clear: Clear) {
+    pub fn add_float(&mut self, width: f32, direction: FloatDirection, clear: Clear) {
         match self.available_width {
             AvailableSpace::Definite(_) => {
                 // We will never hit this code path with definite available space
             }
             AvailableSpace::MinContent => self.contribution = self.contribution.max(width),
-            AvailableSpace::MaxContent => self.contribution += width,
+            AvailableSpace::MaxContent => {
+                // When computing a max-content size the available width is effectively infinite,
+                // so floats never wrap onto a new "band" due to lack of horizontal space. They only
+                // move below preceding floats when the `clear` property forces them to.
+                //
+                // Floats that share a band sit side-by-side and so their widths sum, whereas floats
+                // that are pushed onto a new band (via `clear`) stack vertically and so we take the
+                // maximum extent across bands rather than summing.
+                if matches!(clear, Clear::Left | Clear::Both) {
+                    self.left_band = 0.0;
+                }
+                if matches!(clear, Clear::Right | Clear::Both) {
+                    self.right_band = 0.0;
+                }
+                match direction {
+                    FloatDirection::Left => self.left_band += width,
+                    FloatDirection::Right => self.right_band += width,
+                }
+                self.contribution = self.contribution.max(self.left_band + self.right_band);
+            }
         };
     }
 
     /// Get the computed float contribution to intrinsic width
     pub fn result(&self) -> f32 {
         self.contribution
+    }
+}
+
+#[cfg(test)]
+mod float_intrinsic_width_tests {
+    use super::FloatIntrinsicWidthCalculator;
+    use crate::{AvailableSpace, Clear, FloatDirection};
+
+    #[test]
+    fn max_content_sums_floats_that_share_a_band() {
+        // Two right floats without clear sit side-by-side, so their widths sum.
+        let mut calc = FloatIntrinsicWidthCalculator::new(AvailableSpace::MaxContent);
+        calc.add_float(100.0, FloatDirection::Right, Clear::None);
+        calc.add_float(150.0, FloatDirection::Right, Clear::None);
+        assert_eq!(calc.result(), 250.0);
+    }
+
+    #[test]
+    fn max_content_stacks_floats_that_clear() {
+        // Two right floats that each clear right stack vertically, so we take the max
+        // width rather than summing them (regression test for over-wide float columns,
+        // e.g. Wikipedia infobox + sidebar).
+        let mut calc = FloatIntrinsicWidthCalculator::new(AvailableSpace::MaxContent);
+        calc.add_float(310.0, FloatDirection::Right, Clear::Right);
+        calc.add_float(300.0, FloatDirection::Right, Clear::Right);
+        assert_eq!(calc.result(), 310.0);
+    }
+
+    #[test]
+    fn max_content_opposite_sides_share_a_band() {
+        // A left float and a right float without clear share a band and so their widths sum.
+        let mut calc = FloatIntrinsicWidthCalculator::new(AvailableSpace::MaxContent);
+        calc.add_float(100.0, FloatDirection::Left, Clear::None);
+        calc.add_float(150.0, FloatDirection::Right, Clear::None);
+        assert_eq!(calc.result(), 250.0);
+    }
+
+    #[test]
+    fn max_content_clear_only_resets_matching_side() {
+        // `clear: right` on a right float resets the right band but leaves the left band intact.
+        let mut calc = FloatIntrinsicWidthCalculator::new(AvailableSpace::MaxContent);
+        calc.add_float(100.0, FloatDirection::Left, Clear::None);
+        calc.add_float(150.0, FloatDirection::Right, Clear::None);
+        // At this point the band is 250 wide (100 left + 150 right).
+        calc.add_float(120.0, FloatDirection::Right, Clear::Right);
+        // Right band reset to 120, left band still 100 => 220. Max seen is still 250.
+        assert_eq!(calc.result(), 250.0);
+    }
+
+    #[test]
+    fn min_content_takes_max_float_width() {
+        let mut calc = FloatIntrinsicWidthCalculator::new(AvailableSpace::MinContent);
+        calc.add_float(100.0, FloatDirection::Right, Clear::None);
+        calc.add_float(150.0, FloatDirection::Left, Clear::None);
+        assert_eq!(calc.result(), 150.0);
     }
 }

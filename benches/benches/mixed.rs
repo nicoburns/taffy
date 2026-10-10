@@ -7,8 +7,12 @@ use taffy::prelude::*;
 use taffy::style::Style;
 use taffy_benchmarks::{bench_layout, benchmark_group, TaffyLayoutTree};
 
+#[cfg(feature = "taffy014")]
+use taffy_benchmarks::taffy_014_helpers::{available_space_from_014, available_space_to_014, Taffy014LayoutTree};
+
 pub const LOREM_IPSUM : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 
+#[derive(Clone)]
 struct ParleyTextContext {
     layout: parley::Layout<[u8; 4]>,
 }
@@ -129,6 +133,20 @@ fn build_mixed_tree(
 fn mixed_benchmark(c: &mut Criterion) {
     let layout_ctx = std::cell::RefCell::new(LayoutContext::new());
     let font_ctx = std::cell::RefCell::new(FontContext::new());
+    let build_tree = |depth: usize, width: usize| {
+        let mut taffy = TaffyTree::new();
+        let mut rng = ChaCha8Rng::seed_from_u64(12345);
+        let root = build_mixed_tree(
+            &mut taffy,
+            &mut layout_ctx.borrow_mut(),
+            &mut font_ctx.borrow_mut(),
+            depth,
+            width,
+            &mut rng,
+            true,
+        );
+        (taffy, root)
+    };
     let mut group = benchmark_group(c, "mixed_flex_grid");
 
     let depths = [2, 4];
@@ -136,26 +154,53 @@ fn mixed_benchmark(c: &mut Criterion) {
 
     for &depth in &depths {
         for &width in &widths {
+            #[cfg(feature = "taffy014")]
+            {
+                let benchmark_id = BenchmarkId::new("Taffy 0.14 mixed", format!("depth_{}_width_{}", depth, width));
+                let mut tree = None;
+                group.bench_with_input(benchmark_id, &(depth, width), |b, &(depth, width)| {
+                    bench_layout(
+                        b,
+                        &mut tree,
+                        || Taffy014LayoutTree::convert(build_tree(depth, width), ParleyTextContext::clone),
+                        |tree| tree.mark_all_dirty(),
+                        |tree| {
+                            tree.tree
+                                .compute_layout_with_measure(
+                                    tree.root,
+                                    available_space_to_014(Size::MAX_CONTENT),
+                                    |inputs, _node_id, node_context, style| {
+                                        taffy_014::compute_leaf_layout(
+                                            inputs,
+                                            style,
+                                            |_, _| 0.0,
+                                            |known_dimensions, available_space| {
+                                                let size = measure_function(
+                                                    Size {
+                                                        width: known_dimensions.width,
+                                                        height: known_dimensions.height,
+                                                    },
+                                                    available_space_from_014(available_space),
+                                                    node_context,
+                                                );
+                                                taffy_014::Size { width: size.width, height: size.height }
+                                            },
+                                        )
+                                    },
+                                )
+                                .unwrap();
+                        },
+                    )
+                });
+            }
+
             let benchmark_id = BenchmarkId::new("mixed", format!("depth_{}_width_{}", depth, width));
             let mut tree = None;
             group.bench_with_input(benchmark_id, &(depth, width), |b, &(depth, width)| {
                 bench_layout(
                     b,
                     &mut tree,
-                    || {
-                        let mut taffy = TaffyTree::new();
-                        let mut rng = ChaCha8Rng::seed_from_u64(12345);
-                        let root = build_mixed_tree(
-                            &mut taffy,
-                            &mut layout_ctx.borrow_mut(),
-                            &mut font_ctx.borrow_mut(),
-                            depth,
-                            width,
-                            &mut rng,
-                            true,
-                        );
-                        TaffyLayoutTree::new((taffy, root))
-                    },
+                    || TaffyLayoutTree::new(build_tree(depth, width)),
                     |tree| tree.mark_all_dirty(),
                     |tree| {
                         tree.tree

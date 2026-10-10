@@ -9,6 +9,8 @@ use taffy_benchmarks::{
     bench_layout, benchmark_group, BuildTree, BuildTreeExt, FixedStyleGenerator, GenStyle, TaffyTreeBuilder,
 };
 
+#[cfg(feature = "taffy014")]
+use taffy_benchmarks::taffy_014_helpers::Taffy014TreeBuilder;
 #[cfg(feature = "taffy03")]
 use taffy_benchmarks::taffy_03_helpers::Taffy03TreeBuilder;
 #[cfg(feature = "yoga")]
@@ -94,6 +96,8 @@ macro_rules! benchmark_each_library {
         run_benchmark!(YogaTreeBuilder<_, _>, "Yoga", $benchmark_name, $group, $builder, $params, $generate_style, $generate_tree);
         #[cfg(feature = "taffy03")]
         run_benchmark!(Taffy03TreeBuilder<_, _>, "Taffy 0.3", $benchmark_name, $group, $builder, $params, $generate_style, $generate_tree);
+        #[cfg(feature = "taffy014")]
+        run_benchmark!(Taffy014TreeBuilder<_, _>, "Taffy 0.14", $benchmark_name, $group, $builder, $params, $generate_style, $generate_tree);
 
         run_benchmark!(TaffyTreeBuilder<_, _>, "Taffy main", $benchmark_name, $group, $builder, $params, $generate_style, $generate_tree);
     };
@@ -157,7 +161,21 @@ fn absolute_benchmarks(c: &mut Criterion) {
 
     let mut group = benchmark_group(c, "Absolutely positioned leaves");
     for node_count in node_counts.iter() {
-        benchmark_each_library!(
+        // Taffy 0.3 and 0.14 are excluded as they don't hoist absolutely positioned boxes to their containing block
+        #[cfg(feature = "yoga")]
+        run_benchmark!(
+            YogaTreeBuilder<_, _>,
+            "Yoga",
+            "(2-level hierarchy)",
+            group,
+            builder,
+            node_count,
+            || RandomAbsoluteStyleGenerator,
+            builder.build_flat_hierarchy(*node_count)
+        );
+        run_benchmark!(
+            TaffyTreeBuilder<_, _>,
+            "Taffy main",
             "(2-level hierarchy)",
             group,
             builder,
@@ -254,6 +272,17 @@ fn super_deep_benchmarks(c: &mut Criterion) {
         run_benchmark!(
             Taffy03TreeBuilder<_,_>,
             "Taffy 0.3",
+            "",
+            group,
+            builder,
+            depth,
+            || SuperDeepStyleGen,
+            builder.build_super_deep_hierarchy(*depth, 3)
+        );
+        #[cfg(feature = "taffy014")]
+        run_benchmark!(
+            Taffy014TreeBuilder<_,_>,
+            "Taffy 0.14",
             "",
             group,
             builder,

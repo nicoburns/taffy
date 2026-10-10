@@ -9,6 +9,9 @@ pub use taffy_helpers::TaffyTreeBuilder;
 #[cfg(feature = "taffy03")]
 pub mod taffy_03_helpers;
 
+#[cfg(feature = "taffy014")]
+pub mod taffy_014_helpers;
+
 #[cfg(feature = "yoga")]
 pub mod yoga_helpers;
 #[cfg(feature = "yoga")]

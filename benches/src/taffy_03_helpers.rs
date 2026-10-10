@@ -2,6 +2,7 @@ use rand::distr::uniform::SampleRange;
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 use taffy::style::Style as TaffyStyle;
+use taffy_03::tree::LayoutTree;
 
 use super::{BuildTree, BuildTreeExt, GenStyle};
 
@@ -85,8 +86,8 @@ fn convert_style(style: taffy::style::Style) -> taffy_03::style::Style {
         padding: convert_rect(style.padding, convert_length_percentage),
         border: convert_rect(style.border, convert_length_percentage),
         size: convert_size(style.size, convert_dimension),
-        min_size: convert_size(style.min_size, convert_dimension),
-        max_size: convert_size(style.max_size, convert_dimension),
+        min_size: convert_size(style.min_size, convert_length_percentage_auto_to_dimension),
+        max_size: convert_size(style.max_size, convert_length_percentage_auto_to_dimension),
         aspect_ratio: style.aspect_ratio,
         gap: convert_size(style.gap, convert_length_percentage),
         // Alignment
@@ -146,6 +147,18 @@ fn convert_dimension(input: taffy::style::Dimension) -> taffy_03::style::Dimensi
     }
 }
 
+fn convert_length_percentage_auto_to_dimension(
+    input: taffy::style::LengthPercentageAuto,
+) -> taffy_03::style::Dimension {
+    let raw = input.into_raw();
+    match raw.tag() {
+        taffy::style::CompactLength::LENGTH_TAG => taffy_03::style::Dimension::Points(raw.value()),
+        taffy::style::CompactLength::PERCENT_TAG => taffy_03::style::Dimension::Percent(raw.value()),
+        taffy::style::CompactLength::AUTO_TAG => taffy_03::style::Dimension::Auto,
+        _ => panic!("unsupported LengthPercentageAuto variant"),
+    }
+}
+
 fn convert_length_percentage_auto(input: taffy::style::LengthPercentageAuto) -> taffy_03::style::LengthPercentageAuto {
     let raw = input.into_raw();
     match raw.tag() {
@@ -199,5 +212,8 @@ fn convert_flex_wrap(input: taffy::style::FlexWrap) -> taffy_03::style::FlexWrap
         taffy::style::FlexWrap::NoWrap => taffy_03::style::FlexWrap::NoWrap,
         taffy::style::FlexWrap::Wrap => taffy_03::style::FlexWrap::Wrap,
         taffy::style::FlexWrap::WrapReverse => taffy_03::style::FlexWrap::WrapReverse,
+        taffy::style::FlexWrap::Balance | taffy::style::FlexWrap::BalanceReverse => {
+            panic!("flex-wrap: balance not implemented in taffy 0.3")
+        }
     }
 }

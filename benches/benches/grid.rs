@@ -10,6 +10,8 @@ use taffy_benchmarks::{bench_layout, benchmark_group, TaffyLayoutTree};
 
 #[cfg(feature = "taffy014")]
 use taffy_benchmarks::taffy_014_helpers::Taffy014LayoutTree;
+#[cfg(feature = "taffy03")]
+use taffy_benchmarks::taffy_03_helpers::Taffy03LayoutTree;
 
 /// Build a random leaf node
 fn build_random_leaf(taffy: &mut TaffyTree, _rng: &mut ChaCha8Rng) -> NodeId {
@@ -145,6 +147,20 @@ fn bench_tree<P: std::fmt::Display>(
     build: impl Fn() -> (TaffyTree, NodeId),
     available_space: Size<AvailableSpace>,
 ) {
+    #[cfg(feature = "taffy03")]
+    {
+        let mut tree = None;
+        group.bench_function(BenchmarkId::new(format!("Taffy 0.3 {name}"), &parameter), |b| {
+            bench_layout(
+                b,
+                &mut tree,
+                || Taffy03LayoutTree::new(build()),
+                |tree| tree.mark_all_dirty(),
+                |tree| tree.compute_layout(available_space),
+            )
+        });
+    }
+
     #[cfg(feature = "taffy014")]
     {
         let mut tree = None;

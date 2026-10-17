@@ -18,6 +18,8 @@ use taffy_benchmarks::{bench_layout, benchmark_group, BuildTree, BuildTreeExt, G
 use taffy_benchmarks::morphorm_helpers::MorphormTree;
 #[cfg(feature = "taffy03")]
 use taffy_benchmarks::taffy_03_helpers::Taffy03TreeBuilder;
+#[cfg(feature = "taffy014")]
+use taffy_benchmarks::taffy_014_helpers::Taffy014TreeBuilder;
 #[cfg(feature = "torin")]
 use taffy_benchmarks::torin_helpers::TorinTree;
 #[cfg(feature = "yoga")]
@@ -191,6 +193,8 @@ macro_rules! benchmark_each_library {
         run_benchmark!(YogaTreeBuilder<_, _>, "Yoga", $group, $name, $root);
         #[cfg(feature = "taffy03")]
         run_benchmark!(Taffy03TreeBuilder<_, _>, "Taffy 0.3", $group, $name, $root);
+        #[cfg(feature = "taffy014")]
+        run_benchmark!(Taffy014TreeBuilder<_, _>, "Taffy 0.14", $group, $name, $root);
 
         run_benchmark!(TaffyTreeBuilder<_, _>, "Taffy main", $group, $name, $root);
     };

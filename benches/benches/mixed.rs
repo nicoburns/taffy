@@ -9,6 +9,8 @@ use taffy_benchmarks::{bench_layout, benchmark_group, TaffyLayoutTree};
 
 #[cfg(feature = "taffy014")]
 use taffy_benchmarks::taffy_014_helpers::{available_space_from_014, available_space_to_014, Taffy014LayoutTree};
+#[cfg(feature = "taffy03")]
+use taffy_benchmarks::taffy_03_helpers::{available_space_from_03, measure_func_with_context, Taffy03LayoutTree};
 
 pub const LOREM_IPSUM : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 
@@ -154,6 +156,35 @@ fn mixed_benchmark(c: &mut Criterion) {
 
     for &depth in &depths {
         for &width in &widths {
+            #[cfg(feature = "taffy03")]
+            {
+                let benchmark_id = BenchmarkId::new("Taffy 0.3 mixed", format!("depth_{}_width_{}", depth, width));
+                let mut tree = None;
+                group.bench_with_input(benchmark_id, &(depth, width), |b, &(depth, width)| {
+                    bench_layout(
+                        b,
+                        &mut tree,
+                        || {
+                            Taffy03LayoutTree::convert(build_tree(depth, width), |context: &ParleyTextContext| {
+                                measure_func_with_context(
+                                    context.clone(),
+                                    |context, known_dimensions, available_space| {
+                                        let size = measure_function(
+                                            Size { width: known_dimensions.width, height: known_dimensions.height },
+                                            available_space_from_03(available_space),
+                                            Some(context),
+                                        );
+                                        taffy_03::geometry::Size { width: size.width, height: size.height }
+                                    },
+                                )
+                            })
+                        },
+                        |tree| tree.mark_all_dirty(),
+                        |tree| tree.compute_layout(Size::MAX_CONTENT),
+                    )
+                });
+            }
+
             #[cfg(feature = "taffy014")]
             {
                 let benchmark_id = BenchmarkId::new("Taffy 0.14 mixed", format!("depth_{}_width_{}", depth, width));
